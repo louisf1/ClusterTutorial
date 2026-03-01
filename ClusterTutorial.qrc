@@ -1,0 +1,28 @@
+<RCC>
+    <qresource>
+        <file>ClusterTutorial.qmlproject</file>
+        <file>ClusterTutorial/Constants.qml</file>
+        <file>ClusterTutorial/DirectoryFontLoader.qml</file>
+        <file>ClusterTutorial/EventListModel.qml</file>
+        <file>ClusterTutorial/EventListSimulator.qml</file>
+        <file>ClusterTutorial/qmldir</file>
+        <file>Data/Values.qml</file>
+        <file>Data/qmldir</file>
+        <file>Data/simulation.js</file>
+        <file>imports/QtQuick/Studio/Application/qmldir</file>
+        <file>imports/QtQuick/Studio/Components/qmldir</file>
+        <file>imports/QtQuick/Studio/Effects/qmldir</file>
+        <file>imports/QtQuick/Studio/LogicHelper/qmldir</file>
+        <file>imports/QtQuick/Studio/Utils/qmldir</file>
+        <file>qml/QtQuick/Studio/Application/qmldir</file>
+        <file>qml/QtQuick/Studio/Components/qmldir</file>
+        <file>qml/QtQuick/Studio/DesignEffects/qmldir</file>
+        <file>qml/QtQuick/Studio/Effects/qmldir</file>
+        <file>qml/QtQuick/Studio/EventSimulator/qmldir</file>
+        <file>qml/QtQuick/Studio/EventSystem/qmldir</file>
+        <file>qml/QtQuick/Studio/LogicHelper/qmldir</file>
+        <file>qml/QtQuick/Studio/MultiText/qmldir</file>
+        <file>qml/QtQuick/Studio/Utils/qmldir</file>
+        <file>qtquickcontrols2.conf</file>
+    </qresource>
+</RCC>
