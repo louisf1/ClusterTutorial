@@ -21,11 +21,16 @@ find_package(gRPC REQUIRED)
 # 3. Find Kuksa
 find_package(kuksaclient REQUIRED)
 
-# Copy the proprietary Qt Design Studio imports to the build output directory
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/imports DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+# Safely copy imports ONLY if the folder exists
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/imports")
+    file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/imports DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+endif()
 
-# Automatically copy the Linux shared libraries into the build folder
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/custom_libs/ DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+# Safely copy custom_libs ONLY if the folder exists (Desktop mode)
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/custom_libs")
+    file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/custom_libs/ DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+endif()
+
 
 qt_add_executable(ClusterDashboardApp main.cpp)
 
