@@ -57,8 +57,8 @@ import QtQuick.Studio.Effects 1.0
 
 Item {
     id: cluster_Art
-    width: 1920
-    height: 1080
+    width: 1720
+    height: 700
 
     Image {
         id: cluster_ArtAsset
@@ -75,7 +75,7 @@ Item {
     Item {
         id: isoIconsEffect
         x: 510
-        y: 809
+        y: 860
         width: 920
         height: 142
 
@@ -86,6 +86,22 @@ Item {
         }
     }
 
+/* ---Lights--- iso_195_157 */
+    Item {
+        id: headlightsInstance
+        x: 510
+        y: 750
+        width: 920
+        height: 142
+
+        Iso_195_157 {
+            id: isoIconsLights
+            x: 0
+            y: 37
+        }
+    }
+//----------------------------
+
     Gearbox_195_196 {
         id: gearbox_195_196
         x: 928
@@ -93,10 +109,59 @@ Item {
         currentGear: Data.Values.currentGear
     }
 
+
+// Your new Temperature Gauge
+    Temp_dial_195_83 {
+        id: temp_dial_195_83
+        
+        // Positioning: Top-Left corner
+        x: 290  // Adds a small 60-pixel margin from the left edge
+        y: 160  // Adds a small 60-pixel margin from the top edge
+        
+        // Scaling: Shrink it so it acts as a secondary corner gauge
+        // 0.5 means 50% of its original size. Adjust this until it looks right!
+        scale: 0.5 
+        transformOrigin: Item.TopLeft // Ensures it scales towards the corner, not the center
+        
+        // --- ADD THESE TWO LINES HERE ---
+        displayTemp: Data.Values.displayTemp
+        tempFrame: (Data.Values.temp - 40) * 10
+    }
+        
+/* --- Left Indicator --- */
+    Left_Indicator {
+        id: leftIndicatorInstance
+        x: 540
+        y: 497
+        width: 100 
+        height: 100
+        active: Data.Values.leftindicator // Must match Values.qml
+    }
+
+    /* --- Right Indicator --- */
+    Right_Indicator {
+        id: rightIndicatorInstance
+        x: 1300
+        y: 497
+        width: 100
+        height: 100
+        active: Data.Values.rightindicator // Must match Values.qml
+    }
+        
+    KMS_Totals_Trip {
+        id: totaltrips
+        x: 700
+        y: 480
+        width: 512
+        height: 630
+        readout_total_kms: Data.Values.totalKms.toFixed(0)
+        readout_total_trip: Data.Values.tripKms.toFixed(1)
+    }
+    
     Fuel_dial_195_43 {
         id: fuelDial
         x: 1453
-        y: 491
+        y: 450
         width: 512
         height: 630
         rangeDisplay: Data.Values.displayRange
@@ -109,7 +174,7 @@ Item {
         width: 508
         height: 591
         x: 69
-        y: 485
+        y: 450
         displayRpm: Data.Values.displayRpm
         rpmFrame: Data.Values.rpm
     }
@@ -155,6 +220,98 @@ Item {
         endFrame: 5000
         enabled: true
 
+// ----------------------------------------------------------
+// -------------- All the lights bar stuff start-------------
+// ----------------------------------------------------------
+// ----------------------------------------------------------
+       // --- ADDED: Headlights Animation ---
+        KeyframeGroup {
+            target: isoIconsLights
+            property: "opacity"
+
+            Keyframe {
+                value: 0
+                frame: 0
+            }
+
+            Keyframe {
+                value: 0
+                frame: 2977 // Wait in the dark
+            }
+
+            Keyframe {
+                easing.bezierCurve: [0.07, 0.82, 0.17, 1.00, 1, 1]
+                value: 1
+                frame: 3362 // Fade in with the other ISO icons
+            }
+        }
+        
+        // --- ADDED: Headlights Animation ---
+        KeyframeGroup {
+            target: leftIndicatorInstance
+            property: "opacity"
+
+            Keyframe {
+                value: 0
+                frame: 0
+            }
+
+            Keyframe {
+                value: 0
+                frame: 2977 // Wait in the dark
+            }
+
+            Keyframe {
+                easing.bezierCurve: [0.07, 0.82, 0.17, 1.00, 1, 1]
+                value: 1
+                frame: 3362 // Fade in with the other ISO icons
+            }
+        }
+
+        KeyframeGroup {
+            target: rightIndicatorInstance
+            property: "scale"
+
+            Keyframe {
+                value: 0.01
+                frame: 0
+            }
+
+            Keyframe {
+                value: 0.01
+                frame: 2977 // Stay tiny
+            }
+
+            Keyframe {
+                easing.bezierCurve: [0.07, 0.82, 0.17, 1.00, 1, 1]
+                value: 1
+                frame: 3473 // Pop out to full size
+            }
+        }
+
+        KeyframeGroup {
+            target: totaltrips
+            property: "scale"
+
+            Keyframe {
+                value: 0.01
+                frame: 0
+            }
+
+            Keyframe {
+                value: 0.01
+                frame: 2977 // Stay tiny
+            }
+
+            Keyframe {
+                easing.bezierCurve: [0.07, 0.82, 0.17, 1.00, 1, 1]
+                value: 1
+                frame: 3473 // Pop out to full size
+            }
+        } //totaltrips
+// -------------- All the lights bar stuff end --------------
+// ----------------------------------------------------------
+// ----------------------------------------------------------
         KeyframeGroup {
             target: flipable
             property: "flipAngle"
@@ -204,6 +361,51 @@ Item {
                 frame: 3616
             }
         }
+
+// --- ADDED: Temperature Gauge Opacity Fade-In ---
+        KeyframeGroup {
+            target: temp_dial_195_83
+            property: "opacity"
+
+            Keyframe {
+                value: 0
+                frame: 0
+            }
+
+            Keyframe {
+                value: 0
+                frame: 2386 // Wait in the dark alongside the RPM dial
+            }
+
+            Keyframe {
+                easing.bezierCurve: [0.95, 0.05, 0.80, 0.04, 1, 1]
+                value: 1
+                frame: 3299 // Fade to full visibility
+            }
+        }
+
+        // --- ADDED: Temperature Gauge "Swing/Zoom" Effect ---
+        KeyframeGroup {
+            target: temp_dial_195_83
+            property: "scale"
+            
+            Keyframe {
+                value: 0.01
+                frame: 5
+            }
+
+            Keyframe {
+                value: 0.01
+                frame: 2391 // Stay tiny alongside the RPM dial
+            }
+
+            Keyframe {
+                easing.bezierCurve: [0.95, 0.05, 0.80, 0.04, 1, 1]
+                value: 0.5 // CRITICAL: Stop at 0.5 so it stays a small corner gauge!
+                frame: 3294
+            }
+        }
+
 
         KeyframeGroup {
             target: rpmDial

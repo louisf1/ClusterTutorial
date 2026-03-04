@@ -1,5 +1,5 @@
 build/
-.cmake/
-CMakeFiles/
-CMakeCache.txt
-*.user
+custom_libs/
+*.so
+*.so.*
+*.qmlc

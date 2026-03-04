@@ -31,15 +31,26 @@ import QtQuick 2.15
 import QtQuick.Window 2.15
 import ClusterTutorial 1.0
 
-Window {
-    width: Constants.width
-    height: Constants.height
-
-    visible: true
-    title: "ClusterTutorial"
-
+Item {
+    // 1. Temporarily hardcode your screen size to bypass the Constants error
+    width: 1920  
+    height: 1080 
+    
+    // 2. Load your actual dashboard graphics
     ClusterTutorial {
+        anchors.fill: parent
     }
-
 }
+
+//Window {
+//    width: Constants.width
+//    height: Constants.height
+
+//    visible: true
+//    title: "ClusterTutorial"
+
+//    ClusterTutorial {
+//    }
+
+//}
 

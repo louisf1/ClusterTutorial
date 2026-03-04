@@ -5,6 +5,7 @@
 #include <QQmlProperty>
 #include <QDebug>
 #include <QTimer>
+#include <QQuickView>
 #include <QFile>
 #include <QTextStream>
 #include <fstream>
@@ -13,6 +14,10 @@
 #include <QStandardPaths>
 #include <QDir>
 #include <kuksaclient/kuksaclient.h>
+#include <QQuickView>
+#include <QQmlEngine>
+#include <QScreen>
+#include <QDirIterator>
 
 using namespace kuksa;
 
@@ -112,11 +117,14 @@ switch (value.typed_value_case()) {
     case kuksa::val::v2::Value::kString:
         newValue = QString::fromStdString(value.string());
         break;
-        
+//DATA_TYPE_UNSPECIFIED
+    case kuksa::val::v2::Value::TYPED_VALUE_NOT_SET:
+        qDebug() << "Signal is uninitialized in Databroker. Defaulting to false.";
+        newValue = false; // Or however you want to handle default states!
+        break;
+    // ----------------------
     default:
-        // CRITICAL: You must return here. If you assign a random value, 
-        // you will corrupt your dashboard needles.
-        qDebug() << "WARNING: Received unsupported VSS data type!";
+        qDebug() << "WARNING: Received unsupported VSS data type! ID:" << value.typed_value_case();
         return; 
 }
 
@@ -153,34 +161,70 @@ int main(int argc, char *argv[])
     QGuiApplication app(argc, argv);
     app.setOrganizationName("MyProject");
     app.setApplicationName("ClusterTutorial");
+    app.setDesktopFileName("cluster-dashboard"); // <-- THIS BECOMES YOUR WAYLAND app_id
+     
+    QQuickView view;
+    QQmlEngine *engine = view.engine();
     
-    QQmlApplicationEngine engine;
-    engine.addImportPath("/usr/local/ClusterTutorial/imports");
-    engine.addImportPath("/usr/local/ClusterTutorial/build/qml");
-    engine.addImportPath("/usr/local/ClusterTutorial");
-
-    int valuesTypeId = qmlRegisterSingletonType(QUrl::fromLocalFile("/usr/local/ClusterTutorial/Data/Values.qml"), "Data", 1, 0, "Values");
+    // 1. Tell the engine to look in the default Qt 6 module folder
+    engine->addImportPath("qrc:/");
+// 1. The standard Qt 6 virtual module path
+    engine->addImportPath("qrc:/qt/qml");
     
-    QObject *valuesObject = engine.singletonInstance<QObject*>(valuesTypeId);
+    // 2. NEW: Tell the engine to look in the physical 'imports' folder next to the app!
+    engine->addImportPath(QCoreApplication::applicationDirPath() + "/imports");
+    
+    // Register Singleton using three slashes (absolute QRC root)
+    int valuesTypeId = qmlRegisterSingletonType(
+        QUrl("qrc:/qt/qml/ClusterTutorial/ClusterTutorial/qmldir/Values.qml"), 
+        "Data", 1, 0, "Values"
+    );
+    
+    QObject *valuesObject = engine->singletonInstance<QObject*>(valuesTypeId);
 
     if (valuesObject) {
-        // Initialize the handler to listen to KUKSA
         KuksaHandler *handler = new KuksaHandler(valuesObject, &app);
-        
-        // Load the mapping file
-        handler->loadConfig("/usr/share/MyProject/ClusterTutorial/VSS_paths.txt");
+        QString configPath = QCoreApplication::applicationDirPath() + "/VSS_paths.txt";
+        if (!QFile::exists(configPath)) {
+            configPath = "/usr/share/ClusterTutorial/VSS_paths.txt";
+        }
+        handler->loadConfig(configPath);
     }
 
-    engine.load(QUrl::fromLocalFile("/usr/local/ClusterTutorial/ClusterTutorialContent/App.qml"));
-   
-    // --- ADD THIS CHECK ---
-    if (engine.rootObjects().isEmpty()) {
-        qDebug() << "CRITICAL ERROR: The QML Engine failed to load the UI!";
-        return -1; // Force the app to exit so you know it failed
+    view.setResizeMode(QQuickView::SizeRootObjectToView);
+    view.setGeometry(0, 0, 1280, 720); 
+
+    qDebug() << "\n=== DUMPING ALL INTERNAL QRC PATHS ===";
+    QDirIterator it(":", QDirIterator::Subdirectories);
+    while (it.hasNext()) {
+        QString path = it.next();
+        // Only print QML files to keep the output clean
+        if (path.endsWith(".qml")) { 
+            qDebug() << path;
+        }
+    }
+    qDebug() << "======================================\n";
+// --- TEMPORARY PATH FINDER ---
+   //QtDirIterator it(":", QDirIterator::Subdirectories);
+   // while (it.hasNext()) {
+   //     QString qrcPath = it.next();
+   //     if (qrcPath.contains("App.qml")) {
+   //         qDebug() << "=== FOUND IT! Use this exact string in view.setSource: ===";
+   //         qDebug() << "qrc" + qrcPath;
+   //     }
+   // }
+    // Your current setSource line
+    // Set the source using three slashes
+    view.setSource(QUrl("qrc:/qt/qml/ClusterTutorial/ClusterTutorial/qmldir/App.qml"));
+    if (view.status() == QQuickView::Error) {
+        qDebug() << "QML Errors:" << view.errors();
+        return -1;
     }
 
+    //This tells Qt to stretch the QML content when the window changes size
+    //view.setResizeMode(QQuickView::SizeRootObjectToView);
+    
+    view.showFullScreen();
     return app.exec();
-
 }
-
 #include "main.moc"

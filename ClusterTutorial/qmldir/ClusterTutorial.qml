@@ -49,7 +49,7 @@
 ****************************************************************************/
 
 import QtQuick 2.10
-import ClusterTutorial 1.0
+//import ClusterTutorial 1.0
 
 Item {
     width: Constants.width

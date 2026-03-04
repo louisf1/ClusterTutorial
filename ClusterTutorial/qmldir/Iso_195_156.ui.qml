@@ -87,35 +87,49 @@ Item {
             id: seatbeltIcon
             x: 0
             y: 0
+            active: Values.seatbeltActive            
             engineIconOffSource: "icons/seatbeltIcon.png"
+            // 1. Tell it what image to use when it turns on!
+            engineIconOnSource: "icons/seatbeltIconOn.png" 
+            // 2. Wire the switch directly to the Databroker's brain!
         }
 
         IsoIcon {
             id: parkingBrakeIcon
             x: 0
             y: 0
+            active: Values.parkingBrakeActive            
             engineIconOffSource: "icons/parkingBrakeIcon.png"
+            // 1. Tell it what image to use when it turns on!
+            engineIconOnSource: "icons/parkingBrakeIconOn.png" 
+            // 2. Wire the switch directly to the Databroker's brain!
         }
 
         IsoIcon {
             id: parkingLightIcon
             x: 0
             y: 0
+            active: Values.parkingBrakeActive
             engineIconOffSource: "icons/parkingLightIcon.png"
+            engineIconOnSource:  "icons/parkingLightIconOn.png"
         }
 
         IsoIcon {
             id: iceIcon
             x: 0
             y: 0
+            active: Values.iceIconActive
             engineIconOffSource: "icons/iceIcon.png"
+            engineIconOnSource:  "icons/iceIconOn.png"            
         }
 
         IsoIcon {
             id: absIcon
             x: 0
             y: 0
+            active: Values.absIconActive            
             engineIconOffSource: "icons/absIcon.png"
+            engineIconOnSource: "icons/absIconOn.png"            
         }
 
         IsoIcon {
