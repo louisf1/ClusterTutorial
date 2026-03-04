@@ -177,10 +177,5 @@ target_link_libraries(ClusterDashboardApp PRIVATE
 
 # 6. Install logic for AGL
 include(GNUInstallDirs)
-install(TARGETS ClusterDashboardApp 
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-)
-
-include(GNUInstallDirs)
 install(TARGETS ClusterDashboardApp RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
