@@ -168,10 +168,12 @@ int main(int argc, char *argv[])
     
     // 1. Tell the engine to look in the default Qt 6 module folder
     engine->addImportPath("qrc:/");
-// 1. The standard Qt 6 virtual module path
+    // 2. Tell the engine to look in our bundled internal resources for imports
+    engine->addImportPath("qrc:/imports");
+    // 3. The standard Qt 6 virtual module path
     engine->addImportPath("qrc:/qt/qml");
     
-    // 2. NEW: Tell the engine to look in the physical 'imports' folder next to the app!
+    // 4. NEW: Tell the engine to look in the physical 'imports' folder next to the app!
     engine->addImportPath(QCoreApplication::applicationDirPath() + "/imports");
     
     // Register Singleton using three slashes (absolute QRC root)
@@ -215,6 +217,9 @@ int main(int argc, char *argv[])
    // }
     // Your current setSource line
     // Set the source using three slashes
+    // Now load your app
+    //const QUrl url(u"qrc:/qt/qml/ClusterTutorial/ClusterTutorial/qmldir/App.qml"_qs);
+    
     view.setSource(QUrl("qrc:/qt/qml/ClusterTutorial/ClusterTutorial/qmldir/App.qml"));
     if (view.status() == QQuickView::Error) {
         qDebug() << "QML Errors:" << view.errors();
