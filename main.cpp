@@ -174,12 +174,15 @@ int main(int argc, char *argv[])
     QQuickView view;
     QQmlEngine *engine = view.engine();
     
-    // 1. The absolute root of your binary resources
+     // 1. Root and standard QML paths
      engine->addImportPath("qrc:/");
+     engine->addImportPath("qrc:/qt/qml");
 
-    // 2. The base folder for your custom URI (Satisfies 'import ClusterTutorial')
+    // 2. Point specifically to the system folder where we installed the Studio plugins
+     engine->addImportPath("/usr/lib/qml"); 
+
+    // 3. Point to the URI root for your internal files
      engine->addImportPath("qrc:/qt/qml/ClusterTutorial");
-
     // 3. The internal imports folder (Satisfies Studio Components)
      engine->addImportPath("qrc:/qt/qml/ClusterTutorial/imports");
     
