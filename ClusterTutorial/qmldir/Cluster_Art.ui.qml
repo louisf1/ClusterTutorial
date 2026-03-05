@@ -154,8 +154,9 @@ Item {
         y: 480
         width: 512
         height: 630
-        readout_total_kms: Data.Values.totalKms.toFixed(0)
-        readout_total_trip: Data.Values.tripKms.toFixed(1)
+        // Safe version: defaults to "0" or "0.0" if data is missing
+        readout_total_kms: Math.round(Data.Values.totalKms || 0)
+        readout_total_trip: Number(Data.Values.tripKms || 0).toFixed(1)
     }
     
     Fuel_dial_195_43 {

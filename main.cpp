@@ -145,7 +145,15 @@ switch (value.typed_value_case()) {
                     if (hmiProperty == "temp" && type == "float") {
                         m_values->setProperty("displayTemp", QString::number(static_cast<int>(newValue.toFloat())));
                     }
-                    
+                    // Inside your QMetaObject::invokeMethod block in main.cpp:
+                    if (hmiProperty == "totalKms") {
+                        // Round ODO to a whole number string
+                        m_values->setProperty("displayTotalKms", QString::number(static_cast<int>(std::round(newValue.toFloat()))));
+                    }
+                    if (hmiProperty == "tripKms") {
+                        // Force 1 decimal place for Trip
+                        m_values->setProperty("displayTripKms", QString::number(newValue.toFloat(), 'f', 1));
+                    }
                 });
             }
         });
@@ -166,12 +174,14 @@ int main(int argc, char *argv[])
     QQuickView view;
     QQmlEngine *engine = view.engine();
     
-    // 1. Tell the engine to look in the default Qt 6 module folder
-    engine->addImportPath("qrc:/");
-    // 2. Tell the engine to look in our bundled internal resources for imports
-    engine->addImportPath("qrc:/qt/qml/ClusterTutorial/imports");
-    // 3. The standard Qt 6 virtual module path
-    engine->addImportPath("qrc:/qt/qml");
+    // 1. The absolute root of your binary resources
+     engine->addImportPath("qrc:/");
+
+    // 2. The base folder for your custom URI (Satisfies 'import ClusterTutorial')
+     engine->addImportPath("qrc:/qt/qml/ClusterTutorial");
+
+    // 3. The internal imports folder (Satisfies Studio Components)
+     engine->addImportPath("qrc:/qt/qml/ClusterTutorial/imports");
     
     // 4. NEW: Tell the engine to look in the physical 'imports' folder next to the app!
     engine->addImportPath(QCoreApplication::applicationDirPath() + "/imports");

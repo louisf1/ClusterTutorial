@@ -42,6 +42,7 @@ qt6_add_qml_module(ClusterDashboardApp
     NO_PLUGIN
     QML_FILES
         # Note: Paths here MUST match your 'ls -R' output exactly
+        ClusterTutorial/qmldir/qmldir
         ClusterTutorial/qmldir/absIcon.ui.qml
         ClusterTutorial/qmldir/App.qml
         ClusterTutorial/qmldir/ArcArrow.qml
@@ -87,7 +88,7 @@ qt6_add_qml_module(ClusterDashboardApp
         ClusterTutorial/qmldir/Values.qml
 
     RESOURCES
-        ClusterTutorial/qmldir/qmldir
+
         ## the qmldir modules link file
         ##ClusterTutorial/qmldir/qmldir  # Add new definitions in this file
         # Adding your assets and icons to the resource system Fonts
@@ -350,20 +351,24 @@ qt6_add_qml_module(ClusterDashboardApp
 
 )
 
-# 5. Link everything to the Executable
+# 5. --- THE VIRTUAL ALIAS (Refined) ---
+# We map Values.qml to act as the qmldir for the "Data" module.
+# The alias must include the "Data/" prefix to satisfy "import Data 1.0"
+set_source_files_properties(ClusterTutorial/qmldir/Values.qml 
+    PROPERTIES QT_RESOURCE_ALIAS "Data/qmldir"
+)
+
+# 6. Link everything to the Executable
 target_link_libraries(ClusterDashboardApp PRIVATE 
     Qt6::Core
     Qt6::Gui
     Qt6::Qml
     Qt6::Quick
-    #Qt6::Core5Compat  # Required for the Glow effect
-    # Corrected System Links:
     gRPC::grpc++
     protobuf::libprotobuf
-    kuksaclient       # Use the name found by find_package(kuksaclient)
+    kuksaclient
 )
 
-# 6. Install logic for AGL
+# 7. Install logic for AGL
 include(GNUInstallDirs)
 install(TARGETS ClusterDashboardApp RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-
