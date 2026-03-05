@@ -169,7 +169,7 @@ int main(int argc, char *argv[])
     // 1. Tell the engine to look in the default Qt 6 module folder
     engine->addImportPath("qrc:/");
     // 2. Tell the engine to look in our bundled internal resources for imports
-    engine->addImportPath("qrc:/imports");
+    engine->addImportPath("qrc:/qt/qml/ClusterTutorial/imports");
     // 3. The standard Qt 6 virtual module path
     engine->addImportPath("qrc:/qt/qml");
     
