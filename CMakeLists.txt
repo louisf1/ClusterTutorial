@@ -160,6 +160,11 @@ qt6_add_qml_module(ClusterDashboardApp
         ClusterTutorial/qmldir/icons/rightindicator.png
         ClusterTutorial/qmldir/icons/seatbeltIconOn.png
         ClusterTutorial/qmldir/icons/seatbeltIcon.png
+
+# --- BUNDLING STUDIO MODULES AS RESOURCES ---
+        # This fixes the "module not installed" errors on AGL
+        imports/QtQuick/Studio/Components/qmldir
+        imports/QtQuick/Studio/Effects/qmldir
 )
 
 # 5. Link everything to the Executable
