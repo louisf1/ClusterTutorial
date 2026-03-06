@@ -164,8 +164,6 @@ qt6_add_qml_module(ClusterDashboardApp
 
 # --- BUNDLING STUDIO MODULES AS RESOURCES ---
         # This fixes the "module not installed" errors on AGL
-        imports/QtQuick/Studio/Components/qmldir
-        imports/QtQuick/Studio/Effects/qmldir
         imports/Qt5Compat/GraphicalEffects/FastBlur.qml
         imports/Qt5Compat/GraphicalEffects/HueSaturation.qml
         imports/Qt5Compat/GraphicalEffects/DirectionalBlur.qml
@@ -176,6 +174,7 @@ qt6_add_qml_module(ClusterDashboardApp
         imports/Qt5Compat/GraphicalEffects/private/FastInnerShadow.qml
         imports/Qt5Compat/GraphicalEffects/private/GaussianMaskedBlur.qml
         imports/Qt5Compat/GraphicalEffects/private/plugins.qmltypes
+        imports/Qt5Compat/GraphicalEffects/private/qmldir
         imports/Qt5Compat/GraphicalEffects/private/GaussianInnerShadow.qml
         imports/Qt5Compat/GraphicalEffects/private/DropShadowBase.qml
         imports/Qt5Compat/GraphicalEffects/DropShadow.qml
@@ -195,6 +194,7 @@ qt6_add_qml_module(ClusterDashboardApp
         imports/Qt5Compat/GraphicalEffects/RectangularGlow.qml
         imports/Qt5Compat/GraphicalEffects/Blend.qml
         imports/Qt5Compat/GraphicalEffects/Glow.qml
+        imports/Qt5Compat/GraphicalEffects/qmldir
         imports/Qt5Compat/GraphicalEffects/GammaAdjust.qml
         imports/Qt5Compat/GraphicalEffects/ZoomBlur.qml
         imports/Qt5Compat/GraphicalEffects/ColorOverlay.qml
@@ -260,6 +260,7 @@ qt6_add_qml_module(ClusterDashboardApp
         imports/QtQuick/Studio/Effects/RadialBlurEffect.qml
         imports/QtQuick/Studio/Effects/LevelAdjustItem.qml
         imports/QtQuick/Studio/Effects/ThresholdMaskItem.qml
+        imports/QtQuick/Studio/Effects/qmldir
         imports/QtQuick/Studio/Effects/DirectionalBlurEffect.qml
         imports/QtQuick/Studio/Effects/RotationItem.qml
         imports/QtQuick/Studio/Effects/BlendEffect.qml
@@ -298,6 +299,7 @@ qt6_add_qml_module(ClusterDashboardApp
         imports/QtQuick/Studio/Components/StarItem.qml
         imports/QtQuick/Studio/Components/SvgPathItem.qml
         imports/QtQuick/Studio/Components/GroupItem.qml
+        imports/QtQuick/Studio/Components/qmldir
         imports/QtQuick/Studio/Components/BorderItem.qml
         imports/QtQuick/Studio/Components/RectangleItem.qml
         imports/QtQuick/Studio/Components/PieItem.qml
@@ -316,15 +318,23 @@ qt6_add_qml_module(ClusterDashboardApp
         imports/QtQuick/Studio/LogicHelper/BidirectionalBinding.qml
         imports/QtQuick/Studio/LogicHelper/QuickStudioLogicHelper.qmltypes
         imports/QtQuick/Studio/LogicHelper/AndOperator.qml
+        imports/QtQuick/Studio/LogicHelper/qmldir
         imports/QtQuick/Studio/LogicHelper/MinMaxMapper.qml
+        imports/QtQuick/Studio/Timeline/BlendTrees/plugins.qmltypes
+        imports/QtQuick/Studio/Timeline/BlendTrees/qmldir
+        imports/QtQuick/Studio/Timeline/plugins.qmltypes
+        imports/QtQuick/Studio/Timeline/qmldir
         imports/QtQuick/Studio/Application/plugins.qmltypes
+        imports/QtQuick/Studio/Application/qmldir
         imports/QtQuick/Studio/Utils/ChildListModel.qml
         imports/QtQuick/Studio/Utils/JsonListModel.qml
         imports/QtQuick/Studio/Utils/plugins.qmltypes
+        imports/QtQuick/Studio/Utils/qmldir
         imports/QtQuick/Studio/Utils/JsonBackend.qml
         imports/QtQuick/Studio/EventSystem/EventSystem.qml
         imports/QtQuick/Studio/EventSystem/EventListener.qml
         imports/QtQuick/Studio/EventSystem/QuickStudioEventSystem.qmltypes
+        imports/QtQuick/Studio/EventSystem/qmldir
         imports/QtQuick/Studio/DesignEffects/designer/DesignEffectPane.qml
         imports/QtQuick/Studio/DesignEffects/designer/DesignDropShadowSpecifics.qml
         imports/QtQuick/Studio/DesignEffects/designer/DesignInnerShadowSpecifics.qml
@@ -338,6 +348,7 @@ qt6_add_qml_module(ClusterDashboardApp
         imports/QtQuick/Studio/DesignEffects/DesignEffect.qml
         imports/QtQuick/Studio/DesignEffects/DesignInnerShadow.qml
         imports/QtQuick/Studio/DesignEffects/DesignEffectPrivate.qml
+        imports/QtQuick/Studio/DesignEffects/qmldir
         imports/QtQuick/Studio/MultiText/designer/MultiTextElementSpecifics.qml
         imports/QtQuick/Studio/MultiText/designer/MultiTextItemSpecifics.qml
         imports/QtQuick/Studio/MultiText/designer/MultiTextExceptionSpecifics.qml
@@ -345,10 +356,21 @@ qt6_add_qml_module(ClusterDashboardApp
         imports/QtQuick/Studio/MultiText/MultiTextElement.qml
         imports/QtQuick/Studio/MultiText/MultiTextException.qml
         imports/QtQuick/Studio/MultiText/QuickStudioMultiText.qmltypes
+        imports/QtQuick/Studio/MultiText/qmldir
+        imports/QtQuick/Studio/QtQml/XmlListModel/libqmlxmllistmodelplugin.so
+        imports/QtQuick/Studio/QtQml/XmlListModel/plugins.qmltypes
+        imports/QtQuick/Studio/QtQml/XmlListModel/qmldir
+        imports/QtQuick/Studio/QtQml/libqmlplugin.so
+        imports/QtQuick/Studio/QtQml/Models/plugins.qmltypes
+        imports/QtQuick/Studio/QtQml/Models/qmldir
+        imports/QtQuick/Studio/QtQml/plugins.qmltypes
+        imports/QtQuick/Studio/QtQml/WorkerScript/plugins.qmltypes
+        imports/QtQuick/Studio/QtQml/WorkerScript/qmldir
+        imports/QtQuick/Studio/QtQml/qmldir
         imports/QtQuick/Studio/EventSimulator/EventSimulatorDelegate.qml
+        imports/QtQuick/Studio/EventSimulator/qmldir
         imports/QtQuick/Studio/EventSimulator/EventSimulator.qml
         imports/QtQuick/Studio/EventSimulator/QuickStudioEventSimulator.qmltypes
-
 )
 
 # 5. --- THE VIRTUAL ALIAS (Refined) ---
