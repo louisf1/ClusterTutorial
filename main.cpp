@@ -175,7 +175,6 @@ int main(int argc, char *argv[])
     QQmlEngine *engine = view.engine();
     
      // 1. Root and standard QML paths
-     engine->addImportPath("qrc:/");
      engine->addImportPath("qrc:/qt/qml");
 
     // 2. Point specifically to the system folder where we installed the Studio plugins

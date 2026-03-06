@@ -123,7 +123,6 @@ Item {
         scale: 0.5 
         transformOrigin: Item.TopLeft // Ensures it scales towards the corner, not the center
         
-        // --- ADD THESE TWO LINES HERE ---
         displayTemp: Data.Values.displayTemp
         tempFrame: (Data.Values.temp - 40) * 10
     }
