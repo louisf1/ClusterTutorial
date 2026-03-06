@@ -357,10 +357,8 @@ qt6_add_qml_module(ClusterDashboardApp
         imports/QtQuick/Studio/MultiText/MultiTextException.qml
         imports/QtQuick/Studio/MultiText/QuickStudioMultiText.qmltypes
         imports/QtQuick/Studio/MultiText/qmldir
-        imports/QtQuick/Studio/QtQml/XmlListModel/libqmlxmllistmodelplugin.so
         imports/QtQuick/Studio/QtQml/XmlListModel/plugins.qmltypes
         imports/QtQuick/Studio/QtQml/XmlListModel/qmldir
-        imports/QtQuick/Studio/QtQml/libqmlplugin.so
         imports/QtQuick/Studio/QtQml/Models/plugins.qmltypes
         imports/QtQuick/Studio/QtQml/Models/qmldir
         imports/QtQuick/Studio/QtQml/plugins.qmltypes
