@@ -187,14 +187,9 @@ int main(int argc, char *argv[])
 
     // 3. Point to the URI root for your internal files
      engine->addImportPath("qrc:/qt/qml/ClusterTutorial");
-    // 3. The internal imports folder (Satisfies Studio Components)
-    // engine->addImportPath("qrc:/qt/qml/ClusterTutorial/imports");
+    // 4. The internal imports folder (Satisfies Studio Components)
 
-    // 3.2 Keep the custom_libs for the linker (though LD_LIBRARY_PATH usually handles this)
-    engine->addImportPath(QCoreApplication::applicationDirPath() + "/custom_libs");
-    
-    // 4. NEW: Tell the engine to look in the physical 'imports' folder next to the app!
-    engine->addImportPath(QCoreApplication::applicationDirPath() + "/imports");
+    // 5. NEW: Tell the engine to look in the physical 'imports' folder next to the app!
     // Add the physical folder where your .so plugins live
     engine->addImportPath(QCoreApplication::applicationDirPath() + "/imports");
     engine->addImportPath(QCoreApplication::applicationDirPath() + "/custom_libs");
