@@ -317,7 +317,6 @@ qt6_add_qml_module(ClusterDashboardApp
         imports/QtQuick/Studio/QtQml/WorkerScript/qmldir
         imports/QtQuick/Studio/QtQml/qmldir
         imports/QtQuick/Studio/EventSimulator/qmldir
-        ##ClusterTutorial/qmldir
         ClusterTutorial/qmldir/qmldir
         ##ClusterTutorial/qmldir/qmldir  # Add new definitions in this file
         # Adding your assets and icons to the resource system Fonts
