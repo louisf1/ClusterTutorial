@@ -57,9 +57,11 @@ import QtQuick.Studio.Effects 1.0
 
 Item {
     id: cluster_Art
-    width: 1720
-    height: 700
-
+    //width: 1720
+    //height: 700
+// Instead of fixed height: 700, use:
+    anchors.fill: parent
+    
     Image {
         id: cluster_ArtAsset
         x: 0
@@ -72,13 +74,30 @@ Item {
         y: 0
     }
 
+
+    Rectangle {
+        id: bottomAnchorBar
+        width: parent.width * 0.5 
+        height: 200              
+        color: "transparent"     // Keep the background clear
+    
+    // THE VISUAL BORDER
+    //    border.color: "red"      // A bright color is best for debugging
+    //    border.width: 2          // Thickness in pixels
+    
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: cluster_Art.bottom
+        anchors.bottomMargin: 100 // Mirror of the bottom margin
+  
+    }
+
     Item {
         id: isoIconsEffect
-        x: 510
-        y: 860
         width: 920
         height: 142
-
+        // Anchor to the bottom of our new rectangle
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: bottomAnchorBar.bottom
         Iso_195_156 {
             id: isoIcons
             x: 0
@@ -89,11 +108,12 @@ Item {
 /* ---Lights--- iso_195_157 */
     Item {
         id: headlightsInstance
-        x: 510
-        y: 750
         width: 920
         height: 142
-
+      // Anchor to the TOP of the first icon bar to stack them
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: isoIconsEffect.top
+        anchors.bottomMargin: -20 // Adjust this to overlap or gap them
         Iso_195_157 {
             id: isoIconsLights
             x: 0
@@ -112,7 +132,7 @@ Item {
 
 // Your new Temperature Gauge
     Temp_dial_195_83 {
-        id: temp_dial_195_83
+        id: tempDialInstance
         
         // Positioning: Top-Left corner
         x: 290  // Adds a small 60-pixel margin from the left edge
@@ -123,47 +143,57 @@ Item {
         scale: 0.5 
         transformOrigin: Item.TopLeft // Ensures it scales towards the corner, not the center
         
+        // Normalize the value: (Current - Min) / (Max - Min) * TotalFrames
+        // Assuming 40-120 range and a 1000 frame timeline:
+        //tempFrame: Math.max(0, Math.min(1000, (Data.Values.temp - 40) * 12.5))
+        
         displayTemp: Data.Values.displayTemp
-        tempFrame: (Data.Values.temp - 40) * 10
+        //tempFrame: Data.Values.temp
+        tempFrame: Math.max(0, Math.min(1000, (Data.Values.temp - 40) * 12.5))
     }
         
 /* --- Left Indicator --- */
     Left_Indicator {
         id: leftIndicatorInstance
         x: 540
-        y: 497
+        y: 500
         width: 100 
         height: 100
         active: Data.Values.leftindicator // Must match Values.qml
-    }
+   }
 
-    /* --- Right Indicator --- */
-    Right_Indicator {
+/* --- Right Indicator --- */
+   Right_Indicator {
         id: rightIndicatorInstance
         x: 1300
-        y: 497
+        y: 500
         width: 100
         height: 100
         active: Data.Values.rightindicator // Must match Values.qml
-    }
+   }
         
     KMS_Totals_Trip {
         id: totaltrips
-        x: 700
-        y: 480
-        width: 512
-        height: 630
-        // Safe version: defaults to "0" or "0.0" if data is missing
+        
+    // 1. Remove horizontalCenter and use left anchor
+        anchors.left: cluster_Art.left 
+    // 2. Set the distance from the left edge (adjust 50 to your liking)
+        anchors.leftMargin: 720     // 3. Keep it at the bottom
+        anchors.bottom: cluster_Art.bottom
+        anchors.bottomMargin: 500 
+    // Your rounded data logic [cite: 15, 16]
         readout_total_kms: Math.round(Data.Values.totalKms || 0)
         readout_total_trip: Number(Data.Values.tripKms || 0).toFixed(1)
     }
     
     Fuel_dial_195_43 {
         id: fuelDial
-        x: 1453
-        y: 450
-        width: 512
-        height: 630
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        anchors.rightMargin: 420  // Mirror of the left margin
+        anchors.bottomMargin: 570 // Mirror of the bottom margin
+        width: 50
+        height: 50        
         rangeDisplay: Data.Values.displayRange
         litersDisplay: Data.Values.displayLiters
         fuelFrame: Data.Values.liters
@@ -171,18 +201,21 @@ Item {
 
     Rpm_dial_195_83 {
         id: rpmDial
-        width: 508
-        height: 591
-        x: 69
-        y: 450
+        width: 50
+        height: 50
+        anchors.left: parent.left
+        anchors.bottom: parent.bottom
+        anchors.leftMargin: 60   // Balanced spacing from left
+        anchors.bottomMargin: 570 // Balanced spacing from bottom
         displayRpm: Data.Values.displayRpm
         rpmFrame: Data.Values.rpm
     }
 
     FlipableItem {
         id: flipable
-        x: 566
-        y: 8
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.top: parent.top // Pin it higher up [cite: 18]
+        anchors.topMargin: 50
         width: 778
         height: 730
         opacity: 1

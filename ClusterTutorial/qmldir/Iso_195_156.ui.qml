@@ -109,7 +109,7 @@ Item {
             id: parkingLightIcon
             x: 0
             y: 0
-            active: Values.parkingBrakeActive
+            active: Values.parkingLightActive
             engineIconOffSource: "icons/parkingLightIcon.png"
             engineIconOnSource:  "icons/parkingLightIconOn.png"
         }

@@ -51,6 +51,7 @@
 ****************************************************************************/
 import QtQuick 2.8
 import QtQuick.Timeline 1.0
+import QtQuick.Studio.Components 1.0
 
 Item {
     id: temp_dial_195_83

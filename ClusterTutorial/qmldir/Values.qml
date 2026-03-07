@@ -56,7 +56,7 @@ QtObject {
 
     /* tachometer dial values */
     property int temp: 40 
-    property string displayTemp: "0"
+    property string displayTemp: "40"
 
     /* Iso Icons Boolean Values */
     // Inside Values.qml [cite: 8]

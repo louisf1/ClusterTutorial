@@ -367,10 +367,23 @@ Item {
             height: 412
             rotation: -90
             fillColor: "#00ffffff"
+            strokeColor: "#3eee6b"
             end: 288.4
             begin: 273.2
             strokeWidth: 40
         }
+
+        /*  id: arc
+            x: 54
+            y: 25
+            width: 412
+            height: 412
+            rotation: -90
+            fillColor: "#00ffffff"
+            strokeColor: "#3eee6b"
+            end: 60.4
+            begin: -108
+            strokeWidth: 40 */
 
         Item {
             id: item1
