@@ -439,6 +439,11 @@ target_include_directories(ClusterDashboardApp PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/Components
 )
 
+# Use ${CMAKE_CURRENT_SOURCE_DIR} to ensure BitBake finds the folder
+target_link_directories(ClusterDashboardApp PRIVATE 
+    ${CMAKE_CURRENT_SOURCE_DIR}/custom_libs
+)
+
 # 5. Link everything to the Executable
 target_link_libraries(ClusterDashboardApp PRIVATE 
     Qt6::Core
