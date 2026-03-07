@@ -395,15 +395,6 @@ qt6_add_qml_module(ClusterDashboardApp
 # This will print the exact path to your BitBake 'log.do_configure' or terminal output
 message(STATUS "DEBUG: LINK PATH is set to: ${CMAKE_CURRENT_SOURCE_DIR}/custom_libs")
 
-link_directories("${CMAKE_CURRENT_SOURCE_DIR}/custom_libs")
-
-# 6. TARGET PROPERTIES (Include paths and Linking)
-target_include_directories(ClusterDashboardApp PRIVATE 
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/Studio/Application
-    ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/Components
-)
-
 # Note: No "::" for custom_libs because they aren't imported targets
 target_link_libraries(ClusterDashboardApp PRIVATE 
     Qt6::Core
@@ -414,12 +405,22 @@ target_link_libraries(ClusterDashboardApp PRIVATE
 # Point directly to the physical files in your source tree
     Qt6QuickStudioComponents 
     Qt6QuickStudioEffects
-##    "${CMAKE_CURRENT_SOURCE_DIR}/custom_libs/libQt6QuickStudioComponents.so"
-##    "${CMAKE_CURRENT_SOURCE_DIR}/custom_libs/libQt6QuickStudioEffects.so"
+    "${CMAKE_CURRENT_SOURCE_DIR}/custom_libs/libQt6QuickStudioComponents.so"
+    "${CMAKE_CURRENT_SOURCE_DIR}/custom_libs/libQt6QuickStudioEffects.so"
     gRPC::grpc++
     protobuf::libprotobuf
     kuksaclient
 )
+
+link_directories("${CMAKE_CURRENT_SOURCE_DIR}/custom_libs")
+
+# 6. TARGET PROPERTIES (Include paths and Linking)
+target_include_directories(ClusterDashboardApp PRIVATE 
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/Studio/Application
+    ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/Components
+)
+
 
 # 7. INSTALLATION
 include(GNUInstallDirs)
