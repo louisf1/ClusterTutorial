@@ -1,5 +1,1 @@
 build/
-custom_libs/
-*.so
-*.so.*
-*.qmlc
