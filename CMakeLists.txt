@@ -8,7 +8,7 @@ set(ENV{QTFRAMEWORK_BYPASS_LICENSE_CHECK} 1)
 
 # 2. SEARCH PATHS (Must be defined before find_package and target_link_libraries)
 # This tells the linker WHERE to look for your .so files
-link_directories(${CMAKE_CURRENT_SOURCE_DIR}/custom_libs)
+
 set(QT_QML_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/qml")
 
 # 3. FIND PACKAGES
@@ -425,6 +425,12 @@ qt6_add_qml_module(ClusterDashboardApp
         ClusterTutorial/qmldir/icons/seatbeltIconOn.png
         ClusterTutorial/qmldir/icons/seatbeltIcon.png
 )
+
+# 2. Handle Custom Libraries
+# This will print the exact path to your BitBake 'log.do_configure' or terminal output
+message(STATUS "DEBUG: LINK PATH is set to: ${CMAKE_CURRENT_SOURCE_DIR}/custom_libs")
+
+link_directories("${CMAKE_CURRENT_SOURCE_DIR}/custom_libs")
 
 # 6. TARGET PROPERTIES (Include paths and Linking)
 target_include_directories(ClusterDashboardApp PRIVATE 

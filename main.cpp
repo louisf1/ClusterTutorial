@@ -214,16 +214,16 @@ int main(int argc, char *argv[])
     view.setResizeMode(QQuickView::SizeRootObjectToView);
     view.setGeometry(0, 0, 1280, 720); 
 
-    qDebug() << "\n=== DUMPING ALL INTERNAL QRC PATHS ===";
-    QDirIterator it(":", QDirIterator::Subdirectories);
-    while (it.hasNext()) {
-        QString path = it.next();
+    //qDebug() << "\n=== DUMPING ALL INTERNAL QRC PATHS ===";
+    //QDirIterator it(":", QDirIterator::Subdirectories);
+    //while (it.hasNext()) {
+    //    QString path = it.next();
         // Only print QML files to keep the output clean
-        if (path.endsWith(".qml")) { 
-            qDebug() << path;
-        }
-    }
-    qDebug() << "======================================\n";
+    //    if (path.endsWith(".qml")) { 
+    //        qDebug() << path;
+    //    }
+    //}
+    //qDebug() << "======================================\n";
 // --- TEMPORARY PATH FINDER ---
    //QtDirIterator it(":", QDirIterator::Subdirectories);
    // while (it.hasNext()) {
