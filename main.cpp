@@ -168,8 +168,8 @@ int main(int argc, char *argv[])
 {
     QGuiApplication app(argc, argv);
     app.setOrganizationName("MyProject");
-    app.setApplicationName("ClusterTutorial");
-    app.setDesktopFileName("cluster-dashboard"); // <-- THIS BECOMES YOUR WAYLAND app_id
+    app.setApplicationName("cluster-tutorial");
+    app.setDesktopFileName("cluster-tutorial"); // <-- THIS BECOMES YOUR WAYLAND app_id
      
     QQuickView view;
     QQmlEngine *engine = view.engine();
