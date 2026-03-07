@@ -1,7 +1,7 @@
 module QtQuick.Timeline.BlendTrees
 linktarget Qt6::qtquicktimelineblendtreesplugin
 optional plugin qtquicktimelineblendtreesplugin
-classname QtQuickTimelineBlendTreesPlugin
+##classname QtQuickTimelineBlendTreesPlugin
 designersupported
 typeinfo plugins.qmltypes
 depends QtQuickTimeline

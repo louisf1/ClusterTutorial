@@ -1,7 +1,7 @@
 module QtQuick.Studio.Components
 linktarget Qt6::QuickStudioComponentsplugin
 optional plugin quickstudiocomponentsplugin
-classname QtQuick_Studio_ComponentsPlugin
+##classname QtQuick_Studio_ComponentsPlugin
 designersupported
 typeinfo QuickStudioComponents.qmltypes
 ##prefer :/qt-project.org/imports/QtQuick/Studio/Components/

@@ -1,7 +1,7 @@
 module QtQuick.Studio.DesignEffects
 linktarget Qt6::QuickStudioDesignEffectsplugin
 optional plugin quickstudiodesigneffectsplugin
-classname QtQuick_Studio_DesignEffectsPlugin
+##classname QtQuick_Studio_DesignEffectsPlugin
 designersupported
 typeinfo QuickStudioDesignEffects.qmltypes
 ##prefer :/qt-project.org/imports/QtQuick/Studio/DesignEffects/

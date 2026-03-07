@@ -1,7 +1,7 @@
 module QtQuick.Studio.Utils
 linktarget Qt6::QuickStudioUtilsplugin
 optional plugin quickstudioutilsplugin
-classname QtQuick_Studio_UtilsPlugin
+##classname QtQuick_Studio_UtilsPlugin
 designersupported
 typeinfo plugins.qmltypes
 depends QtQml.Models auto

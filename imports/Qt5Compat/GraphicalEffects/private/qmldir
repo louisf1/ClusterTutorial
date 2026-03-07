@@ -1,7 +1,7 @@
 module Qt5Compat.GraphicalEffects.private
 linktarget Qt6::qtgraphicaleffectsprivate
 optional plugin qtgraphicaleffectsprivateplugin
-classname QtGraphicalEffectsPrivatePlugin
+##classname QtGraphicalEffectsPrivatePlugin
 typeinfo plugins.qmltypes
 ##prefer :/qt-project.org/imports/Qt5Compat/GraphicalEffects/private/
 DropShadowBase 6.0 DropShadowBase.qml

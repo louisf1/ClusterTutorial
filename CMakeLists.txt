@@ -9,7 +9,7 @@ set(CMAKE_AUTORCC ON)
 set(QT_QML_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/qml)
 
 # 1. Find standard Qt modules
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick) ## Core5Compat)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick ) ## Core5Compat)
 
 qt_policy(SET QTP0001 NEW)
 qt_policy(SET QTP0004 NEW)

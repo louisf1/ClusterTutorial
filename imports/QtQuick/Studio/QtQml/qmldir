@@ -1,7 +1,7 @@
 module QtQml
 linktarget Qt6::qmlplugin
 optional plugin qmlplugin
-classname QtQmlPlugin
+##classname QtQmlPlugin
 designersupported
 typeinfo plugins.qmltypes
 import QML 1.0

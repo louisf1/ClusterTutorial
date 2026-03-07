@@ -1,7 +1,7 @@
 module QtQml.Models
 linktarget Qt6::modelsplugin
 optional plugin modelsplugin
-classname QtQmlModelsPlugin
+##classname QtQmlModelsPlugin
 designersupported
 typeinfo plugins.qmltypes
 depends QML 1.0
