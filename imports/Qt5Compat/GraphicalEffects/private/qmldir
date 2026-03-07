@@ -3,7 +3,7 @@ linktarget Qt6::qtgraphicaleffectsprivate
 optional plugin qtgraphicaleffectsprivateplugin
 classname QtGraphicalEffectsPrivatePlugin
 typeinfo plugins.qmltypes
-prefer :/qt-project.org/imports/Qt5Compat/GraphicalEffects/private/
+##prefer :/qt-project.org/imports/Qt5Compat/GraphicalEffects/private/
 DropShadowBase 6.0 DropShadowBase.qml
 DropShadowBase 1.0 DropShadowBase.qml
 FastGlow 6.0 FastGlow.qml

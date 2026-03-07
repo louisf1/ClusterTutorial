@@ -5,6 +5,6 @@ classname QtQuickTimelinePlugin
 designersupported
 typeinfo plugins.qmltypes
 depends QtQuick
-prefer :/qt-project.org/imports/QtQuick/Timeline/
+##prefer :/qt-project.org/imports/QtQuick/Timeline/
 depends QtQuick
 

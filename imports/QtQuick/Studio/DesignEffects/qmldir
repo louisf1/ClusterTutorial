@@ -4,7 +4,7 @@ optional plugin quickstudiodesigneffectsplugin
 classname QtQuick_Studio_DesignEffectsPlugin
 designersupported
 typeinfo QuickStudioDesignEffects.qmltypes
-prefer :/qt-project.org/imports/QtQuick/Studio/DesignEffects/
+##prefer :/qt-project.org/imports/QtQuick/Studio/DesignEffects/
 DesignBackgroundBlurPrivate 6.0 DesignBackgroundBlurPrivate.qml
 DesignBackgroundBlurPrivate 1.0 DesignBackgroundBlurPrivate.qml
 DesignDropShadow 6.0 DesignDropShadow.qml

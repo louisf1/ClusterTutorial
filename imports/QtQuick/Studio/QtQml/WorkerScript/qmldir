@@ -5,5 +5,5 @@ classname QtQmlWorkerScriptPlugin
 designersupported
 typeinfo plugins.qmltypes
 depends QML 1.0
-prefer :/qt-project.org/imports/QtQml/WorkerScript/
+##prefer :/qt-project.org/imports/QtQml/WorkerScript/
 

@@ -173,6 +173,11 @@ int main(int argc, char *argv[])
      
     QQuickView view;
     QQmlEngine *engine = view.engine();
+
+    // 3.1 Ensure the physical path is FIRST in the search order
+    QString physicalImports = QCoreApplication::applicationDirPath() + "/imports";
+    engine->addImportPath(physicalImports);
+    qDebug() << "Searching for plugins in:" << physicalImports;
     
      // 1. Root and standard QML paths
      engine->addImportPath("qrc:/qt/qml");
@@ -183,11 +188,17 @@ int main(int argc, char *argv[])
     // 3. Point to the URI root for your internal files
      engine->addImportPath("qrc:/qt/qml/ClusterTutorial");
     // 3. The internal imports folder (Satisfies Studio Components)
-     engine->addImportPath("qrc:/qt/qml/ClusterTutorial/imports");
+    // engine->addImportPath("qrc:/qt/qml/ClusterTutorial/imports");
+
+    // 3.2 Keep the custom_libs for the linker (though LD_LIBRARY_PATH usually handles this)
+    engine->addImportPath(QCoreApplication::applicationDirPath() + "/custom_libs");
     
     // 4. NEW: Tell the engine to look in the physical 'imports' folder next to the app!
     engine->addImportPath(QCoreApplication::applicationDirPath() + "/imports");
-    
+    // Add the physical folder where your .so plugins live
+    engine->addImportPath(QCoreApplication::applicationDirPath() + "/imports");
+    engine->addImportPath(QCoreApplication::applicationDirPath() + "/custom_libs");
+  
     // Register Singleton using three slashes (absolute QRC root)
     int valuesTypeId = qmlRegisterSingletonType(
         QUrl("qrc:/qt/qml/ClusterTutorial/ClusterTutorial/qmldir/Values.qml"), 

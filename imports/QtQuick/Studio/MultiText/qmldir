@@ -4,7 +4,7 @@ optional plugin quickstudiomultitextplugin
 classname QtQuick_Studio_MultiTextPlugin
 designersupported
 typeinfo QuickStudioMultiText.qmltypes
-prefer :/qt-project.org/imports/QtQuick/Studio/MultiText/
+##prefer :/qt-project.org/imports/QtQuick/Studio/MultiText/
 MultiTextElement 6.0 MultiTextElement.qml
 MultiTextElement 1.0 MultiTextElement.qml
 MultiTextItem 6.0 MultiTextItem.qml

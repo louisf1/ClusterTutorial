@@ -5,5 +5,5 @@ classname QtQmlModelsPlugin
 designersupported
 typeinfo plugins.qmltypes
 depends QML 1.0
-prefer :/qt-project.org/imports/QtQml/Models/
+##prefer :/qt-project.org/imports/QtQml/Models/
 

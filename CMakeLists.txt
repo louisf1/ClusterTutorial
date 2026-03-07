@@ -1,60 +1,44 @@
-#QTP0001
-
 cmake_minimum_required(VERSION 3.21.1)
 project(ClusterDashboard VERSION 1.0 LANGUAGES CXX)
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
+# Bypass license check for the build process
 set(ENV{QTFRAMEWORK_BYPASS_LICENSE_CHECK} 1)
 
-# This directory is where Qt will generate the virtual QML structure
-set(QT_QML_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/qml)
+# 2. Handle Custom Libraries (Bypassing find_package for Studio Components)
+# Since you have the .so files in custom_libs, we link them directly.
+link_directories(${CMAKE_CURRENT_SOURCE_DIR}/custom_libs)
 
-# 1. Find standard Qt modules
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick) ## Core5Compat)
-
-qt_policy(SET QTP0001 NEW)
-qt_policy(SET QTP0004 NEW)
-
-# 2. Find system Protobuf and gRPC (not via Qt6)
+# 2. Find standard Qt modules (ONLY what is in your /home/louis/Qt folder)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick QuickTimeline)
 find_package(Protobuf REQUIRED)
 find_package(gRPC REQUIRED)
-
-# 3. Find Kuksa
 find_package(kuksaclient REQUIRED)
 
-# Safely copy imports ONLY if the folder exists
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/imports")
-    file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/imports DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-endif()
 
-# Safely copy custom_libs ONLY if the folder exists (Desktop mode)
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/custom_libs")
-    file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/custom_libs/ DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-endif()
+# 3. ALIGN OUTPUT DIRECTORY (Fixes the "should end in target path" warning)
+# Your URI is "ClusterTutorial", so the output must end in that path.
+set(QT_QML_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/qml/ClusterTutorial")
 
-# Add QuickTimeline here
-find_package(Qt6 REQUIRED COMPONENTS 
-    Core 
-    Gui 
-    Qml 
-    Quick 
-    QuickTimeline
+# 1. First, define the target as an executable
+qt_add_executable(ClusterDashboardApp
+    main.cpp
+    3rdparty/Studio/Application/quickstudioapplication.cpp
+    3rdparty/Components/qtstudiocomponentsplugin.cpp
 )
 
+# 1. SILENCE POLICIES (Fixes QTP0001 and QTP0004 warnings)
+qt_policy(SET QTP0001 NEW) # Use the new resource prefix logic
+qt_policy(SET QTP0004 NEW) # Require qmldir for subdirectories
 
-qt_add_executable(
-    ClusterDashboardApp 
-    main.cpp 
-)
 
 # 4. Define the QML Module
 # The URI "ClusterTutorial" allows you to use "import ClusterTutorial" in QML
 qt6_add_qml_module(ClusterDashboardApp
     URI "ClusterTutorial"
     VERSION 1.0
-####    NO_PLUGIN
-    PLUGIN_TARGET ClusterTutorialplugin
+    NO_PLUGIN
     
     # C++ SOURCES: Moved here from qt_add_executable
     SOURCES
@@ -448,37 +432,28 @@ qt6_add_qml_module(ClusterDashboardApp
         ClusterTutorial/qmldir/icons/seatbeltIcon.png
 )
 
-# Also add this to ensure the plugin is built as a shared object
-set_target_properties(ClusterTutorialplugin PROPERTIES 
-    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-)
-
-# This tells the compiler where to find the headers for your 3rdparty sources
+# 4. Include Headers for 3rdparty components
 target_include_directories(ClusterDashboardApp PRIVATE 
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/Studio/Application
     ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/Components
 )
 
-# 5. --- THE VIRTUAL ALIAS (Refined) ---
-# We map Values.qml to act as the qmldir for the "Data" module.
-# The alias must include the "Data/" prefix to satisfy "import Data 1.0"
-set_source_files_properties(ClusterTutorial/qmldir/Values.qml 
-    PROPERTIES QT_RESOURCE_ALIAS "Data/qmldir"
-)
-
-# 6. Link everything to the Executable
+# 5. Link everything to the Executable
 target_link_libraries(ClusterDashboardApp PRIVATE 
     Qt6::Core
     Qt6::Gui
     Qt6::Qml
     Qt6::Quick
-    Qt6::QuickTimeline  # Required for Studio animations
+    Qt6::QuickTimeline
+    # Manually linking your custom .so files by name
+    Qt6QuickStudioComponents
+    Qt6QuickStudioEffects
     gRPC::grpc++
     protobuf::libprotobuf
     kuksaclient
 )
 
-# 7. Install logic for AGL
+# 6. Install logic
 include(GNUInstallDirs)
 install(TARGETS ClusterDashboardApp RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})

@@ -397,7 +397,7 @@ Item {
 
 // --- ADDED: Temperature Gauge Opacity Fade-In ---
         KeyframeGroup {
-            target: temp_dial_195_83
+            target: Temp_dial_195_83
             property: "opacity"
 
             Keyframe {
@@ -419,7 +419,7 @@ Item {
 
         // --- ADDED: Temperature Gauge "Swing/Zoom" Effect ---
         KeyframeGroup {
-            target: temp_dial_195_83
+            target: Temp_dial_195_83
             property: "scale"
             
             Keyframe {

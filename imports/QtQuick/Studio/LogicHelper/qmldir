@@ -4,7 +4,7 @@ optional plugin quickstudiologichelperplugin
 classname QtQuick_Studio_LogicHelperPlugin
 designersupported
 typeinfo QuickStudioLogicHelper.qmltypes
-prefer :/qt-project.org/imports/QtQuick/Studio/LogicHelper/
+##prefer :/qt-project.org/imports/QtQuick/Studio/LogicHelper/
 BidirectionalBinding 6.0 BidirectionalBinding.qml
 BidirectionalBinding 1.0 BidirectionalBinding.qml
 RangeMapper 6.0 RangeMapper.qml

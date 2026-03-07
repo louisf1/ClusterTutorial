@@ -4,5 +4,5 @@ optional plugin qmlxmllistmodelplugin
 classname QtQmlXmlListModelPlugin
 typeinfo plugins.qmltypes
 depends QtQml auto
-prefer :/qt-project.org/imports/QtQml/XmlListModel/
+##prefer :/qt-project.org/imports/QtQml/XmlListModel/
 

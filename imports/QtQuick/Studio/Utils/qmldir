@@ -5,7 +5,7 @@ classname QtQuick_Studio_UtilsPlugin
 designersupported
 typeinfo plugins.qmltypes
 depends QtQml.Models auto
-prefer :/qt-project.org/imports/QtQuick/Studio/Utils/
+##prefer :/qt-project.org/imports/QtQuick/Studio/Utils/
 JsonListModel 6.0 JsonListModel.qml
 JsonListModel 1.0 JsonListModel.qml
 JsonListModel 2.0 JsonListModel.qml

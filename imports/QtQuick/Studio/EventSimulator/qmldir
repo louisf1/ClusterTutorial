@@ -4,7 +4,7 @@ optional plugin quickstudioeventsimulatorplugin
 classname QtQuick_Studio_EventSimulatorPlugin
 designersupported
 typeinfo QuickStudioEventSimulator.qmltypes
-prefer :/qt-project.org/imports/QtQuick/Studio/EventSimulator/
+##prefer :/qt-project.org/imports/QtQuick/Studio/EventSimulator/
 singleton EventSimulator 6.0 EventSimulator.qml
 singleton EventSimulator 1.0 EventSimulator.qml
 EventSimulatorDelegate 6.0 EventSimulatorDelegate.qml
