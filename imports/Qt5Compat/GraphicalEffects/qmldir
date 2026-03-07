@@ -1,9 +1,9 @@
 module Qt5Compat.GraphicalEffects
-linktarget Qt6::qtgraphicaleffectsplugin
-##plugin qtgraphicaleffectsplugin
-##classname QtGraphicalEffectsPlugin
+## linktarget Qt6::qtgraphicaleffectsplugin
+## ##plugin qtgraphicaleffectsplugin
+## ##classname QtGraphicalEffectsPlugin
 designersupported
-typeinfo plugins.qmltypes
+## typeinfo plugins.qmltypes
 depends Qt5Compat.GraphicalEffects.private
 depends QtQuick.Window
 ##prefer :/qt-project.org/imports/Qt5Compat/GraphicalEffects/

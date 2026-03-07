@@ -1,7 +1,7 @@
 module QtQuick.Studio.MultiText
-linktarget Qt6::QuickStudioMultiTextplugin
-optional plugin quickstudiomultitextplugin
-##classname QtQuick_Studio_MultiTextPlugin
+## linktarget Qt6::QuickStudioMultiTextplugin
+## optional plugin quickstudiomultitextplugin
+## ##classname QtQuick_Studio_MultiTextPlugin
 designersupported
 typeinfo QuickStudioMultiText.qmltypes
 ##prefer :/qt-project.org/imports/QtQuick/Studio/MultiText/

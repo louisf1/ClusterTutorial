@@ -1,7 +1,7 @@
 module QtQuick.Studio.EventSystem
-linktarget Qt6::QuickStudioEventSystemplugin
-optional plugin quickstudioeventsystemplugin
-##classname QtQuick_Studio_EventSystemPlugin
+## linktarget Qt6::QuickStudioEventSystemplugin
+## optional plugin quickstudioeventsystemplugin
+## ##classname QtQuick_Studio_EventSystemPlugin
 designersupported
 typeinfo QuickStudioEventSystem.qmltypes
 ##prefer :/qt-project.org/imports/QtQuick/Studio/EventSystem/

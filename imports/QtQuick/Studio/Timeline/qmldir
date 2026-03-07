@@ -1,9 +1,9 @@
 module QtQuick.Timeline
-linktarget Qt6::qtquicktimelineplugin
-optional plugin qtquicktimelineplugin
-##classname QtQuickTimelinePlugin
+## linktarget Qt6::qtquicktimelineplugin
+## optional plugin qtquicktimelineplugin
+## ##classname QtQuickTimelinePlugin
 designersupported
-typeinfo plugins.qmltypes
+## typeinfo plugins.qmltypes
 depends QtQuick
 ##prefer :/qt-project.org/imports/QtQuick/Timeline/
 depends QtQuick
