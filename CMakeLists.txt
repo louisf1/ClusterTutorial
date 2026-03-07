@@ -23,7 +23,7 @@ qt_add_executable(ClusterDashboardApp
     3rdparty/Studio/Application/quickstudioapplication.cpp
     3rdparty/Components/qtstudiocomponentsplugin.cpp
 )
-
+	
 # Fixes QTP0001 and QTP0004 warnings
 qt_policy(SET QTP0001 NEW) 
 qt_policy(SET QTP0004 NEW) 
@@ -43,52 +43,23 @@ qt6_add_qml_module(ClusterDashboardApp
         
     QML_FILES
         # Note: Paths here MUST match your 'ls -R' output exactly
-        ClusterTutorial/qmldir/absIcon.ui.qml
-        ClusterTutorial/qmldir/App.qml
-        ClusterTutorial/qmldir/ArcArrow.qml
-        ClusterTutorial/qmldir/ArcItem.qml
-        ClusterTutorial/qmldir/Backgrounds_195_610.ui.qml
-        ClusterTutorial/qmldir/BorderItem.qml
-        ClusterTutorial/qmldir/Cherry.qml
-        ClusterTutorial/qmldir/Cluster_Art.ui.qml
-        ClusterTutorial/qmldir/ClusterTutorial.qml
-        ClusterTutorial/qmldir/Constants.qml
-        ClusterTutorial/qmldir/CustomDot.qml
-        ClusterTutorial/qmldir/DirectoryFontLoader.qml
-        ClusterTutorial/qmldir/EllipseItem.qml
-        ClusterTutorial/qmldir/EventListModel.qml
-        ClusterTutorial/qmldir/EventListSimulator.qml
-        ClusterTutorial/qmldir/FlipableItem.qml
-        ClusterTutorial/qmldir/Fuel_dial_195_43.ui.qml
-        ClusterTutorial/qmldir/fuelIcon.ui.qml
-        ClusterTutorial/qmldir/Gearbox_195_196.ui.qml
-        ClusterTutorial/qmldir/GroupItem.qml
-        ClusterTutorial/qmldir/iceIcon.ui.qml
-        ClusterTutorial/qmldir/Iso_195_156.ui.qml
-        ClusterTutorial/qmldir/Iso_195_157.ui.qml
-        ClusterTutorial/qmldir/IsoIcon.ui.qml
-        ClusterTutorial/qmldir/KMS_Totals_Trip.ui.qml
-        ClusterTutorial/qmldir/Left_Indicator.qml
-        ClusterTutorial/qmldir/Left_Indicator.ui.qml
-        ClusterTutorial/qmldir/parkingBrakeIcon.ui.qml
-        ClusterTutorial/qmldir/parkingLightIcon.ui.qml
-        ClusterTutorial/qmldir/PieItem.qml
-        ClusterTutorial/qmldir/RectangleItem.qml
-        ClusterTutorial/qmldir/RegularPolygonItem.qml
-        ClusterTutorial/qmldir/Right_Indicator.qml
-        ClusterTutorial/qmldir/Right_Indicator.ui.qml
-        ClusterTutorial/qmldir/Rpm_dial_195_83.ui.qml
-        ClusterTutorial/qmldir/Speed_dial_195_151.ui.qml
-        ClusterTutorial/qmldir/StarItem.qml
-        ClusterTutorial/qmldir/StraightArrow.qml
-        ClusterTutorial/qmldir/SvgPathItem.qml
-        ClusterTutorial/qmldir/Temp_dial_195_83.ui.qml
-        ClusterTutorial/qmldir/TextItem.qml
-        ClusterTutorial/qmldir/TriangleItem.qml
-        ClusterTutorial/qmldir/Values.qml
-
 # --- BUNDLING STUDIO MODULES AS RESOURCES ---
         # This fixes the "module not installed" errors on AGL
+        3rdparty/ArcItem.qml
+        3rdparty/StraightArrow.qml
+        3rdparty/Components/ArcItem.qml
+        3rdparty/Components/StraightArrow.qml
+        3rdparty/Components/TriangleItem.qml
+        3rdparty/Components/SvgPathItem.qml
+        3rdparty/Components/RectangleItem.qml
+        3rdparty/TriangleItem.qml
+        3rdparty/SvgPathItem.qml
+        3rdparty/RectangleItem.qml
+        3rdparty/Studio/Components/ArcItem.qml
+        3rdparty/Studio/Components/StraightArrow.qml
+        3rdparty/Studio/Components/TriangleItem.qml
+        3rdparty/Studio/Components/SvgPathItem.qml
+        3rdparty/Studio/Components/RectangleItem.qml
         imports/Qt5Compat/GraphicalEffects/FastBlur.qml
         imports/Qt5Compat/GraphicalEffects/HueSaturation.qml
         imports/Qt5Compat/GraphicalEffects/DirectionalBlur.qml
@@ -233,21 +204,13 @@ qt6_add_qml_module(ClusterDashboardApp
         imports/QtQuick/Studio/LogicHelper/StringMapper.qml
         imports/QtQuick/Studio/LogicHelper/NotOperator.qml
         imports/QtQuick/Studio/LogicHelper/BidirectionalBinding.qml
-##        imports/QtQuick/Studio/LogicHelper/QuickStudioLogicHelper.qmltypes
         imports/QtQuick/Studio/LogicHelper/AndOperator.qml
         imports/QtQuick/Studio/LogicHelper/MinMaxMapper.qml
-##        imports/QtQuick/Studio/Timeline/BlendTrees/plugins.qmltypes
-
-##        imports/QtQuick/Studio/Timeline/plugins.qmltypes
-##        imports/QtQuick/Studio/Application/plugins.qmltypes
         imports/QtQuick/Studio/Utils/ChildListModel.qml
         imports/QtQuick/Studio/Utils/JsonListModel.qml
-##        imports/QtQuick/Studio/Utils/plugins.qmltypes
         imports/QtQuick/Studio/Utils/JsonBackend.qml
         imports/QtQuick/Studio/EventSystem/EventSystem.qml
         imports/QtQuick/Studio/EventSystem/EventListener.qml
-##        imports/QtQuick/Studio/EventSystem/QuickStudioEventSystem.qmltypes
-
         imports/QtQuick/Studio/DesignEffects/designer/DesignEffectPane.qml
         imports/QtQuick/Studio/DesignEffects/designer/DesignDropShadowSpecifics.qml
         imports/QtQuick/Studio/DesignEffects/designer/DesignInnerShadowSpecifics.qml
@@ -257,7 +220,6 @@ qt6_add_qml_module(ClusterDashboardApp
         imports/QtQuick/Studio/DesignEffects/DesignBackgroundBlurPrivate.qml
         imports/QtQuick/Studio/DesignEffects/DesignDropShadow.qml
         imports/QtQuick/Studio/DesignEffects/DesignInnerShadowPrivate.qml
-##        imports/QtQuick/Studio/DesignEffects/QuickStudioDesignEffects.qmltypes
         imports/QtQuick/Studio/DesignEffects/DesignEffect.qml
         imports/QtQuick/Studio/DesignEffects/DesignInnerShadow.qml
         imports/QtQuick/Studio/DesignEffects/DesignEffectPrivate.qml
@@ -267,91 +229,96 @@ qt6_add_qml_module(ClusterDashboardApp
         imports/QtQuick/Studio/MultiText/MultiTextItem.qml
         imports/QtQuick/Studio/MultiText/MultiTextElement.qml
         imports/QtQuick/Studio/MultiText/MultiTextException.qml
-##        imports/QtQuick/Studio/MultiText/QuickStudioMultiText.qmltypes
-##        imports/QtQuick/Studio/QtQml/XmlListModel/plugins.qmltypes
-##        imports/QtQuick/Studio/QtQml/Models/plugins.qmltypes
-##        imports/QtQuick/Studio/QtQml/plugins.qmltypes
-##        imports/QtQuick/Studio/QtQml/WorkerScript/plugins.qmltypes
         imports/QtQuick/Studio/EventSimulator/EventSimulatorDelegate.qml
         imports/QtQuick/Studio/EventSimulator/EventSimulator.qml
-##        imports/QtQuick/Studio/EventSimulator/QuickStudioEventSimulator.qmltypes
-        
-        3rdparty/ArcItem.qml
-##3rdparty//CMakeLists.txt
-
-##3rdparty/qtstudiocomponentsplugin.cpp
-        3rdparty/RectangleItem.qml
-        3rdparty/StraightArrow.qml
-        3rdparty/SvgPathItem.qml
-        3rdparty/TriangleItem.qml
-        3rdparty/Components/ArcItem.qml
-##3rdparty/Components/CMakeLists.txt
-
-##3rdparty/Components/qtstudiocomponentsplugin.cpp
-        3rdparty/Components/RectangleItem.qml
-        3rdparty/Components/StraightArrow.qml
-        3rdparty/Components/SvgPathItem.qml
-        3rdparty/Components/TriangleItem.qml
-
-##3rdparty/Studio/Application/
-##3rdparty/Studio/Application/CMakeLists.txt
-##3rdparty/Studio/Application/quickstudioapplication.cpp
-##3rdparty/Studio/Application/quickstudioapplication_p.h
-
-        3rdparty/Studio/Components/ArcItem.qml
-##3rdparty/Studio/Components/CMakeLists.txt
-##3rdparty/Studio/Components/qtstudiocomponentsplugin.cpp
-        3rdparty/Studio/Components/RectangleItem.qml
-        3rdparty/Studio/Components/StraightArrow.qml
-        3rdparty/Studio/Components/SvgPathItem.qml
-        3rdparty/Studio/Components/TriangleItem.qml
-
+        ClusterTutorial/qmldir/EventListModel.qml
+        ClusterTutorial/qmldir/Cluster_Art.ui.qml
+        ClusterTutorial/qmldir/EllipseItem.qml
+        ClusterTutorial/qmldir/Cherry.qml
+        ClusterTutorial/qmldir/FlipableItem.qml
+        ClusterTutorial/qmldir/ArcItem.qml
+        ClusterTutorial/qmldir/RegularPolygonItem.qml
+        ClusterTutorial/qmldir/fuelIcon.ui.qml
+        ClusterTutorial/qmldir/App.qml
+        ClusterTutorial/qmldir/Right_Indicator.qml
+        ClusterTutorial/qmldir/absIcon.ui.qml
+        ClusterTutorial/qmldir/StraightArrow.qml
+        ClusterTutorial/qmldir/Gearbox_195_196.ui.qml
+        ClusterTutorial/qmldir/Constants.qml
+        ClusterTutorial/qmldir/TextItem.qml
+        ClusterTutorial/qmldir/TriangleItem.qml
+        ClusterTutorial/qmldir/DirectoryFontLoader.qml
+        ClusterTutorial/qmldir/Temp_dial_195_83.ui.qml
+        ClusterTutorial/qmldir/StarItem.qml
+        ClusterTutorial/qmldir/Left_Indicator.ui.qml
+        ClusterTutorial/qmldir/Values.qml
+        ClusterTutorial/qmldir/parkingBrakeIcon.ui.qml
+        ClusterTutorial/qmldir/Fuel_dial_195_43.ui.qml
+        ClusterTutorial/qmldir/Iso_195_156.ui.qml
+        ClusterTutorial/qmldir/Right_Indicator.ui.qml
+        ClusterTutorial/qmldir/IsoIcon.ui.qml
+        ClusterTutorial/qmldir/Backgrounds_195_610.ui.qml
+        ClusterTutorial/qmldir/Left_Indicator.qml
+        ClusterTutorial/qmldir/Iso_195_157.ui.qml
+        ClusterTutorial/qmldir/KMS_Totals_Trip.ui.qml
+        ClusterTutorial/qmldir/Rpm_dial_195_83.ui.qml
+        ClusterTutorial/qmldir/SvgPathItem.qml
+        ClusterTutorial/qmldir/Speed_dial_195_151.ui.qml
+        ClusterTutorial/qmldir/EventListSimulator.qml
+        ClusterTutorial/qmldir/iceIcon.ui.qml
+        ClusterTutorial/qmldir/GroupItem.qml
+        ClusterTutorial/qmldir/BorderItem.qml
+        ClusterTutorial/qmldir/RectangleItem.qml
+        ClusterTutorial/qmldir/CustomDot.qml
+        ClusterTutorial/qmldir/parkingLightIcon.ui.qml
+        ClusterTutorial/qmldir/PieItem.qml
+        ClusterTutorial/qmldir/ClusterTutorial.qml
+        ClusterTutorial/qmldir/ArcArrow.qml
 
     RESOURCES
-        3rdparty/plugins.qmltypes
         3rdparty/Components/plugins.qmltypes
+        3rdparty/plugins.qmltypes
         3rdparty/Studio/Components/plugins.qmltypes
-
         imports/Qt5Compat/GraphicalEffects/private/plugins.qmltypes
-        imports/QtQuick/Studio/MultiText/QuickStudioMultiText.qmltypes
-        imports/QtQuick/Studio/QtQml/XmlListModel/plugins.qmltypes
-        imports/QtQuick/Studio/QtQml/Models/plugins.qmltypes
-        imports/QtQuick/Studio/QtQml/plugins.qmltypes
-        imports/QtQuick/Studio/QtQml/WorkerScript/plugins.qmltypes
-        imports/QtQuick/Studio/EventSimulator/QuickStudioEventSimulator.qmltypes
+        imports/Qt5Compat/GraphicalEffects/plugins.qmltypes
+        imports/QtQuick/Studio/Effects/QuickStudioEffects.qmltypes
+        imports/QtQuick/Studio/Components/QuickStudioComponents.qmltypes
+        imports/QtQuick/Studio/LogicHelper/QuickStudioLogicHelper.qmltypes
         imports/QtQuick/Studio/Timeline/BlendTrees/plugins.qmltypes
         imports/QtQuick/Studio/Timeline/plugins.qmltypes
         imports/QtQuick/Studio/Application/plugins.qmltypes
         imports/QtQuick/Studio/Utils/plugins.qmltypes
         imports/QtQuick/Studio/EventSystem/QuickStudioEventSystem.qmltypes
         imports/QtQuick/Studio/DesignEffects/QuickStudioDesignEffects.qmltypes
-        imports/QtQuick/Studio/Components/QuickStudioComponents.qmltypes
-        imports/Qt5Compat/GraphicalEffects/plugins.qmltypes
-        imports/QtQuick/Studio/Effects/QuickStudioEffects.qmltypes
-
+        imports/QtQuick/Studio/MultiText/QuickStudioMultiText.qmltypes
+        imports/QtQuick/Studio/QtQml/XmlListModel/plugins.qmltypes
+        imports/QtQuick/Studio/QtQml/Models/plugins.qmltypes
+        imports/QtQuick/Studio/QtQml/plugins.qmltypes
+        imports/QtQuick/Studio/QtQml/WorkerScript/plugins.qmltypes
+        imports/QtQuick/Studio/EventSimulator/QuickStudioEventSimulator.qmltypes
        ## the qmldir modules link file
-        ClusterTutorial/qmldir/qmldir
+        3rdparty/Components/qmldir
+        3rdparty/qmldir
         3rdparty/Studio/Components/qmldir
-        3rdparty/Components/qmldir        
-
         imports/Qt5Compat/GraphicalEffects/private/qmldir
         imports/Qt5Compat/GraphicalEffects/qmldir
-        imports/QtQuick/Studio/DesignEffects/qmldir
-        imports/QtQuick/Studio/QtQml/Models/qmldir
-        imports/QtQuick/Studio/MultiText/qmldir
-        imports/QtQuick/Studio/QtQml/XmlListModel/qmldir
-        imports/QtQuick/Studio/QtQml/WorkerScript/qmldir
-        imports/QtQuick/Studio/QtQml/qmldir        
-        imports/QtQuick/Studio/EventSimulator/qmldir
-        imports/QtQuick/Studio/EventSystem/qmldir
+        imports/QtQuick/Studio/Effects/qmldir
+        imports/QtQuick/Studio/Components/qmldir
         imports/QtQuick/Studio/LogicHelper/qmldir
         imports/QtQuick/Studio/Timeline/BlendTrees/qmldir
         imports/QtQuick/Studio/Timeline/qmldir
         imports/QtQuick/Studio/Application/qmldir
-        imports/QtQuick/Studio/Utils/qmldir        
-        imports/QtQuick/Studio/Components/qmldir                                        
-        imports/QtQuick/Studio/Effects/qmldir
-                                        
+        imports/QtQuick/Studio/Utils/qmldir
+        imports/QtQuick/Studio/EventSystem/qmldir
+        imports/QtQuick/Studio/DesignEffects/qmldir
+        imports/QtQuick/Studio/MultiText/qmldir
+        imports/QtQuick/Studio/QtQml/XmlListModel/qmldir
+        imports/QtQuick/Studio/QtQml/Models/qmldir
+        imports/QtQuick/Studio/QtQml/WorkerScript/qmldir
+        imports/QtQuick/Studio/QtQml/qmldir
+        imports/QtQuick/Studio/EventSimulator/qmldir
+        ##ClusterTutorial/qmldir
+        ClusterTutorial/qmldir/qmldir
         ##ClusterTutorial/qmldir/qmldir  # Add new definitions in this file
         # Adding your assets and icons to the resource system Fonts
         ClusterTutorial/qmldir/fonts/IBMPlexMono-ExtraLight.otf
