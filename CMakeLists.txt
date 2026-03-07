@@ -53,7 +53,8 @@ qt_add_executable(
 qt6_add_qml_module(ClusterDashboardApp
     URI "ClusterTutorial"
     VERSION 1.0
-    NO_PLUGIN
+####    NO_PLUGIN
+    PLUGIN_TARGET ClusterTutorialplugin
     
     # C++ SOURCES: Moved here from qt_add_executable
     SOURCES
@@ -445,6 +446,11 @@ qt6_add_qml_module(ClusterDashboardApp
         ClusterTutorial/qmldir/icons/rightindicator.png
         ClusterTutorial/qmldir/icons/seatbeltIconOn.png
         ClusterTutorial/qmldir/icons/seatbeltIcon.png
+)
+
+# Also add this to ensure the plugin is built as a shared object
+set_target_properties(ClusterTutorialplugin PROPERTIES 
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
 # This tells the compiler where to find the headers for your 3rdparty sources
