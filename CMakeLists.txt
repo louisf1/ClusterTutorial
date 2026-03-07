@@ -161,7 +161,6 @@ qt6_add_qml_module(ClusterDashboardApp
         imports/QtQuick/Studio/Effects/InnerShadowEffect.qml
         imports/QtQuick/Studio/Effects/SaturationItem.qml
         imports/QtQuick/Studio/Effects/GlowItem.qml
-##        imports/QtQuick/Studio/Effects/QuickStudioEffects.qmltypes
         imports/QtQuick/Studio/Effects/GammaAdjustEffect.qml
         imports/QtQuick/Studio/Effects/DesaturationEffect.qml
         imports/QtQuick/Studio/Effects/RecursiveBlurItem.qml
@@ -328,7 +327,7 @@ qt6_add_qml_module(ClusterDashboardApp
         imports/QtQuick/Studio/DesignEffects/QuickStudioDesignEffects.qmltypes
         imports/QtQuick/Studio/Components/QuickStudioComponents.qmltypes
         imports/Qt5Compat/GraphicalEffects/plugins.qmltypes
-
+        imports/QtQuick/Studio/Effects/QuickStudioEffects.qmltypes
 
        ## the qmldir modules link file
         ClusterTutorial/qmldir/qmldir
@@ -446,8 +445,11 @@ target_link_libraries(ClusterDashboardApp PRIVATE
     Qt6::Qml
     Qt6::Quick
     Qt6::QuickTimeline
-    Qt6QuickStudioComponents
+# Point directly to the physical files in your source tree
+    Qt6QuickStudioComponents 
     Qt6QuickStudioEffects
+##    "${CMAKE_CURRENT_SOURCE_DIR}/custom_libs/libQt6QuickStudioComponents.so"
+##    "${CMAKE_CURRENT_SOURCE_DIR}/custom_libs/libQt6QuickStudioEffects.so"
     gRPC::grpc++
     protobuf::libprotobuf
     kuksaclient
