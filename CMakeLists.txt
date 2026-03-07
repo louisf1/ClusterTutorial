@@ -1,40 +1,34 @@
 cmake_minimum_required(VERSION 3.21.1)
 project(ClusterDashboard VERSION 1.0 LANGUAGES CXX)
 
+# 1. GLOBAL SETTINGS & POLICIES (Must be at the top)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
-# Bypass license check for the build process
 set(ENV{QTFRAMEWORK_BYPASS_LICENSE_CHECK} 1)
 
-# 2. Handle Custom Libraries (Bypassing find_package for Studio Components)
-# Since you have the .so files in custom_libs, we link them directly.
+# 2. SEARCH PATHS (Must be defined before find_package and target_link_libraries)
+# This tells the linker WHERE to look for your .so files
 link_directories(${CMAKE_CURRENT_SOURCE_DIR}/custom_libs)
+set(QT_QML_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/qml")
 
-# 2. Find standard Qt modules (ONLY what is in your /home/louis/Qt folder)
+# 3. FIND PACKAGES
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick QuickTimeline)
 find_package(Protobuf REQUIRED)
 find_package(gRPC REQUIRED)
 find_package(kuksaclient REQUIRED)
 
-
-# 3. ALIGN OUTPUT DIRECTORY (Fixes the "should end in target path" warning)
-# Your URI is "ClusterTutorial", so the output must end in that path.
-set(QT_QML_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/qml/ClusterTutorial")
-
-# 1. First, define the target as an executable
+# 4. DEFINE THE EXECUTABLE TARGET (The "Target" must exist before we link to it)
 qt_add_executable(ClusterDashboardApp
     main.cpp
     3rdparty/Studio/Application/quickstudioapplication.cpp
     3rdparty/Components/qtstudiocomponentsplugin.cpp
 )
 
-# 1. SILENCE POLICIES (Fixes QTP0001 and QTP0004 warnings)
-qt_policy(SET QTP0001 NEW) # Use the new resource prefix logic
-qt_policy(SET QTP0004 NEW) # Require qmldir for subdirectories
+# Fixes QTP0001 and QTP0004 warnings
+qt_policy(SET QTP0001 NEW) 
+qt_policy(SET QTP0004 NEW) 
 
-
-# 4. Define the QML Module
-# The URI "ClusterTutorial" allows you to use "import ClusterTutorial" in QML
+# 5. DEFINE THE QML MODULE (Attaches QML files to the target created above)
 qt6_add_qml_module(ClusterDashboardApp
     URI "ClusterTutorial"
     VERSION 1.0
@@ -432,33 +426,27 @@ qt6_add_qml_module(ClusterDashboardApp
         ClusterTutorial/qmldir/icons/seatbeltIcon.png
 )
 
-# 4. Include Headers for 3rdparty components
+# 6. TARGET PROPERTIES (Include paths and Linking)
 target_include_directories(ClusterDashboardApp PRIVATE 
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/Studio/Application
     ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/Components
 )
 
-# 5. Link everything to the Executable
+# Note: No "::" for custom_libs because they aren't imported targets
 target_link_libraries(ClusterDashboardApp PRIVATE 
     Qt6::Core
     Qt6::Gui
     Qt6::Qml
     Qt6::Quick
     Qt6::QuickTimeline
-    # Manually linking your custom .so files by name
-    Qt6::QuickStudioComponents
-    Qt6::QuickStudioEffects
+    Qt6QuickStudioComponents
+    Qt6QuickStudioEffects
     gRPC::grpc++
     protobuf::libprotobuf
     kuksaclient
 )
 
-# Use ${CMAKE_CURRENT_SOURCE_DIR} to ensure BitBake finds the folder
-target_link_directories(ClusterDashboardApp PRIVATE 
-    ${CMAKE_CURRENT_SOURCE_DIR}/custom_libs
-)
-
-# 6. Install logic
+# 7. INSTALLATION
 include(GNUInstallDirs)
 install(TARGETS ClusterDashboardApp RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
