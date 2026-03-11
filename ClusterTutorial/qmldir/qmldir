@@ -1,0 +1,50 @@
+##module ClusterTutorial
+#linktarget ClusterTutorial
+#optional plugin ClusterTutorial
+classname ClusterTutorialIcon
+typeinfo ClusterTutorial.qmltypes
+#List every file from your CMakeLists.txt here
+
+absIcon.ui 1.0 absIcon.ui.qml
+App 1.0 App.qml
+ArcArrow 1.0 ArcArrow.qml
+ArcItem 1.0 ArcItem.qml
+Backgrounds_195_610.ui 1.0 Backgrounds_195_610.ui.qml
+BorderItem 1.0 BorderItem.qml
+Cherry 1.0 Cherry.qml
+Cluster_Art.ui 1.0 Cluster_Art.ui.qml
+##ClusterTutorial 1.0 ClusterTutorial.qml
+Constants 1.0 Constants.qml
+CustomDot 1.0 CustomDot.qml
+DirectoryFontLoader 1.0 DirectoryFontLoader.qml
+EllipseItem 1.0 EllipseItem.qml
+EventListModel 1.0 EventListModel.qml
+EventListSimulator 1.0 EventListSimulator.qml
+FlipableItem 1.0 FlipableItem.qml
+Fuel_dial_195_43.ui 1.0 Fuel_dial_195_43.ui.qml
+fuelIcon.ui 1.0 fuelIcon.ui.qml
+Gearbox_195_196.ui 1.0 Gearbox_195_196.ui.qml
+GroupItem 1.0 GroupItem.qml
+iceIcon.ui 1.0 iceIcon.ui.qml
+Iso_195_156.ui 1.0 Iso_195_156.ui.qml
+Iso_195_157.ui 1.0 Iso_195_157.ui.qml
+IsoIcon.ui 1.0 IsoIcon.ui.qml
+KMS_Totals_Trip.ui 1.0 KMS_Totals_Trip.ui.qml
+Left_Indicator 1.0 Left_Indicator.qml
+Left_Indicator.ui 1.0 Left_Indicator.ui.qml
+parkingBrakeIcon.ui 1.0 parkingBrakeIcon.ui.qml
+parkingLightIcon.ui 1.0 parkingLightIcon.ui.qml
+PieItem 1.0 PieItem.qml
+RectangleItem 1.0 RectangleItem.qml
+RegularPolygonItem 1.0 RegularPolygonItem.qml
+Right_Indicator 1.0 Right_Indicator.qml
+Right_Indicator.ui 1.0 Right_Indicator.ui.qml
+Rpm_dial_195_83.ui 1.0 Rpm_dial_195_83.ui.qml
+Speed_dial_195_151.ui 1.0 Speed_dial_195_151.ui.qml
+StarItem 1.0 StarItem.qml
+StraightArrow 1.0 StraightArrow.qml
+SvgPathItem 1.0 SvgPathItem.qml
+Temp_dial_195_83.ui 1.0 Temp_dial_195_83.ui.qml
+TextItem 1.0 TextItem.qml
+TriangleItem 1.0 TriangleItem.qml
+Values 1.0 Values.qml
