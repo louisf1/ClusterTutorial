@@ -17,7 +17,8 @@ set(QT_QML_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/qml)
 set_source_files_properties(wayland-agl-shell-protocol.c PROPERTIES LANGUAGE C)
 
 # 1. Cleaned up find_package (Removed duplicates)
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick QuickTimeline WaylandClient GuiPrivate Core5Compat)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick QuickTimeline WaylandClient Core5Compat)
+find_package(Qt6 COMPONENTS GuiPrivate) # Removed 'REQUIRED'
 find_package(Protobuf REQUIRED)
 find_package(gRPC REQUIRED)
 find_package(kuksaclient REQUIRED)
