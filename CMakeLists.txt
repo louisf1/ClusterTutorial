@@ -16,14 +16,15 @@ set(QT_QML_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/qml)
 # Force the compiler to treat this file as C, not C++
 set_source_files_properties(wayland-agl-shell-protocol.c PROPERTIES LANGUAGE C)
 
-# 1. Cleaned up find_package (Removed duplicates)
+# --- Dependencies ---
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick QuickTimeline WaylandClient Core5Compat)
-find_package(Qt6 COMPONENTS GuiPrivate) # Removed 'REQUIRED'
+find_package(Qt6 COMPONENTS GuiPrivate) 
 find_package(Protobuf REQUIRED)
 find_package(gRPC REQUIRED)
-find_package(kuksaclient REQUIRED)
 find_package(PkgConfig REQUIRED)
-
+find_package(kuksaclient REQUIRED)
+# Use PkgConfig to find Kuksa (This is already working!) 
+pkg_check_modules(KUKSA REQUIRED kuksa-client)
 pkg_check_modules(WAYLAND_CLIENT REQUIRED wayland-client)
 
 # 1. Find the Wayland Scanner tool automatically
@@ -63,6 +64,8 @@ qt6_generate_wayland_protocol_client_sources(ClusterDashboardApp
 
 # --- 3. Link everything properly ---
 target_link_libraries(ClusterDashboardApp PRIVATE 
+    # Use the raw library name if the namespace target isn't found
+    kuksaclient 
     Qt6::Core
     Qt6::Gui
     Qt6::Qml
@@ -73,11 +76,11 @@ target_link_libraries(ClusterDashboardApp PRIVATE
     Qt6::WaylandClient
     gRPC::grpc++
     protobuf::libprotobuf
-    kuksaclient
 )
 
 # --- 4. Include the Private API and Build Directory ---
 target_include_directories(ClusterDashboardApp PRIVATE 
+    ${KUKSA_LIBRARIES}
     ${Qt6Gui_PRIVATE_INCLUDE_DIRS}
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_BINARY_DIR} # <--- Essential for finding generated headers
