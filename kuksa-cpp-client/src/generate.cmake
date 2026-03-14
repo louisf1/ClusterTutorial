@@ -47,8 +47,7 @@ foreach(proto_file ${proto_files})
     GENERATE_EXTENSIONS
     .grpc.pb.h
     .grpc.pb.cc
-    PLUGIN
-    "protoc-gen-grpc=$<TARGET_FILE:gRPC::grpc_cpp_plugin>"
+    PLUGIN "protoc-gen-grpc=${_gRPC_CPP_PLUGIN_EXECUTABLE}"
     IMPORT_DIRS
     ${PROTO_IMPORT_DIRS}
     PROTOC_OUT_DIR
