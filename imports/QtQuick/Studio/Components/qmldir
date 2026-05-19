@@ -1,10 +1,5 @@
 module QtQuick.Studio.Components
-linktarget Qt6::QuickStudioComponentsplugin
-optional plugin quickstudiocomponentsplugin
-classname QtQuick_Studio_ComponentsPlugin
 designersupported
-typeinfo QuickStudioComponents.qmltypes
-prefer :/qt-project.org/imports/QtQuick/Studio/Components/
 ArcArrow 6.0 ArcArrow.qml
 ArcArrow 1.0 ArcArrow.qml
 ArcItem 6.0 ArcItem.qml
