@@ -1,0 +1,3 @@
+module QtQml.WorkerScript
+depends QML 1.0
+

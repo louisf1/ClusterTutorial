@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh)",
+      "Bash(BINDIR=/usr/local/bin sh)",
+      "Bash(BINDIR=__TRACKED_VAR__/bin sh)",
+      "Bash(export PATH=\"$HOME/bin:$PATH\")",
+      "Bash(arduino-cli core *)",
+      "Bash(arduino-cli compile *)",
+      "Bash(arduino-cli board *)",
+      "Bash(arduino-cli upload *)",
+      "Bash(python3 -c ' *)",
+      "Bash(pip install *)",
+      "Read(//dev/**)",
+      "Bash(python3 -c \"import kuksa_client; print\\('kuksa_client OK'\\)\")",
+      "Bash(python3 Python_Utils/rpm_speed_arduino_dev_ttyACM0.py)",
+      "Bash(PYTHONUNBUFFERED=1 python3 -u /home/louis/ClusterWorx/Python_Utils/rpm_speed_arduino_dev_ttyACM0.py)",
+      "Bash(echo \"PID $!\")",
+      "Read(//tmp/**)",
+      "Bash(python3 *)",
+      "Bash(DISPLAY=:1 ./ClusterDashboardApp)",
+      "Bash(ldd /home/louis/ClusterWorx/ClusterWorx/imports/QtQuick/Studio/Components/libquickstudiocomponentsplugin.so)",
+      "Bash(wait)",
+      "Bash(grep -E \"error:|warning:|Built target ClusterDashboardApp$\" /tmp/claude-1000/-home-louis-ClusterWorx/d030319f-f4c9-4fa5-94ee-9e39cc2cd408/tasks/b0azk8zv3.output)",
+      "Bash(ps -p 133634 --no-headers -o pid,stat)",
+      "Bash(jobs -l)",
+      "Bash(kill -0 133634)",
+      "Bash(git init *)",
+      "Bash(git add *)"
+    ]
+  }
+}

@@ -1,0 +1,3 @@
+module QtQml.Models
+depends QML 1.0
+

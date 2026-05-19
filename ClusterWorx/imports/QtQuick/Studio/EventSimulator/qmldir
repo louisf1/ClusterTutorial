@@ -1,0 +1,6 @@
+module QtQuick.Studio.EventSimulator
+singleton EventSimulator 6.0 EventSimulator.qml
+singleton EventSimulator 1.0 EventSimulator.qml
+EventSimulatorDelegate 6.0 EventSimulatorDelegate.qml
+EventSimulatorDelegate 1.0 EventSimulatorDelegate.qml
+

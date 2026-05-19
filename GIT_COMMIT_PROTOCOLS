@@ -1,0 +1,24 @@
+echo "build/" >> .gitignore
+git add .gitignore
+
+git remote add origin https://github.com/louisf1/ClusterTutorial.git
+git config --global init.defaultBranch main
+git init
+git status
+git add *
+git commit -m "Fix: Resolve Wayland interface linkage and enable C support in CMake"
+git push origin main
+
+TOKEN_REMOVED
+
+git add main.cpp CMakeLists.txt protocol/agl-shell.xml
+
+git remote add origin https://github.com/louisf1/ClusterTutorial.git
+
+3rdparty/ CMakeLists.txt ClusterTutorial/ GIT_COMMIT_PROTOCOLS UnitTester.py VSS_paths.txt cmake/ custom_libs/ dobuild.sh domake.sh imports/ main.cpp main/ protocol/ start_dash.sh
+
+mkdir -p /home/louis/Documents/QtDesignStudio/examples/ClusterWorx/imports/QtQuick/Studio
+
+
+# Copy the entire Studio folder (including Effects and Components) from the Design Studio runtime
+cp -r /home/louis/Qt/Tools/QtDesignStudio/qt6_design_studio_reduced_version/qml/QtQuick/Studio/* /home/louis/Documents/QtDesignStudio/examples/ClusterWorx/imports/QtQuick/Studio/

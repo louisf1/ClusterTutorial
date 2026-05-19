@@ -1,0 +1,237 @@
+sudo upt-update
+NB1. sudo apt-get install build-essential cmake libssl-dev pkg-config libgrpc++-dev protobuf-compiler-grpc
+NB2. sudo apt-get install libspdlog-dev libfmt-dev
+sudo apt install -y libgrpc++-dev protobuf-compiler-grpc libprotobuf-dev pkg-config cmake build-essential
+sudo apt-get install libfuse2
+
+sudo ln -s /usr/local/include/kuksaclient /usr/include/kuksaclient
+mkdir -p /usr/etc/kuksaclient  !!!DO
+root@debian12:/home/louis/ClusterWorx/kuksa-incubation-main/kuksa-cpp-client/build# make 
+root@debian12:/home/louis/ClusterWorx/kuksa-incubation-main/kuksa-cpp-client/build# make install
+[ 82%] Built target proto-objects
+[ 88%] Built target kuksaclient
+[ 94%] Built target example_v1
+[100%] Built target example_v2
+Install the project...
+-- Install configuration: ""
+-- Up-to-date: /usr/local/include/
+-- Installing: /usr/local/include//sdv
+-- Installing: /usr/local/include//sdv/databroker
+-- Installing: /usr/local/include//sdv/databroker/v1
+-- Installing: /usr/local/include//sdv/databroker/v1/collector.grpc.pb.h
+-- Installing: /usr/local/include//sdv/databroker/v1/broker.grpc.pb.cc
+-- Installing: /usr/local/include//sdv/databroker/v1/broker.pb.cc
+-- Installing: /usr/local/include//sdv/databroker/v1/types.grpc.pb.cc
+-- Installing: /usr/local/include//sdv/databroker/v1/broker.grpc.pb.h
+-- Installing: /usr/local/include//sdv/databroker/v1/collector.grpc.pb.cc
+-- Installing: /usr/local/include//sdv/databroker/v1/broker.pb.h
+-- Installing: /usr/local/include//sdv/databroker/v1/collector.pb.h
+-- Installing: /usr/local/include//sdv/databroker/v1/types.grpc.pb.h
+-- Installing: /usr/local/include//sdv/databroker/v1/types.pb.cc
+-- Installing: /usr/local/include//sdv/databroker/v1/types.pb.h
+-- Installing: /usr/local/include//sdv/databroker/v1/collector.pb.cc
+-- Installing: /usr/local/include//kuksa
+-- Installing: /usr/local/include//kuksa/val
+-- Installing: /usr/local/include//kuksa/val/v2
+-- Installing: /usr/local/include//kuksa/val/v2/types.grpc.pb.cc
+-- Installing: /usr/local/include//kuksa/val/v2/val.grpc.pb.h
+-- Installing: /usr/local/include//kuksa/val/v2/val.pb.h
+-- Installing: /usr/local/include//kuksa/val/v2/val.grpc.pb.cc
+-- Installing: /usr/local/include//kuksa/val/v2/types.grpc.pb.h
+-- Installing: /usr/local/include//kuksa/val/v2/types.pb.cc
+-- Installing: /usr/local/include//kuksa/val/v2/types.pb.h
+-- Installing: /usr/local/include//kuksa/val/v2/val.pb.cc
+-- Installing: /usr/local/include//kuksa/val/v1
+-- Installing: /usr/local/include//kuksa/val/v1/types.grpc.pb.cc
+-- Installing: /usr/local/include//kuksa/val/v1/val.grpc.pb.h
+-- Installing: /usr/local/include//kuksa/val/v1/val.pb.h
+-- Installing: /usr/local/include//kuksa/val/v1/val.grpc.pb.cc
+-- Installing: /usr/local/include//kuksa/val/v1/types.grpc.pb.h
+-- Installing: /usr/local/include//kuksa/val/v1/types.pb.cc
+-- Installing: /usr/local/include//kuksa/val/v1/types.pb.h
+-- Installing: /usr/local/include//kuksa/val/v1/val.pb.cc
+-- Installing: /usr/local/lib/libkuksaclient.so
+-- Installing: /usr/local/include/kuksaclient/kuksaclient.h
+-- Installing: /usr/local/lib/cmake/kuksaclient/kuksaclientConfig.cmake
+-- Installing: /usr/local/lib/cmake/kuksaclient/kuksaclientConfigVersion.cmake
+# Remove any old versions
+sudo apt remove docker docker-engine docker.io containerd runc
+
+# Install prerequisites
+sudo apt update
+sudo apt install ca-certificates curl gnupg lsb-release
+
+# Add Docker's official GPG key
+sudo install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/debian/gpg | \
+    sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+sudo chmod a+r /etc/apt/keyrings/docker.gpg
+
+# Add Docker apt repository (Debian bookworm)
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
+  https://download.docker.com/linux/debian \
+  $(lsb_release -cs) stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+# Install Docker Engine
+sudo apt update
+sudo apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+# Allow your user to run docker without sudo
+sudo usermod -aG docker $USER
+newgrp docker
+
+# Verify
+docker run hello-world
+########################################################333
+# Pull the databroker image
+docker pull ghcr.io/eclipse/kuksa.val/databroker:latest
+
+# Run it — VSS4 mode, port 55555 (matching your KuksaHandler connect_v2 call)
+NOT  NOT docker run -d \
+    --name kuksa-databroker \
+    --restart unless-stopped \
+    -p 55555:55555 \
+    ghcr.io/eclipse/kuksa.val/databroker:latest \
+    --port 55555 \
+    --insecure
+    
+    VS VS VS
+    
+    services:
+ DO DO !!! databroker:
+    image: ghcr.io/eclipse-kuksa/kuksa-databroker:latest
+    container_name: kuksa-databroker
+    restart: unless-stopped
+    ports:
+      - "55555:55555"
+    command: ["--port", "55555", "--insecure"]
+
+# Verify it's running
+docker logs kuksa-databroker
+
+######################################################
+Start everything:
+cd ~/ClusterWorx
+docker compose up -d
+
+# Check status
+docker compose ps
+docker compose logs databroker
+###################################################### 
+eror in [sudo] password for louis: 
+[+] up 2/2
+ ✔ Network... Created                                                                                                                           0.1s
+ ✘ Contain... Error response from daemon: Conflict. The container name "/kuksa-databroker" is already in use by container "2197304547f79160adf49b9448a6efa9d51a97c58785b4c73c2d1e5d453bec6b". You have to remove (or rename) that container to be able to reuse that name. 0.0s                         
+Error response from daemon: Conflict. The container name "/kuksa-databroker" is already in use by container "2197304547f79160adf49b9448a6efa9d51a97c58785b4c73c2d1e5d453bec6b". You have to remove (or rename) that container to be able to reuse that name.
+
+
+DO sudo docker compose up -d OR BETTER YET!!!
+sudo docker compose down
+sudo docker compose up -d
+
+
+
+sudo apt install libgl1-mesa-dev libglu1-mesa-dev libegl1-mesa-dev   ##!!!!!
+sudo apt install libwayland-dev libwayland-egl-backend-dev wayland-protocols
+sudo apt install libxkbcommon-dev libxkbcommon-x11-dev
+sudo apt install libxcb-cursor0
+
+# Build tools
+sudo apt install build-essential cmake ninja-build pkg-config
+
+# OpenGL (build-time)
+sudo apt install libgl1-mesa-dev libegl1-mesa-dev libglu1-mesa-dev
+
+# Wayland (build-time)
+sudo apt install libwayland-dev libwayland-egl-backend-dev wayland-protocols
+
+# XKB (build-time, needed for Qt6::GuiPrivate)
+sudo apt install libxkbcommon-dev libxkbcommon-x11-dev
+
+# Vulkan headers (build-time)
+sudo apt install libvulkan-dev
+
+# XCB cursor (runtime, needed for xcb platform plugin)
+sudo apt install libxcb-cursor0
+DEBUG:::
+cmake -DCMAKE_PREFIX_PATH="$HOME/Qt/6.10.3/gcc_64" --debug-find-pkg=Qt6Gui .. 2>&1 | grep -A 5 -i "gui\|found\|missing\|error"
+cmake -DCMAKE_PREFIX_PATH="$HOME/Qt/6.10.3/gcc_64" --debug-find-pkg=Qt6WaylandClient .. 2>&1 | grep -A 5 -i "Wayland\|found\|missing\|error"
+--debug-find-pkg=Qt6WaylandClient   ← tells cmake WHAT to debug
+grep -i "wayland\|..."              ← tells grep WHAT to show
+::::
+
+##################################PYTHON############################################
+##################################PYTHON############################################
+##################################PYTHON############################################
+# Conan is Python-based — install via pip
+pip install conan --break-system-packages
+conan --version
+sudo apt install python3-pip
+pip install conan --break-system-packages
+# Virtual environment approach — cleaner on Debian
+apt install python3.11-venv
+
+python3 -m venv ~/.conan-env; ~/.conan-env/bin/pip install conan
+python3 -m venv ~/.conan-env; ~/.conan-env/bin/pip install kuksa-client
+
+
+# Add to your shell profile so it's always available:
+echo 'export PATH="$HOME/.conan-env/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+
+pip install kuksa-client --break-system-packages
+
+# Start interactive client
+kuksa-client --ip 127.0.0.1 --port 55555 --protocol grpc --insecure
+python3 -c "from kuksa_client.grpc import VSSClient; print('OK')"
+
+pip install kuksa-client --break-system-packages
+# Inside the client, set test values:
+setValue Vehicle.Speed 85.0
+setValue Vehicle.Powertrain.CombustionEngine.Speed 2500
+setValue Vehicle.Powertrain.FuelSystem.InstantConsumption 8.5
+##################################################################
+sudo systemctl is-enabled docker
+sudo systemctl is-active docker
+and
+sudo systemctl enable docker
+sudo systemctl start docker
+#################################################################
+# Is the databroker running?
+sudo docker ps | grep kuksa-databroker
+
+# Detailed status
+sudo docker inspect kuksa-databroker --format '{{.State.Status}}'
+
+# View databroker logs
+sudo docker logs kuksa-databroker --tail 20
+
+
+##################################################################
+# First time after fresh install — do once:
+sudo systemctl enable docker
+cd ~/ClusterWorx
+sudo docker compose up -d
+
+# After every reboot — Docker auto-starts the databroker.
+# Just launch your app:
+cd ~/ClusterWorx
+./dobuild.sh
+
+# Check databroker is up anytime:
+kuksa-status
+
+# Feed test values manually (optional):
+kuksa-client
+# Test Client> setValue Vehicle.Speed 85.0
+# Quick one-liner health check (exits 0 if running, 1 if not)
+sudo docker inspect -f '{{.State.Running}}' kuksa-databroker
+###########################################################
+echo 'alias kuksa-status="sudo docker inspect -f \"{{.State.Status}}\" kuksa-databroker"' >> ~/.bashrc
+source ~/.bashrc
+kuksaclient ABI dependency: libprotobuf.so.32 (protobuf 3.21.x)
+Debian 12 ships:            libprotobuf32 3.21.12  ✓ compatible
+Rebuild kuksaclient if:     upgrading to Debian 13 or changing protobuf version
+
