@@ -15,7 +15,7 @@
 // SPEED & RPM
 // =============================================================================
 const int speedPin = 52;
-const int rpmPin   = 3;
+const int rpmPin   = 53;
 
 const float wheelCircumference = 2.8274;  // 900mm wheel (π × 0.9m)
 const unsigned long debounceTime = 15;    // ms — ignores bounce/noise
