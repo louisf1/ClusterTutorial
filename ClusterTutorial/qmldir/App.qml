@@ -281,10 +281,11 @@ Window {
 			"red-blue",   
 			"green-white",   
 			"blue-pink",   
-			"black-yellow",   
+			"black-yellow",
+			"black-red",
 			"black-red"
 		     ];
-		    return colors[i];
+		    return colors[i] || "gray";
 		}
 
 		function getWireFunction(i) {
