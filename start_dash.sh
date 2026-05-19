@@ -26,6 +26,7 @@ DESIGN_STUDIO_QML="$HOME/Qt/Tools/QtDesignStudio/qt6_design_studio_reduced_versi
 # =============================================================================
 export PATH="$QT_DIR/bin:$PATH"
 export LD_LIBRARY_PATH="$QT_DIR/qml:$QT_DIR/include:$QT_DIR/lib:$PROJECT_DIR/custom_libs${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export DISPLAY="${DISPLAY:-:1}"
 
 # QML import search path — priority order (leftmost wins):
 #   1. Project's own imports/ folder
@@ -46,12 +47,13 @@ echo "==> Starting Arduino hardware interface..."
     /home/louis/ClusterWorx/Arduino/Ford_Ranger_signals_all/Ford_Ranger_signals_all.ino
 
 echo "==> Starting Python hardware bridge..."
-/usr/bin/python3 /home/louis/ClusterWorx/Python_Utils/rpm_speed_arduino_dev_ttyACM0.py &
+/home/louis/.conan-env/bin/python3 /home/louis/ClusterWorx/Python_Utils/rpm_speed_arduino_dev_ttyACM0.py &
 PYTHON_PID=$!
 
 # =============================================================================
 # 7. Run
 # =============================================================================
 echo "==> Launching ClusterDashboardApp..."
+cd "$BUILD_DIR"
 ./ClusterDashboardApp
 kill $PYTHON_PID 2>/dev/null

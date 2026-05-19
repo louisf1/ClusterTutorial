@@ -1,5 +1,8 @@
 import serial
-import parallel
+try:
+    import parallel
+except ImportError:
+    parallel = None
 import time
 import subprocess
 import os
@@ -52,8 +55,11 @@ def unblock_serial_port(port_path="/dev/ttyACM0"):
 def run_master_bridge():
     # 1. Initialize Parallel Port (for your indicator LEDs/Tripmeter pulses)
     try:
-        lpt = parallel.Parallel(0)
-        print("✅ Parallel Port Initialized.")
+        lpt = parallel.Parallel(0) if parallel else None
+        if lpt:
+            print("✅ Parallel Port Initialized.")
+        else:
+            print("⚠️ Parallel Port: module not available (Continuing without LPT)")
     except Exception as e:
         print(f"⚠️ Parallel Port Warning: {e} (Continuing without LPT)")
         lpt = None

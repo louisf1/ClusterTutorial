@@ -80,7 +80,7 @@ echo "==> Starting Arduino hardware interface..."
     /home/louis/ClusterWorx/Arduino/Ford_Ranger_signals_all/Ford_Ranger_signals_all.ino
 
 echo "==> Starting Python hardware bridge..."
-/usr/bin/python3 /home/louis/ClusterWorx/Python_Utils/rpm_speed_arduino_dev_ttyACM0.py &
+/home/louis/.conan-env/bin/python3 /home/louis/ClusterWorx/Python_Utils/rpm_speed_arduino_dev_ttyACM0.py &
 PYTHON_PID=$!
 
 # =============================================================================
