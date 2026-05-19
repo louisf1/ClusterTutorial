@@ -104,8 +104,9 @@ Window {
 		Row {
 		    spacing: 20
 		    StatusLed { label: "KUKSA"; active: SysHealth.kuksaStatus === "active" }
-		    StatusLed { label: "BLUETOOTH"; active: true }
-		    StatusLed { label: "ARDUINO"; active: Values.liters > -1 }
+		    StatusLed { label: "BLUETOOTH"; active: SysHealth.bluetoothStatus === "active"  }
+		    StatusLed { label: "ARDUINO"; active: SysHealth.arduinoStatus === "active"  }
+		    StatusLed { label: "PYTHON SUPPORT SERVICE"; active: SysHealth.pythonSupportStatus === "active"  }
 		} // end Status LED Row
 
 		HealthBar { label: "CPU USAGE"; value: SysHealth.cpuPercent }
@@ -266,7 +267,6 @@ Window {
 			"brown-red",        
 			"blue-black",    
 			"brown",          
-			"grey",   
 			"red",   
 			"white-blue",   
 			"red-white",   
@@ -292,7 +292,6 @@ Window {
 			"Main Relay Ctrl",   // 0: brown-red
 			"A/C Clutch Sense",  // 1: blue-black
 			"Crank Position",    // 2: brown
-			"Immobilizer Code",  // 3: grey
 			"Battery (+)",       // 4: red
 			"K-Line Diag",       // 5: white-blue
 			"TPS Sensor",        // 6: red-white
@@ -345,8 +344,9 @@ Window {
 			Row {
 			    spacing: 20
 			    StatusLed { label: "KUKSA"; active: SysHealth.kuksaStatus === "active" }
-			    StatusLed { label: "BLUETOOTH"; active: true }
-			    StatusLed { label: "ARDUINO"; active: Values.liters > -1 }
+                StatusLed { label: "BLUETOOTH"; active: SysHealth.bluetoothStatus === "active"  }
+		        StatusLed { label: "ARDUINO"; active: SysHealth.arduinoStatus === "active"  }
+		        StatusLed { label: "PYTHON SUPPORT SERVICE"; active: SysHealth.pythonSupportStatus === "active"  }
 			} // end Status LED Row
 
 			HealthBar { label: "CPU USAGE"; value: SysHealth.cpuPercent }

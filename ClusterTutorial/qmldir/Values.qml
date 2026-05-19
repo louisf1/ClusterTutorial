@@ -61,6 +61,9 @@ QtObject {
     property string cpuLoad: "0%"
     property string memUsage: "0/0 GB"
     property string kuksaStatus: "unknown"
+    property string bluetoothStatus: "unknown"
+    property string arduinoStatus: "unknown"
+    property string pythonSupportStatus: "unknown"        
     property string topApps: ""
     property real cpuTemp: 0.0    
 

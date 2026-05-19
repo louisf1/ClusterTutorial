@@ -66,9 +66,9 @@ void SystemMonitor::updateEcuVoltage(int index, float voltage) {
 void SystemMonitor::updateStats() {
     QProcess process;
 
-    // A. Check Kuksa Service
-    //  sudo docker inspect -f '{{.State.Status}}' kuksa-databroker
-    process.start("docker", QStringList() << " inspect -f '{{.State.Status}}' kuksa-databroker");
+    // A. Check Kuksa Service — maps docker Running bool to "active"/"inactive" for QML
+    process.start("sh", QStringList() << "-c"
+        << "docker inspect -f '{{if .State.Running}}active{{else}}inactive{{end}}' kuksa-databroker 2>/dev/null || echo inactive");
     process.waitForFinished(500);
     m_kuksaStatus = process.readAllStandardOutput().trimmed();
     emit kuksaStatusChanged();
@@ -105,7 +105,27 @@ void SystemMonitor::updateStats() {
     float coolantTemp = 85.5;
     updateScrollingLog("K-LINE: ECT Read Success -> " + QString::number(coolantTemp) + "°C");
 
-    // G. ECU wire states + voltages — written by Python bridge from Arduino AV2-AV13
+    // H. Bluetooth status — is-active returns exactly "active" or "inactive"
+    process.start("systemctl", QStringList() << "is-active" << "bluetooth");
+    process.waitForFinished(500);
+    m_bluetoothStatus = process.readAllStandardOutput().trimmed();
+    emit bluetoothStatusChanged();
+
+    // I. Arduino status — check USB serial device presence (no systemctl service exists)
+    process.start("sh", QStringList() << "-c"
+        << "test -e /dev/ttyACM0 && echo active || echo inactive");
+    process.waitForFinished(500);
+    m_arduinoStatus = process.readAllStandardOutput().trimmed();
+    emit arduinoStatusChanged();
+
+    // J. Python support status — check if bridge script process is running
+    process.start("sh", QStringList() << "-c"
+        << "ps aux | grep [r]pm_speed_arduino_dev_ttyACM0 | grep -v grep");
+    process.waitForFinished(500);
+    m_pythonSupportStatus = process.readAllStandardOutput().trimmed().isEmpty() ? "inactive" : "active";
+    emit pythonSupportStatusChanged();
+
+    // J. ECU wire states + voltages — written by Python bridge from Arduino AV2-AV13
     QFile jf("/tmp/ecu_wire_states.json");
     if (jf.open(QIODevice::ReadOnly | QIODevice::Text)) {
         QJsonDocument doc = QJsonDocument::fromJson(jf.readAll());

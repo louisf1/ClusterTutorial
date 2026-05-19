@@ -12,6 +12,10 @@ class SystemMonitor : public QObject {
 
     // 1. Properties: Definitive list for QML access
     Q_PROPERTY(QString kuksaStatus READ kuksaStatus NOTIFY kuksaStatusChanged)
+    Q_PROPERTY(QString bluetoothStatus READ bluetoothStatus NOTIFY bluetoothStatusChanged)
+    Q_PROPERTY(QString arduinoStatus READ arduinoStatus NOTIFY arduinoStatusChanged)
+    Q_PROPERTY(QString pythonSupportStatus READ pythonSupportStatus NOTIFY pythonSupportStatusChanged)
+           
     Q_PROPERTY(QString topProcesses READ topProcesses NOTIFY topProcessesChanged)
     Q_PROPERTY(float cpuPercent READ cpuPercent NOTIFY cpuPercentChanged)
     Q_PROPERTY(float ramPercent READ ramPercent NOTIFY ramPercentChanged)
@@ -25,6 +29,10 @@ public:
 
     // 2. Getters: These return the private data to QML (Declared ONLY once)
     QString kuksaStatus() const { return m_kuksaStatus; }
+    QString bluetoothStatus() const { return m_bluetoothStatus; }
+    QString arduinoStatus() const { return m_arduinoStatus; }
+    QString pythonSupportStatus() const { return m_pythonSupportStatus; }
+    
     QString topProcesses() const { return m_topProcesses; }
     float cpuPercent() const { return m_cpuPercent; }
     float ramPercent() const { return m_ramPercent; }
@@ -44,6 +52,10 @@ public slots:
 signals:
     // 4. Notification Signals: Triggered when data changes
     void kuksaStatusChanged();
+    void bluetoothStatusChanged();
+    void arduinoStatusChanged();    
+    void pythonSupportStatusChanged();    
+  
     void topProcessesChanged();
     void cpuPercentChanged();
     void ramPercentChanged();
@@ -56,6 +68,10 @@ private:
     // 5. Member Variables: Actual data storage (No duplicates!)
     QString m_kuksaStatus;
     QString m_topProcesses;
+    QString m_bluetoothStatus;
+    QString m_arduinoStatus;
+    QString m_pythonSupportStatus;
+    
     float m_cpuPercent = 0.0;
     float m_ramPercent = 0.0;
     float m_cpuTemp = 0.0;
