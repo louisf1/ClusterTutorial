@@ -96,14 +96,17 @@ def run_master_bridge():
                             IsFuelLevelLow = fuel_liters_val < 30
 
                             # Push telemetry to KUKSA
-                            client.set_current_values({
+                            telemetry = {
                                'Vehicle.Speed':                              Datapoint(speed_val),
                                'Vehicle.OBD.EngineSpeed':                   Datapoint(rpm_val),
-                               'Vehicle.OBD.CoolantTemperature':            Datapoint(temp_val),
                                'Vehicle.OBD.FuelLevel':                     Datapoint(fuel_liters_val),
                                'Vehicle.Powertrain.FuelSystem.Range':       Datapoint(fuel_range_val),
                                'Vehicle.Powertrain.FuelSystem.IsFuelLevelLow': Datapoint(IsFuelLevelLow),
-                            })
+                            }
+                            # -100 means thermocouple disconnected — skip temp publish
+                            if temp_val != -100.0:
+                                telemetry['Vehicle.OBD.CoolantTemperature'] = Datapoint(temp_val)
+                            client.set_current_values(telemetry)
                             print(f"TELEMETRY -> Speed: {speed_val} km/h | RPM: {rpm_val} | TEMP: {temp_val} | LITERS: {fuel_liters_val} | RANGE: {fuel_range_val}")
 
                             # --- ECU wire voltages (AV2–AV13) ---
