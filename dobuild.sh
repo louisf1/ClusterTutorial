@@ -73,7 +73,18 @@ echo "==> Staging assets..."
 cp "$PROJECT_DIR/VSS_paths.txt" .
 
 # =============================================================================
-# 6. Run
+# 6. Start hardware interface
+# =============================================================================
+echo "==> Starting Arduino hardware interface..."
+/usr/bin/arduino start /home/louis/ClusterWorx/Arduino/Ford_Ranger_signals_all/Ford_Ranger_signals_all.ino
+
+echo "==> Starting Python hardware bridge..."
+/usr/bin/python3 /home/louis/ClusterWorx/Python_Utils/rpm_speed_arduino_dev_ttyACM0.py &
+PYTHON_PID=$!
+
+# =============================================================================
+# 7. Run
 # =============================================================================
 echo "==> Launching ClusterDashboardApp..."
 ./ClusterDashboardApp
+kill $PYTHON_PID 2>/dev/null
