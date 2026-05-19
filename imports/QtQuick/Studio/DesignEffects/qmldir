@@ -1,5 +1,4 @@
 module QtQuick.Studio.DesignEffects
-designersupported
 DesignBackgroundBlurPrivate 6.0 DesignBackgroundBlurPrivate.qml
 DesignBackgroundBlurPrivate 1.0 DesignBackgroundBlurPrivate.qml
 DesignDropShadow 6.0 DesignDropShadow.qml

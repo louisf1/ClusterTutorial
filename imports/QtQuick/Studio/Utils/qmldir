@@ -1,5 +1,4 @@
 module QtQuick.Studio.Utils
-designersupported
 depends QtQml.Models auto
 JsonListModel 6.0 JsonListModel.qml
 JsonListModel 1.0 JsonListModel.qml

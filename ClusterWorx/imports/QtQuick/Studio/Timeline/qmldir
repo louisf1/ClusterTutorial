@@ -1,4 +1,0 @@
-module QtQuick.Timeline
-depends QtQuick
-depends QtQuick
-

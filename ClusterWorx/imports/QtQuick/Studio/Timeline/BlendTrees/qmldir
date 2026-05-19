@@ -1,4 +1,0 @@
-module QtQuick.Timeline.BlendTrees
-depends QtQuickTimeline
-depends QtQuick
-

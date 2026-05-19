@@ -1,5 +1,4 @@
 module QtQuick.Studio.Components
-designersupported
 ArcArrow 6.0 ArcArrow.qml
 ArcArrow 1.0 ArcArrow.qml
 ArcItem 6.0 ArcItem.qml

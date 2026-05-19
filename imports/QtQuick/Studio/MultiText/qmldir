@@ -1,5 +1,4 @@
 module QtQuick.Studio.MultiText
-designersupported
 MultiTextElement 6.0 MultiTextElement.qml
 MultiTextElement 1.0 MultiTextElement.qml
 MultiTextItem 6.0 MultiTextItem.qml

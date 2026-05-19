@@ -1,3 +1,0 @@
-module QtQml.XmlListModel
-depends QtQml auto
-
