@@ -34,11 +34,11 @@ import Qt5Compat.GraphicalEffects
 
 Window {
     id: rootWindow
-    width: 1024
-    height: 600
+    width: Screen.width
+    height: Screen.height
     visible: true
     color: "black"
-    flags: Qt.FramelessWindowHint | Qt.Window 
+    flags: Qt.FramelessWindowHint | Qt.Window
 
      Shortcut {
         sequence: "Space"
