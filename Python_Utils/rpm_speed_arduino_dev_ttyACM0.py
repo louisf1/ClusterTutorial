@@ -86,6 +86,8 @@ def run_master_bridge():
                     # Format: SPD:xx|RPM:xx|TMP:xx|LITERS:xx|RANGE:xx|AV2:x.xx|...|AV13:x.xx
                     if "SPD:" in line and "|RPM:" in line:
                         try:
+                            # Trim any junk before SPD: (e.g. two lines joined on startup)
+                            line = line[line.index("SPD:"):]
                             parts = line.split('|')
                             speed_val       = float(parts[0].split(':')[1])
                             rpm_val         = float(parts[1].split(':')[1])

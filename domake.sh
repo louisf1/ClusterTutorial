@@ -11,7 +11,8 @@
 #   - QML2_IMPORT_PATH kept for Qt5Compat fallback but clearly labelled
 #   - Script hardened with set -e so it stops on first error
 
-set -e  # Stop immediately if any command fails
+set -e
+trap 'kill $(jobs -p) 2>/dev/null; pkill -f avrdude 2>/dev/null; pkill -f arduino-cli 2>/dev/null' EXIT
 
 # =============================================================================
 # Configuration — edit these if paths change
