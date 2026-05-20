@@ -149,12 +149,17 @@ def run_master_bridge():
 
 if __name__ == "__main__":
     PORT = "/dev/ttyACM0"
-    
-    # 1. Clean the port first
+
     unblock_serial_port(PORT)
-    
-    # 2. Proceed with normal operations (Serial, Kuksa, etc.)
-    # ser = serial.Serial(PORT, 9600)
     print("🚀 Starting normal operations...")
-    run_master_bridge()
+
+    while True:
+        try:
+            run_master_bridge()
+        except KeyboardInterrupt:
+            print("\n🛑 Shutting down.")
+            break
+        except Exception as e:
+            print(f"🔄 Bridge dropped ({e}), reconnecting in 3 s...")
+            time.sleep(3)
     

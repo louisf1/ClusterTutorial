@@ -76,11 +76,14 @@ cp "$PROJECT_DIR/VSS_paths.txt" .
 # 6. Start hardware interface
 # =============================================================================
 echo "==> Starting Arduino hardware interface..."
+set +e
 /home/louis/bin/arduino-cli compile --upload --fqbn arduino:avr:mega -p /dev/ttyACM0 \
     /home/louis/ClusterWorx/Arduino/Ford_Ranger_signals_all/Ford_Ranger_signals_all.ino
+set -e
+sleep 2  # wait for Arduino to reset and re-enumerate on ttyACM0
 
 echo "==> Starting Python hardware bridge..."
-/home/louis/.conan-env/bin/python3 /home/louis/ClusterWorx/Python_Utils/rpm_speed_arduino_dev_ttyACM0.py &
+/home/louis/.conan-env/bin/python3 -u /home/louis/ClusterWorx/Python_Utils/rpm_speed_arduino_dev_ttyACM0.py &
 PYTHON_PID=$!
 
 # =============================================================================
