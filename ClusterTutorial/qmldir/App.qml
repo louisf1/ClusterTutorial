@@ -34,8 +34,7 @@ import Qt5Compat.GraphicalEffects
 
 Window {
     id: rootWindow
-    width: Screen.width
-    height: Screen.height
+    visibility: Window.FullScreen
     visible: true
     color: "black"
     flags: Qt.FramelessWindowHint | Qt.Window
@@ -50,11 +49,16 @@ Window {
 
     Item {
         id: dashboardWrapper
-        width: 1920   
-        height: 1080 
-        anchors.centerIn: parent
-        scale: Math.min(rootWindow.width / width, rootWindow.height / height)
-        transformOrigin: Item.Center
+        width: 1920
+        height: 1080
+        x: 0
+        y: 0
+        transform: Scale {
+            xScale: rootWindow.width / 1920
+            yScale: rootWindow.height / 1080
+            origin.x: 0
+            origin.y: 0
+        }
         
         SwipeView {
             id: view 	
