@@ -34,10 +34,16 @@ import Qt5Compat.GraphicalEffects
 
 Window {
     id: rootWindow
-    visibility: Window.FullScreen
+    visibility: Window.Windowed
     visible: true
     color: "black"
     flags: Qt.FramelessWindowHint | Qt.Window
+
+    // Go fullscreen on whatever screen this window lands on —
+    // fires both on initial KWin placement and after a drag-drop.
+    onScreenChanged: {
+        visibility = Window.FullScreen
+    }
 
      Shortcut {
         sequence: "Space"
@@ -118,14 +124,14 @@ Window {
 
 		Row {
 		    width: parent.width
-		    height: 650
+		    height: 660
 		    spacing: 25
 
 		    // 1. VEHICLE INFORMATION
 		    Rectangle {
 		        id: vehicledata
 		        width: parent.width - (parent.width - (parent.width / 4))
-		        height: 650
+		        height: 660
 		        color: "transparent"
 		        border.color: "#333"
 		        radius: 5
@@ -187,7 +193,7 @@ Window {
 		Rectangle {
 		    id: klineTerminal
 		    width: parent.width - (parent.width - (parent.width / 4)) + 250
-		    height: 650
+		    height: 660
 		    color: "transparent"
 		    border.color: "#333"
 		    radius: 5
@@ -268,51 +274,52 @@ Window {
 		    // These functions must live HERE (inside healthPage) to be visible to the Repeater
 		function getWireColor(i) {
 		    var colors = [
-			"brown-red",        
-			"blue-black",    
-			"brown",          
-			"red",   
-			"white-blue",   
-			"red-white",   
-			"brown-yellow",   
-			"green",   
-			"brown-white",   
-			"yellow-black",   
-			"yellow",   
-			"pink",   
-			"red-black",   
-			"black-white",   
-			"red-blue",   
-			"green-white",   
-			"blue-pink",   
-			"black-yellow",
-			"black-red",
-			"black-red"
-		     ];
+			"brown-red",       // 0  Main Relay Ctrl        (monitored)
+			"blue-black",      // 1  A/C Clutch Sense       (monitored)
+			"blue-black",      // 2  Crank Position         (unmonitored)
+			"white-blue",      // 3  Battery (+)            (unmonitored)
+			"green-white",     // 4  TPS Sensor             (unmonitored)
+			"blue-white",      // 5  K-Line Diag            (monitored)
+			"red-blue",        // 6  Fuel Solenoid          (unmonitored)
+			"brown-yellow",    // 7  EGR Stepper/Vent       (monitored)
+			"green",           // 8  A/C Request            (monitored)
+			"brown-white",     // 9  Glow Plug Sense        (monitored)
+			"yellow",          // 10 Tacho (RPM)            (unmonitored)
+			"yellow",          // 11 Check Engine           (monitored)
+			"pink",            // 12 FICD (Idle Up)         (monitored)
+			"green",           // 13 Ignition (IG1)         (unmonitored)
+			"",                // 14 (N/C - hidden)
+			"red-blue",        // 15 EGR Solenoid           (monitored)
+			"green-white",     // 16 Glow Plug Relay        (monitored)
+			"",                // 17 (N/C - hidden)
+			"black-yellow",    // 18 Starter Signal         (monitored)
+			"black-red"        // 19 Power Ground           (monitored)
+		    ];
 		    return colors[i] || "gray";
 		}
 
 		function getWireFunction(i) {
 		    var funcs = [
-			"Main Relay Ctrl",   // 0: brown-red
-			"A/C Clutch Sense",  // 1: blue-black
-			"Crank Position",    // 2: brown
-			"Battery (+)",       // 4: red
-			"K-Line Diag",       // 5: white-blue
-			"TPS Sensor",        // 6: red-white
-			"EGR Stepper/Vent",  // 7: brown-yellow
-			"A/C Request",       // 8: green
-			"Glow Plug Sense",   // 9: brown-white
-			"Tacho (RPM)",       // 10: yellow-black
-			"Check Engine",      // 11: yellow
-			"FICD (Idle Up)",    // 12: pink
-			"Fuel Solenoid",     // 13: red-black
-			"Ignition (IG1)",    // 14: black-white
-			"EGR Solenoid",      // 15: red-blue
-			"Glow Plug Relay",   // 16: green-white
-			"Speed (VSS)",       // 17: blue-pink
-			"Starter Signal",    // 18: black-yellow
-			"Power Ground"       // 19: black-red
+			"Main Relay Ctrl",   // 0:  brown-red     (monitored)
+			"A/C Clutch Sense",  // 1:  blue-black    (monitored)
+			"Crank Position",    // 2:  blue-black    (unmonitored)
+			"Battery (+)",       // 3:  white-blue    (unmonitored)
+			"TPS Sensor",        // 4:  green-white   (unmonitored)
+			"K-Line Diag",       // 5:  blue-white    (monitored)
+			"Fuel Solenoid",     // 6:  red-blue      (unmonitored)
+			"EGR Stepper/Vent",  // 7:  brown-yellow  (monitored)
+			"A/C Request",       // 8:  green         (monitored)
+			"Glow Plug Sense",   // 9:  brown-white   (monitored)
+			"Tacho (RPM)",       // 10: yellow        (unmonitored)
+			"Check Engine",      // 11: yellow        (monitored)
+			"FICD (Idle Up)",    // 12: pink          (monitored)
+			"Ignition (IG1)",    // 13: green         (unmonitored)
+			"",                  // 14: (N/C)
+			"EGR Solenoid",      // 15: red-blue      (monitored)
+			"Glow Plug Relay",   // 16: green-white   (monitored)
+			"",                  // 17: (N/C)
+			"Starter Signal",    // 18: black-yellow  (monitored)
+			"Power Ground"       // 19: black-red     (monitored)
 		    ];
 		    
 		    // Safety check to prevent QML from crashing if index is out of bounds
@@ -359,14 +366,14 @@ Window {
 
 			Row {
 			    width: parent.width
-			    height: 650
+			    height: 660
 			    spacing: 25
 
 			    // 1. INTEL PC BLOCK
 			    Rectangle {
 				id: intelBlock
 				width: parent.width - (parent.width - (parent.width / 4))
-				height: 650
+				height: 660
 				color: "transparent"
 				border.color: "#333"
 				radius: 5
@@ -397,7 +404,7 @@ Window {
 			    Rectangle {
 				id: ecuBlock
 				width: parent.width - (parent.width - (parent.width / 4))
-				height: 650
+				height: 660
 				color: "transparent"
 				border.color: "#333"
 				radius: 5
@@ -423,6 +430,7 @@ Window {
 				            delegate: Row {
 				                height: 25
 				                spacing: 15
+				                visible: healthPage.getWireColor(index) !== ""
 
 						// Inside your Repeater delegate for the Wire Color Dot
 						// Inside your Repeater delegate for the ECU Diagnostics
@@ -493,4 +501,48 @@ Window {
 
         } // End SwipeView
     } // End dashboardWrapper
+
+    // ── Drag handle ──────────────────────────────────────────────────────────
+    // Sits outside dashboardWrapper so it is never scaled or clipped.
+    // Click-drag it to move the window between the 7-inch and large screen;
+    // onScreenChanged above resizes automatically once it lands.
+    Item {
+        id: dragHandle
+        z: 1000
+        width: 48
+        height: 48
+        anchors.top:    parent.top
+        anchors.right:  parent.right
+        anchors.topMargin:   10
+        anchors.rightMargin: 10
+
+        Rectangle {
+            anchors.fill: parent
+            radius: 8
+            color: "#CC0d0d1a"
+            border.color: "#55FFFFFF"
+            border.width: 1
+
+            Grid {
+                anchors.centerIn: parent
+                columns: 3
+                spacing: 5
+                Repeater {
+                    model: 9
+                    Rectangle { width: 5; height: 5; radius: 2.5; color: "#BBBBBB" }
+                }
+            }
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            cursorShape: Qt.SizeAllCursor
+            onPressed: {
+                rootWindow.visibility = Window.Windowed
+                rootWindow.startSystemMove()
+            }
+        }
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
 } // End Window

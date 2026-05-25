@@ -5,11 +5,25 @@
 //   SPD:xx.x|RPM:xxxx|TMP:xx.x|LITERS:xx.x|RANGE:xxx
 //   |AV2:x.xx|AV3:x.xx|AV4:x.xx|AV5:x.xx|AV6:x.xx|AV7:x.xx
 //   |AV8:x.xx|AV9:x.xx|AV10:x.xx|AV11:x.xx|AV12:x.xx|AV13:x.xx
+//   |LINDIC:x|RINDIC:x  (1=active, 0=off — latched over the 1s window)
 //
-// AV values are 0–5V (via voltage divider). Python bridge multiplies by
-// VOLTAGE_SCALE=3.0 to recover real ECU wire voltage (0–15V range).
-// Hardware divider: 20kΩ (top) + 10kΩ (bottom) on each analog input.
+// AV values are 0–5V. Each wire uses a 10kΩ series resistor (current limiting
+// only — no voltage divider). Signals above 5V clamp at the protection diode.
+// Python bridge uses VOLTAGE_SCALE=1.0 (no scaling needed).
 // =============================================================================
+
+// =============================================================================
+// INDICATORS — D25 (left) / D26 (right) / D27 (hazard) via V508VC voltage regulator
+// Regulator drives pin HIGH when indicator fires. External 10kΩ pull-down to
+// GND holds pin LOW when off. State is latched across the 1s report window so
+// fast blinks are never missed.
+// =============================================================================
+const int leftIndicatorPin  = 25;
+const int rightIndicatorPin = 26;
+const int hazardPin         = 27;
+bool leftIndicatorSeen  = false;
+bool rightIndicatorSeen = false;
+bool hazardSeen         = false;
 
 // =============================================================================
 // SPEED & RPM
@@ -51,9 +65,9 @@ float avgKmPerLiter       = 10.0;     // update to your real-world average
 
 // =============================================================================
 // ECU WIRE HARNESS — Analog voltage reads (A2–A13)
-// Each wire is connected through a 20kΩ + 10kΩ voltage divider so that
-// 0–15V ECU signals map to 0–5V at the Arduino ADC input.
-// Python bridge applies ×3.0 scale to recover the real voltage.
+// Each wire uses a 10kΩ series resistor (current limiting only, no voltage divider).
+// Signals above 5V clamp at the Arduino protection diode — sufficient for
+// active/inactive detection. Python bridge uses VOLTAGE_SCALE=1.0.
 //
 // Wire color     | Analog pin | Digital pin | ECU function
 // ---------------|------------|-------------|----------------------
@@ -134,6 +148,11 @@ void setup() {
     pinMode(WIRE_D_PINS[i], INPUT_PULLUP);
   }
 
+  // Indicator inputs via V508VC voltage regulator (active HIGH, external pull-down)
+  pinMode(leftIndicatorPin,  INPUT);
+  pinMode(rightIndicatorPin, INPUT);
+  pinMode(hazardPin,         INPUT);
+
   // Fuel gauge — initialise smoothing buffer
   for (int i = 0; i < numReadings; i++) {
     readings[i] = 0;
@@ -144,8 +163,12 @@ void setup() {
 // MAIN LOOP
 // =============================================================================
 void loop() {
-  static unsigned long lastReport = 0;
+  // Latch indicator state on every fast loop iteration so blinks are never missed
+  if (digitalRead(leftIndicatorPin)  == HIGH) leftIndicatorSeen  = true;
+  if (digitalRead(rightIndicatorPin) == HIGH) rightIndicatorSeen = true;
+  if (digitalRead(hazardPin)         == HIGH) hazardSeen         = true;
 
+  static unsigned long lastReport = 0;
   if (millis() - lastReport < 1000) return;
   lastReport = millis();
 
@@ -187,6 +210,15 @@ void loop() {
     Serial.print("|AV"); Serial.print(i + 2);
     Serial.print(":"); Serial.print(v, 2);
   }
+
+  // ── Indicators (latched over the 1s window) ──────────────────────────────
+  Serial.print("|LINDIC:"); Serial.print(leftIndicatorSeen  ? 1 : 0);
+  Serial.print("|RINDIC:"); Serial.print(rightIndicatorSeen ? 1 : 0);
+  Serial.print("|HAZARD:"); Serial.print(hazardSeen         ? 1 : 0);
+
+  leftIndicatorSeen  = false;
+  rightIndicatorSeen = false;
+  hazardSeen         = false;
 
   Serial.println();   // end of line — Python readline() triggers on this
 }

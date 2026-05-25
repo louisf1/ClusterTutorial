@@ -592,6 +592,23 @@ int main(int argc, char *argv[])
             qCritical() << "Error: Could not load the QML application engine.";
             return -1;
         }
+
+        // Nudge window onto the 7-inch screen (1024x600) at startup.
+        // The app runs windowed+frameless so the user can drag it between screens;
+        // App.qml's onScreenChanged resizes to fill whichever screen it lands on.
+        QTimer::singleShot(100, &app, [&engine]() {
+            if (engine.rootObjects().isEmpty()) return;
+            QWindow *win = qobject_cast<QWindow *>(engine.rootObjects().first());
+            if (!win) return;
+            QScreen *target = nullptr;
+            for (QScreen *s : QGuiApplication::screens()) {
+                if (s->size() == QSize(1024, 600)) { target = s; break; }
+            }
+            if (!target || win->screen() == target) return;
+            qDebug() << "Moving window to 7-inch screen:" << target->name();
+            win->setScreen(target);
+            win->showFullScreen();
+        });
     }
 
     // 6. Retrieve Values singleton AFTER engine has loaded.
