@@ -3,10 +3,9 @@
 // =============================================================================
 // Serial output format (one line per second):
 //   SPD:xx.x|RPM:xxxx|TMP:xx.x|LITERS:xx.x|RANGE:xxx
-//   |AV2:x.xx|...|AV13:x.xx
-//   |LINDIC:x|RINDIC:x|HAZARD:x|LIGHTSDIM:x|LIGHTSBRIGHT:x
-//   (all 1=active, 0=off — latched over the 1s window)
-//   HAZARD derived: left AND right both HIGH simultaneously
+//   |AV2:x.xx|AV3:x.xx|AV4:x.xx|AV5:x.xx|AV6:x.xx|AV7:x.xx
+//   |AV8:x.xx|AV9:x.xx|AV10:x.xx|AV11:x.xx|AV12:x.xx|AV13:x.xx
+//   |LINDIC:x|RINDIC:x  (1=active, 0=off — latched over the 1s window)
 //
 // AV values are 0–5V. Each wire uses a 10kΩ series resistor (current limiting
 // only — no voltage divider). Signals above 5V clamp at the protection diode.
@@ -15,21 +14,18 @@
 
 // =============================================================================
 // INDICATORS — D25 (left) / D26 (right) via V508VC voltage regulator
-// Hazard is derived: both left AND right HIGH simultaneously = hazard active.
-// LIGHTS    — D27 (dim/parking) / D28 (bright/high-beam) via V508VC regulator
-// All pins active HIGH; external 10kΩ pull-down to GND holds LOW when off.
+// LIGHTS     — D27 (dim/parking) via V508VC voltage regulator
+// All active HIGH; external 10kΩ pull-down holds LOW when off.
+// Hazard is derived in Python bridge (left AND right both active).
 // State is latched across the 1s report window so fast blinks are never missed.
 // =============================================================================
 const int leftIndicatorPin  = 25;
 const int rightIndicatorPin = 26;
 const int LightsDimPin      = 27;
 const int LightsBrightPin   = 28;
-
 bool leftIndicatorSeen  = false;
 bool rightIndicatorSeen = false;
-bool hazardSeen         = false;
 bool LightsDimSeen      = false;
-bool LightsBrightSeen   = false;
 
 // =============================================================================
 // SPEED & RPM
@@ -158,7 +154,6 @@ void setup() {
   pinMode(leftIndicatorPin,  INPUT);
   pinMode(rightIndicatorPin, INPUT);
   pinMode(LightsDimPin,      INPUT);
-  pinMode(LightsBrightPin,   INPUT);
 
   // Fuel gauge — initialise smoothing buffer
   for (int i = 0; i < numReadings; i++) {
@@ -170,18 +165,10 @@ void setup() {
 // MAIN LOOP
 // =============================================================================
 void loop() {
-  // Latch indicator/hazard state on every fast loop iteration so blinks are never missed.
-  // Hazard is derived: both left AND right active simultaneously = hazard.
-  bool leftNow  = digitalRead(leftIndicatorPin)  == HIGH;
-  bool rightNow = digitalRead(rightIndicatorPin) == HIGH;
-  if (leftNow && rightNow) {
-    hazardSeen = true;
-  } else {
-    if (leftNow)  leftIndicatorSeen  = true;
-    if (rightNow) rightIndicatorSeen = true;
-  }
-  if (digitalRead(LightsDimPin)    == HIGH) LightsDimSeen    = true;
-  if (digitalRead(LightsBrightPin) == HIGH) LightsBrightSeen = true;
+  // Latch indicator state on every fast loop iteration so blinks are never missed
+  if (digitalRead(leftIndicatorPin)  == HIGH) leftIndicatorSeen = true;
+  if (digitalRead(rightIndicatorPin) == HIGH) rightIndicatorSeen = true;
+  if (digitalRead(LightsDimPin)      == HIGH) LightsDimSeen     = true;
 
   static unsigned long lastReport = 0;
   if (millis() - lastReport < 1000) return;
@@ -227,16 +214,13 @@ void loop() {
   }
 
   // ── Indicators (latched over the 1s window) ──────────────────────────────
-  Serial.print("|LINDIC:"); Serial.print(leftIndicatorSeen      ? 1 : 0);
-  Serial.print("|RINDIC:"); Serial.print(rightIndicatorSeen     ? 1 : 0);
-  Serial.print("|HAZARD:"); Serial.print(hazardSeen             ? 1 : 0);
-  Serial.print("|LIGHTSDIM:"); Serial.print(LightsDimSeen       ? 1 : 0);
-  Serial.print("|LIGHTSBRIGHT:"); Serial.print(LightsBrightSeen ? 1 : 0);
+  Serial.print("|LINDIC:");    Serial.print(leftIndicatorSeen  ? 1 : 0);
+  Serial.print("|RINDIC:");    Serial.print(rightIndicatorSeen ? 1 : 0);
+  Serial.print("|LIGHTSDIM:"); Serial.print(LightsDimSeen      ? 1 : 0);
+
   leftIndicatorSeen  = false;
   rightIndicatorSeen = false;
-  hazardSeen         = false;
   LightsDimSeen      = false;
-  LightsBrightSeen   = false;
 
   Serial.println();   // end of line — Python readline() triggers on this
 }
