@@ -26,6 +26,7 @@ const int LightsBrightPin   = 28;
 bool leftIndicatorSeen  = false;
 bool rightIndicatorSeen = false;
 bool LightsDimSeen      = false;
+bool LightsBrightSeen   = false;
 
 // =============================================================================
 // SPEED & RPM
@@ -154,6 +155,7 @@ void setup() {
   pinMode(leftIndicatorPin,  INPUT);
   pinMode(rightIndicatorPin, INPUT);
   pinMode(LightsDimPin,      INPUT);
+  pinMode(LightsBrightPin,   INPUT);
 
   // Fuel gauge — initialise smoothing buffer
   for (int i = 0; i < numReadings; i++) {
@@ -166,9 +168,10 @@ void setup() {
 // =============================================================================
 void loop() {
   // Latch indicator state on every fast loop iteration so blinks are never missed
-  if (digitalRead(leftIndicatorPin)  == HIGH) leftIndicatorSeen = true;
+  if (digitalRead(leftIndicatorPin)  == HIGH) leftIndicatorSeen  = true;
   if (digitalRead(rightIndicatorPin) == HIGH) rightIndicatorSeen = true;
-  if (digitalRead(LightsDimPin)      == HIGH) LightsDimSeen     = true;
+  if (digitalRead(LightsDimPin)      == HIGH) LightsDimSeen      = true;
+  if (digitalRead(LightsBrightPin)   == HIGH) LightsBrightSeen   = true;
 
   static unsigned long lastReport = 0;
   if (millis() - lastReport < 1000) return;
@@ -214,13 +217,15 @@ void loop() {
   }
 
   // ── Indicators (latched over the 1s window) ──────────────────────────────
-  Serial.print("|LINDIC:");    Serial.print(leftIndicatorSeen  ? 1 : 0);
-  Serial.print("|RINDIC:");    Serial.print(rightIndicatorSeen ? 1 : 0);
-  Serial.print("|LIGHTSDIM:"); Serial.print(LightsDimSeen      ? 1 : 0);
+  Serial.print("|LINDIC:");      Serial.print(leftIndicatorSeen  ? 1 : 0);
+  Serial.print("|RINDIC:");      Serial.print(rightIndicatorSeen ? 1 : 0);
+  Serial.print("|LIGHTSDIM:");   Serial.print(LightsDimSeen      ? 1 : 0);
+  Serial.print("|LIGHTSBRIGHT:"); Serial.print(LightsBrightSeen  ? 1 : 0);
 
   leftIndicatorSeen  = false;
   rightIndicatorSeen = false;
   LightsDimSeen      = false;
+  LightsBrightSeen   = false;
 
   Serial.println();   // end of line — Python readline() triggers on this
 }

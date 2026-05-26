@@ -71,6 +71,7 @@ def run_master_bridge():
                     left_indicator  = False
                     right_indicator = False
                     lights_dim      = False
+                    lights_bright   = False
                     for part in parts[5:]:
                         if part.startswith("LINDIC:"):
                             left_indicator  = part.split(':')[1] == '1'
@@ -78,6 +79,8 @@ def run_master_bridge():
                             right_indicator = part.split(':')[1] == '1'
                         elif part.startswith("LIGHTSDIM:"):
                             lights_dim      = part.split(':')[1] == '1'
+                        elif part.startswith("LIGHTSBRIGHT:"):
+                            lights_bright   = part.split(':')[1] == '1'
 
                     hazard = left_indicator and right_indicator
 
@@ -91,12 +94,13 @@ def run_master_bridge():
                        'Vehicle.Body.Lights.DirectionIndicator.Right.IsSignaling':    Datapoint(right_indicator),
                        'Vehicle.Body.Lights.Hazard.IsSignaling':                      Datapoint(hazard),
                        'Vehicle.Body.Lights.Beam.Low.IsOn':                           Datapoint(lights_dim),
+                       'Vehicle.Body.Lights.Beam.High.IsOn':                          Datapoint(lights_bright),
                     }
                     # -100 means thermocouple disconnected — skip temp publish
                     if temp_val != -100.0:
                         telemetry['Vehicle.OBD.CoolantTemperature'] = Datapoint(temp_val)
                     client.set_current_values(telemetry)
-                    print(f"TELEMETRY -> Speed: {speed_val} km/h | RPM: {rpm_val} | TEMP: {temp_val} | LITERS: {fuel_liters_val} | RANGE: {fuel_range_val} | L:{int(left_indicator)} R:{int(right_indicator)} H:{int(hazard)} DIM:{int(lights_dim)}")
+                    print(f"TELEMETRY -> Speed: {speed_val} km/h | RPM: {rpm_val} | TEMP: {temp_val} | LITERS: {fuel_liters_val} | RANGE: {fuel_range_val} | L:{int(left_indicator)} R:{int(right_indicator)} H:{int(hazard)} DIM:{int(lights_dim)} BRIGHT:{int(lights_bright)}")
 
                     # ECU wire voltages (AV2–AV13)
                     wire_states   = [False] * 20
