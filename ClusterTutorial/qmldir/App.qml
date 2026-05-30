@@ -512,7 +512,7 @@ Window {
         width: 48
         height: 48
         anchors.top:    parent.top
-        anchors.right:  parent.right
+        anchors.left:  parent.left
         anchors.topMargin:   10
         anchors.rightMargin: 10
 
