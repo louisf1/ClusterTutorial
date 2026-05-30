@@ -29,6 +29,12 @@ ANALOG_TO_WIRE = {
     12: 11, # A12 Pink          → index 11 "pink"          (FICD solenoid Valve no2)
     13: 2,  # A13 Black/Yellow  → index  2 "black-yellow"  (Starter Signal)
 }
+DIGITAL_TO_WIRE = {
+    33: 1,   # D33 Black/White → index  1 "black-white" (ignition power)
+    34: 5,   # D34 Brown       → index  5 "brown"       (glow plug relay)
+    35: 14,  # D35 Red/White   → index 14 "red-white"   (unknown)
+    36: 12,  # D36 Red         → index 12 "red"         (standby power)
+}
 VOLTAGE_SCALE     = 1.0   # no voltage divider — direct 10kΩ series resistor only
 ACTIVE_THRESHOLD  = 2.0   # volts (real, after scale) — wire considered "live"
 WIRE_STATE_FILE   = '/tmp/ecu_wire_states.json'
@@ -107,21 +113,27 @@ def run_master_bridge():
                     client.set_current_values(telemetry)
                     print(f"TELEMETRY -> Speed: {speed_val} km/h | RPM: {rpm_val} | TEMP: {temp_val} | LITERS: {fuel_liters_val} | RANGE: {fuel_range_val} | L:{int(left_indicator)} R:{int(right_indicator)} H:{int(hazard)} DIM:{int(lights_dim)} BRIGHT:{int(lights_bright)} DT:{int(daytime_lights)}")
 
-                    # ECU wire voltages (AV2–AV13)
+                    # ECU wire voltages (AV1–AV13 analog, DV33–DV36 digital)
                     wire_states   = [False] * 20
                     wire_voltages = [0.0]   * 20
 
                     for part in parts[5:]:
-                        if not part.startswith("AV"):
-                            continue
-                        label, _, raw = part.partition(':')
-                        pin_num = int(label[2:])
-                        raw_v   = float(raw)
-                        real_v  = round(raw_v * VOLTAGE_SCALE, 2)
-                        idx     = ANALOG_TO_WIRE.get(pin_num)
-                        if idx is not None:
-                            wire_voltages[idx] = real_v
-                            wire_states[idx]   = real_v >= ACTIVE_THRESHOLD
+                        if part.startswith("AV"):
+                            label, _, raw = part.partition(':')
+                            pin_num = int(label[2:])
+                            real_v  = round(float(raw) * VOLTAGE_SCALE, 2)
+                            idx     = ANALOG_TO_WIRE.get(pin_num)
+                            if idx is not None:
+                                wire_voltages[idx] = real_v
+                                wire_states[idx]   = real_v >= ACTIVE_THRESHOLD
+                        elif part.startswith("DV"):
+                            label, _, raw = part.partition(':')
+                            pin_num = int(label[2:])
+                            is_high = raw.strip() == '1'
+                            idx     = DIGITAL_TO_WIRE.get(pin_num)
+                            if idx is not None:
+                                wire_voltages[idx] = 5.0 if is_high else 0.0
+                                wire_states[idx]   = is_high
 
                     with open(WIRE_STATE_FILE, 'w') as jf:
                         json.dump({'states': wire_states, 'voltages': wire_voltages}, jf)

@@ -223,6 +223,12 @@ void loop() {
     Serial.print(":"); Serial.print(v, 2);
   }
 
+  // ── Digital-only ECU wire pins (no ADC — HIGH/LOW reported as 1/0) ─────────
+  Serial.print("|DV33:"); Serial.print(digitalRead(33) == HIGH ? 1 : 0);
+  Serial.print("|DV34:"); Serial.print(digitalRead(34) == HIGH ? 1 : 0);
+  Serial.print("|DV35:"); Serial.print(digitalRead(35) == HIGH ? 1 : 0);
+  Serial.print("|DV36:"); Serial.print(digitalRead(36) == HIGH ? 1 : 0);
+
   // ── Indicators (latched over the 1s window) ──────────────────────────────
   Serial.print("|LINDIC:");      Serial.print(leftIndicatorSeen  ? 1 : 0);
   Serial.print("|RINDIC:");      Serial.print(rightIndicatorSeen ? 1 : 0);
