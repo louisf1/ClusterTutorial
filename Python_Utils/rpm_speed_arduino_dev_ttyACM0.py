@@ -15,18 +15,19 @@ KUKSA_PORT = 55555
 # ECU wire harness — maps Arduino analog pin number to wire index (0-19)
 # used by the dashboard health page (matches getWireFunction order in App.qml)
 ANALOG_TO_WIRE = {
-    2: 1,   # Blue/Black   A/C Clutch Sense
-    3: 5,   # Blue/White   K-Line Diag
-    4: 16,  # Green/White  Glow Plug Relay
-    5: 19,  # Black/Red    Power Ground
-    6: 15,  # Red/Blue     EGR Solenoid
-    7: 0,   # Brown/Red    Main Relay Ctrl
-    8: 7,   # Brown/Yellow EGR Stepper/Vent
-    9: 9,   # Brown/White  Glow Plug Sense
-    10: 11, # Yellow       Check Engine
-    11: 8,  # Green        A/C Request
-    12: 12, # Pink         FICD (Idle Up)
-    13: 18, # Black/Yellow Starter Signal
+    1:  4,  # A1  Blue/Pink     → index  4 "blue-pink"     (Crankshaft Position Sensor)
+    2:  3,  # A2  Blue/Black    → index  3 "blue-black"    (Timer Control Valve)
+    3:  15, # A3  White/Blue    → index 15 "white-blue"    (PCM internal control)
+    4:  10, # A4  Green/White   → index 10 "green-white"   (Idle control switch)
+    5:  0,  # A5  Black/Red     → index  0 "black-red"     (Control Lever Position)
+    6:  13, # A6  Red/Blue      → index 13 "red-blue"      (Control Lever Position)
+    7:  6,  # A7  Brown/Red     → index  6 "brown-red"     (unknown)
+    8:  8,  # A8  Brown/Yellow  → index  8 "brown-yellow"  (unknown)
+    9:  7,  # A9  Brown/White   → index  7 "brown-white"   (Control Lever Position)
+    10: 16, # A10 Yellow        → index 16 "yellow"        (EGR solenoid Valve)
+    11: 9,  # A11 Green         → index  9 "green"         (FICD solenoid Valve no1)
+    12: 11, # A12 Pink          → index 11 "pink"          (FICD solenoid Valve no2)
+    13: 2,  # A13 Black/Yellow  → index  2 "black-yellow"  (Starter Signal)
 }
 VOLTAGE_SCALE     = 1.0   # no voltage divider — direct 10kΩ series resistor only
 ACTIVE_THRESHOLD  = 2.0   # volts (real, after scale) — wire considered "live"

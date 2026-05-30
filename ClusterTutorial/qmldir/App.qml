@@ -274,53 +274,47 @@ Window {
 		    // These functions must live HERE (inside healthPage) to be visible to the Repeater
 		function getWireColor(i) {
 		    var colors = [
-			"brown-red",       // 0  Main Relay Ctrl        (monitored)
-			"blue-black",      // 1  A/C Clutch Sense       (monitored)
-			"blue-black",      // 2  Crank Position         (unmonitored)
-			"white-blue",      // 3  Battery (+)            (unmonitored)
-			"green-white",     // 4  TPS Sensor             (unmonitored)
-			"blue-white",      // 5  K-Line Diag            (monitored)
-			"red-blue",        // 6  Fuel Solenoid          (unmonitored)
-			"brown-yellow",    // 7  EGR Stepper/Vent       (monitored)
-			"green",           // 8  A/C Request            (monitored)
-			"brown-white",     // 9  Glow Plug Sense        (monitored)
-			"yellow",          // 10 Tacho (RPM)            (unmonitored)
-			"yellow",          // 11 Check Engine           (monitored)
-			"pink",            // 12 FICD (Idle Up)         (monitored)
-			"green",           // 13 Ignition (IG1)         (unmonitored)
-			"",                // 14 (N/C - hidden)
-			"red-blue",        // 15 EGR Solenoid           (monitored)
-			"green-white",     // 16 Glow Plug Relay        (monitored)
-			"",                // 17 (N/C - hidden)
-			"black-yellow",    // 18 Starter Signal         (monitored)
-			"black-red"        // 19 Power Ground           (monitored)
+			"black-red",    //: Control Lever Position-Timer Control valve :Arduino AnaLog/Digital Pin  5
+			"black-white",    //: ignition power on-off and Timer Control Valve :Arduino Digital Pin 33
+			"black-yellow",    //: Connected to ignition key start barrel :Arduino AnaLog/Digital Pin  13
+			"blue-black",    //: Timer Control Valve :Arduino AnaLog/Digital Pin  2
+			"blue-pink",    //: Crankshaft Position Sensor :Arduino AnaLog/Digital Pin 1
+			"brown",    //: Glow plug relay :AnaLog/Digital Digital Pin 34
+			"brown-red",    //: unknown :Arduino AnaLog/Digital Pin  7
+			"brown-white",    //: Control Lever Position :Arduino AnaLog/Digital Pin  9
+			"brown-yellow",    //: unknown :Arduino AnaLog/Digital Pin  8
+			"green",    //: FICD solenoid Valve no1 :Arduino AnaLog/Digital Pin  11
+			"green-white",    //: Idle control switch :Arduino AnaLog/Digital Pin  4
+			"pink",    //: FICD solenoid Valve no2 :Arduino AnaLog/Digital Pin  12
+			"red",    //: standby power :Arduino Digital Pin 36
+			"red-blue",    //: Control Lever Position :Arduino AnaLog/Digital Pin  6
+			"red-white",    //: unknown :Arduino Digital Pin 35
+			"white-blue",    //: PCM internal control :Arduino AnaLog/Digital Pin  3
+			"yellow"    //: EGR solonoid Valve :Arduino AnaLog/Digital Pin 10
 		    ];
-		    return colors[i] || "gray";
+		    return (i >= 0 && i < colors.length) ? colors[i] : "";
 		}
 
 		function getWireFunction(i) {
 		    var funcs = [
-			"Main Relay Ctrl",   // 0:  brown-red     (monitored)
-			"A/C Clutch Sense",  // 1:  blue-black    (monitored)
-			"Crank Position",    // 2:  blue-black    (unmonitored)
-			"Battery (+)",       // 3:  white-blue    (unmonitored)
-			"TPS Sensor",        // 4:  green-white   (unmonitored)
-			"K-Line Diag",       // 5:  blue-white    (monitored)
-			"Fuel Solenoid",     // 6:  red-blue      (unmonitored)
-			"EGR Stepper/Vent",  // 7:  brown-yellow  (monitored)
-			"A/C Request",       // 8:  green         (monitored)
-			"Glow Plug Sense",   // 9:  brown-white   (monitored)
-			"Tacho (RPM)",       // 10: yellow        (unmonitored)
-			"Check Engine",      // 11: yellow        (monitored)
-			"FICD (Idle Up)",    // 12: pink          (monitored)
-			"Ignition (IG1)",    // 13: green         (unmonitored)
-			"",                  // 14: (N/C)
-			"EGR Solenoid",      // 15: red-blue      (monitored)
-			"Glow Plug Relay",   // 16: green-white   (monitored)
-			"",                  // 17: (N/C)
-			"Starter Signal",    // 18: black-yellow  (monitored)
-			"Power Ground"       // 19: black-red     (monitored)
-		    ];
+			"Control Lever Position-Timer Control valve",    //: "black-red",    //: Control Lever Position-Timer Control valve :Arduino AnaLog/Digital Pin  5
+			"ignition power on-off and Timer Control Valve",    //: "black-white",    //: ignition power on-off and Timer Control Valve :Arduino Digital Pin 33
+			"Connected to ignition key start barrel",    //: "black-yellow",    //: Connected to ignition key start barrel :Arduino AnaLog/Digital Pin  13
+			"Timer Control Valve",    //: "blue-black",    //: Timer Control Valve :Arduino AnaLog/Digital Pin  2
+			"Crankshaft Position Sensor",    //: "blue-pink",    //: Crankshaft Position Sensor :Arduino AnaLog/Digital Pin 1
+			"Glow plug relay",    //: "brown",    //: Glow plug relay :AnaLog/Digital Digital Pin 34
+			"unknown",    //: "brown-red",    //: unknown :Arduino AnaLog/Digital Pin  7
+			"Control Lever Position",    //: "brown-white",    //: Control Lever Position :Arduino AnaLog/Digital Pin  9
+			"unknown",    //: "brown-yellow",    //: unknown :Arduino AnaLog/Digital Pin  8
+			"FICD solenoid Valve no1",    //: "green",    //: FICD solenoid Valve no1 :Arduino AnaLog/Digital Pin  11
+			"Idle control switch",    //: "green-white",    //: Idle control switch :Arduino AnaLog/Digital Pin  4
+			"FICD solenoid Valve no2",    //: "pink",    //: FICD solenoid Valve no2 :Arduino AnaLog/Digital Pin  12
+			"standby power",    //: "red",    //: standby power :Arduino Digital Pin 36
+			"Control Lever Position",    //: "red-blue",    //: Control Lever Position :Arduino AnaLog/Digital Pin  6
+			"unknown",    //: "red-white",    //: unknown :Arduino Digital Pin 35
+			"PCM internal control",    //: "white-blue",    //: PCM internal control :Arduino AnaLog/Digital Pin  3
+			"EGR solonoid Valve"    //: "yellow",    //: EGR solonoid Valve :Arduino AnaLog/Digital Pin 10
+   			];
 		    
 		    // Safety check to prevent QML from crashing if index is out of bounds
 		    return (i >= 0 && i < funcs.length) ? funcs[i] : "Unknown Pin";

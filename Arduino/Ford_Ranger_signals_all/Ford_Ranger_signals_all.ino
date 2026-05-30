@@ -69,32 +69,35 @@ const float TANK_CAPACITY = 70.03012;
 float avgKmPerLiter       = 10.0;     // update to your real-world average
 
 // =============================================================================
-// ECU WIRE HARNESS — Analog voltage reads (A2–A13)
+// ECU WIRE HARNESS — Analog voltage reads (A1–A13)
 // Each wire uses a 10kΩ series resistor (current limiting only, no voltage divider).
 // Signals above 5V clamp at the Arduino protection diode — sufficient for
 // active/inactive detection. Python bridge uses VOLTAGE_SCALE=1.0.
 //
-// Wire color     | Analog pin | Digital pin | ECU function
-// ---------------|------------|-------------|----------------------
-// Blue/Black     | A2         | D2          | A/C Clutch Sense
-// Blue/White     | A3         | D3          | K-Line Diag
-// Green/White    | A4         | D4          | Glow Plug Relay
-// Black/Red      | A5         | D5          | Power Ground
-// Red/Blue       | A6         | D6          | EGR Solenoid
-// Brown/Red      | A7         | D7          | Main Relay Ctrl
-// Brown/Yellow   | A8         | D8          | EGR Stepper/Vent
-// Brown/White    | A9         | D9          | Glow Plug Sense
-// Yellow         | A10        | D10         | Check Engine
-// Green          | A11        | D11         | A/C Request
-// Pink           | A12        | D12         | FICD (Idle Up)
-// Black/Yellow   | A13        | D13         | Starter Signal
+//			"black-red",    //: Control Lever Position-Timer Control valve :Arduino AnaLog/Digital Pin  5
+//			"black-white",    //: ignition power on-off and Timer Control Valve :Arduino Digital Pin 33
+//			"black-yellow",    //: Connected to ignition key start barrel :Arduino AnaLog/Digital Pin  13
+//			"blue-black",    //: Timer Control Valve :Arduino AnaLog/Digital Pin  2
+//			"blue-pink",    //: Crankshaft Position Sensor :Arduino AnaLog/Digital Pin 1
+//			"brown",    //: Glow plug relay :AnaLog/Digital Digital Pin 34
+//			"brown-red",    //: unknown :Arduino AnaLog/Digital Pin  7
+//			"brown-white",    //: Control Lever Position :Arduino AnaLog/Digital Pin  9
+//			"brown-yellow",    //: unknown :Arduino AnaLog/Digital Pin  8
+//			"green",    //: FICD solenoid Valve no1 :Arduino AnaLog/Digital Pin  11
+//			"green-white",    //: Idle control switch :Arduino AnaLog/Digital Pin  4
+//			"pink",    //: FICD solenoid Valve no2 :Arduino AnaLog/Digital Pin  12
+//			"red",    //: standby power :Arduino Digital Pin 36
+//			"red-blue",    //: Control Lever Position :Arduino AnaLog/Digital Pin  6
+//			"red-white",    //: unknown :Arduino Digital Pin 35
+//			"white-blue",    //: PCM internal control :Arduino AnaLog/Digital Pin  3
+//			"yellow"    //: EGR solonoid Valve :Arduino AnaLog/Digital Pin 10
 // =============================================================================
 
 // Analog pins — voltage reads only
-const int WIRE_A_PINS[12] = { A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13 };
+const int WIRE_A_PINS[13] = {A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13 };
 
 // Digital pins — reserved for future functions (input_pullup configured in setup)
-const int WIRE_D_PINS[12] = { 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13 };
+const int WIRE_D_PINS[17] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 33, 34, 35, 36};
 
 // =============================================================================
 // TEMPERATURE READ
@@ -149,7 +152,7 @@ void setup() {
   pinMode(tempSCK, OUTPUT);
 
   // ECU wire digital pins — INPUT_PULLUP, functions assigned later
-  for (int i = 0; i < 12; i++) {
+  for (int i = 0; i < 17; i++) {
     pinMode(WIRE_D_PINS[i], INPUT_PULLUP);
   }
 
@@ -214,9 +217,9 @@ void loop() {
   Serial.print("|RANGE:"); Serial.print(rangeKm, 0);
 
   // ── ECU wire voltages (A2–A13 via voltage divider) ───────────────────────
-  for (int i = 0; i < 12; i++) {
+  for (int i = 0; i < 13; i++) {
     float v = analogRead(WIRE_A_PINS[i]) * (5.0 / 1023.0);
-    Serial.print("|AV"); Serial.print(i + 2);
+    Serial.print("|AV"); Serial.print(i + 1);
     Serial.print(":"); Serial.print(v, 2);
   }
 
