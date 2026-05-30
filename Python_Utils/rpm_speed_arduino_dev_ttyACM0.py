@@ -81,6 +81,7 @@ def run_master_bridge():
                     lights_bright   = False
                     daytime_lights  = False
                     glow_plug_relay = False
+                    ac_active       = False
                     for part in parts[5:]:
                         if part.startswith("LINDIC:"):
                             left_indicator  = part.split(':')[1] == '1'
@@ -94,6 +95,8 @@ def run_master_bridge():
                             daytime_lights  = part.split(':')[1] == '1'
                         elif part.startswith("DV34:"):
                             glow_plug_relay = part.split(':')[1] == '1'
+                        elif part.startswith("DV38:"):
+                            ac_active       = part.split(':')[1] == '1'
 
                     hazard = left_indicator and right_indicator
 
@@ -110,12 +113,13 @@ def run_master_bridge():
                        'Vehicle.Body.Lights.Beam.High.IsOn':                          Datapoint(lights_bright),
                        'Vehicle.Body.Lights.Running.IsOn':                            Datapoint(daytime_lights),
                        'Vehicle.Powertrain.IsAutoPowerOptimize':                       Datapoint(glow_plug_relay),
+                       'Vehicle.Cabin.HVAC.IsAirConditioningActive':                   Datapoint(ac_active),
                     }
                     # -100 means thermocouple disconnected — skip temp publish
                     if temp_val != -100.0:
                         telemetry['Vehicle.OBD.CoolantTemperature'] = Datapoint(temp_val)
                     client.set_current_values(telemetry)
-                    print(f"TELEMETRY -> Speed: {speed_val} km/h | RPM: {rpm_val} | TEMP: {temp_val} | LITERS: {fuel_liters_val} | RANGE: {fuel_range_val} | L:{int(left_indicator)} R:{int(right_indicator)} H:{int(hazard)} DIM:{int(lights_dim)} BRIGHT:{int(lights_bright)} DT:{int(daytime_lights)} GLOW:{int(glow_plug_relay)}")
+                    print(f"TELEMETRY -> Speed: {speed_val} km/h | RPM: {rpm_val} | TEMP: {temp_val} | LITERS: {fuel_liters_val} | RANGE: {fuel_range_val} | L:{int(left_indicator)} R:{int(right_indicator)} H:{int(hazard)} DIM:{int(lights_dim)} BRIGHT:{int(lights_bright)} DT:{int(daytime_lights)} GLOW:{int(glow_plug_relay)} AC:{int(ac_active)}")
 
                     # ECU wire voltages (AV1–AV13 analog, DV33–DV36 digital)
                     wire_states   = [False] * 20

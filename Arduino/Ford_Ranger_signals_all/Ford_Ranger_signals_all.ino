@@ -97,7 +97,7 @@ float avgKmPerLiter       = 10.0;     // update to your real-world average
 const int WIRE_A_PINS[13] = {A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13 };
 
 // Digital pins — reserved for future functions (input_pullup configured in setup)
-const int WIRE_D_PINS[17] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 33, 34, 35, 36};
+const int WIRE_D_PINS[18] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 33, 34, 35, 36, 38};
 
 // =============================================================================
 // TEMPERATURE READ
@@ -152,7 +152,7 @@ void setup() {
   pinMode(tempSCK, OUTPUT);
 
   // ECU wire digital pins — INPUT_PULLUP, functions assigned later
-  for (int i = 0; i < 17; i++) {
+  for (int i = 0; i < 18; i++) {
     pinMode(WIRE_D_PINS[i], INPUT_PULLUP);
   }
 
@@ -228,6 +228,7 @@ void loop() {
   Serial.print("|DV34:"); Serial.print(digitalRead(34) == HIGH ? 1 : 0);
   Serial.print("|DV35:"); Serial.print(digitalRead(35) == HIGH ? 1 : 0);
   Serial.print("|DV36:"); Serial.print(digitalRead(36) == HIGH ? 1 : 0);
+  Serial.print("|DV38:"); Serial.print(digitalRead(38) == HIGH ? 1 : 0);
 
   // ── Indicators (latched over the 1s window) ──────────────────────────────
   Serial.print("|LINDIC:");      Serial.print(leftIndicatorSeen  ? 1 : 0);
