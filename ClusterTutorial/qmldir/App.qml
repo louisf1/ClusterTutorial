@@ -421,70 +421,74 @@ Window {
 
 				        Repeater {
 				            model: 20
-				            delegate: Row {
+				            delegate: Item {
+				                width: parent.width
 				                height: 25
-				                spacing: 15
 				                visible: healthPage.getWireColor(index) !== ""
 
-						// Inside your Repeater delegate for the Wire Color Dot
-						// Inside your Repeater delegate for the ECU Diagnostics
-						Rectangle {
-						    id: wireDot
-						    width: 20
-						    height: 20
-						    radius: 20
-						    border.color: "white"
-						    border.width: 1
-						    anchors.verticalCenter: parent.verticalCenter
+				                // Left: color dot + function description
+				                Row {
+				                    anchors.left: parent.left
+				                    anchors.verticalCenter: parent.verticalCenter
+				                    spacing: 10
 
-						    // 1. Get the color string from your array (e.g., "black-red")
-						    property string fullColorName: healthPage.getWireColor(index)
-						    
-						    // 2. Built-in Gradient logic (No extra imports needed!)
-						    gradient: fullColorName.indexOf("-") !== -1 ? tracerGradient : null
-						    color: fullColorName.indexOf("-") === -1 ? fullColorName : "transparent"
+				                    Rectangle {
+				                        id: wireDot
+				                        width: 20
+				                        height: 20
+				                        radius: 10
+				                        border.color: "white"
+				                        border.width: 1
+				                        anchors.verticalCenter: parent.verticalCenter
+				                        property string fullColorName: healthPage.getWireColor(index)
+				                        gradient: fullColorName.indexOf("-") !== -1 ? tracerGradient : null
+				                        color: fullColorName.indexOf("-") === -1 ? fullColorName : "transparent"
+				                        Gradient {
+				                            id: tracerGradient
+				                            orientation: Gradient.Vertical
+				                            GradientStop { position: 0.0; color: wireDot.fullColorName.split("-")[0] }
+				                            GradientStop {
+				                                position: 0.5
+				                                property var parts: wireDot.fullColorName.split("-")
+				                                color: parts.length > 1 ? parts[1] : parts[0]
+				                            }
+				                            GradientStop { position: 1.0; color: wireDot.fullColorName.split("-")[0] }
+				                        }
+				                    } // end wire color dot
 
-							Gradient {
-							    id: tracerGradient
-							    orientation: Gradient.Vertical
+				                    Text {
+				                        text: healthPage.getWireFunction(index)
+				                        color: "#AAA"
+				                        font.pixelSize: 20
+				                        elide: Text.ElideRight
+				                        width: 280
+				                        anchors.verticalCenter: parent.verticalCenter
+				                    } // end function description
+				                } // end left Row
 
-							    GradientStop { 
-								position: 0.0
-								// No change needed here, [0] always exists
-								color: wireDot.fullColorName.split("-")[0] 
-							    }
-							    GradientStop { 
-								position: 0.5
-								// SAFETY CHECK: If [1] doesn't exist, use [0]
-								property var parts: wireDot.fullColorName.split("-")
-								color: parts.length > 1 ? parts[1] : parts[0]
-							    }
-							    GradientStop { 
-								position: 1.0
-								color: wireDot.fullColorName.split("-")[0] 
-							    }
-							} // end Gradient
-						} // end Rectangle
+				                // Right: health dot + voltage — anchored to right edge
+				                Row {
+				                    anchors.right: parent.right
+				                    anchors.verticalCenter: parent.verticalCenter
+				                    spacing: 10
 
-					        Text {
-					            text: healthPage.getWireFunction(index) // Explicitly calling from healthPage
-					            color: "#AAA"; font.pixelSize: 24; width: 240
-					            anchors.verticalCenter: parent.verticalCenter
-					        } // end Function Description Text
-					        Rectangle {
-					            width: 10; height: 10; radius: 5
-					            color: healthPage.getWireHealth(index) ? "#00FF00" : "#FF0000"
-					            anchors.verticalCenter: parent.verticalCenter
-					        } // end Health Status Dot
-					        Text {
-					            text: healthPage.getWireVoltage(index)
-					            color: healthPage.getWireHealth(index) ? "#00FF00" : "#666666"
-					            font.family: "Monospace"
-					            font.pixelSize: 20
-					            width: 90
-					            anchors.verticalCenter: parent.verticalCenter
-					        } // end Voltage Text
-				            } // end Wire Entry Row
+				                    Rectangle {
+				                        width: 12; height: 12; radius: 6
+				                        color: healthPage.getWireHealth(index) ? "#00FF00" : "#FF0000"
+				                        anchors.verticalCenter: parent.verticalCenter
+				                    } // end health dot
+
+				                    Text {
+				                        text: healthPage.getWireVoltage(index)
+				                        color: healthPage.getWireHealth(index) ? "#00FF00" : "#666666"
+				                        font.family: "Monospace"
+				                        font.pixelSize: 20
+				                        width: 80
+				                        anchors.verticalCenter: parent.verticalCenter
+				                    } // end voltage text
+				                } // end right Row
+
+				            } // end Wire Entry Item
 				        } // end Repeater
 				    } // end Wire List Column
 				} // end ECU Main Column
