@@ -52,6 +52,27 @@ def run_master_bridge():
         with VSSClient(KUKSA_IP, KUKSA_PORT) as client:
             print("🚀 Kuksa Link Active. Dashboard is now LIVE.")
 
+            # Clear any stale values left in the broker from a previous run
+            client.set_current_values({
+                'Vehicle.Speed':                                               Datapoint(0.0),
+                'Vehicle.OBD.EngineSpeed':                                     Datapoint(0.0),
+                'Vehicle.OBD.FuelLevel':                                       Datapoint(0.0),
+                'Vehicle.OBD.CoolantTemperature':                              Datapoint(0.0),
+                'Vehicle.Powertrain.FuelSystem.Range':                         Datapoint(0.0),
+                'Vehicle.Powertrain.FuelSystem.IsFuelLevelLow':                Datapoint(False),
+                'Vehicle.Body.Lights.DirectionIndicator.Left.IsSignaling':     Datapoint(False),
+                'Vehicle.Body.Lights.DirectionIndicator.Right.IsSignaling':    Datapoint(False),
+                'Vehicle.Body.Lights.Hazard.IsSignaling':                      Datapoint(False),
+                'Vehicle.Body.Lights.Beam.Low.IsOn':                           Datapoint(False),
+                'Vehicle.Body.Lights.Beam.High.IsOn':                          Datapoint(False),
+                'Vehicle.Body.Lights.Running.IsOn':                            Datapoint(False),
+                'Vehicle.Powertrain.IsAutoPowerOptimize':                      Datapoint(False),
+                'Vehicle.Cabin.HVAC.IsAirConditioningActive':                  Datapoint(False),
+            })
+            with open(WIRE_STATE_FILE, 'w') as jf:
+                json.dump({'states': [False] * 20, 'voltages': [0.0] * 20}, jf)
+            print("🧹 Stale KUKSA values cleared.")
+
             while True:
                 line = ser.readline().decode('utf-8', errors='ignore').strip()
                 if not line:
