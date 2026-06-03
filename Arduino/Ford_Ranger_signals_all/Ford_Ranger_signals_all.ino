@@ -33,8 +33,8 @@ bool DaytimeLightsSeen  = false;
 // =============================================================================
 // SPEED & RPM
 // =============================================================================
-const int speedPin = 52;
-const int rpmPin   = 53;
+const int speedPin = 24;
+const int rpmPin   = 23;
 
 const float wheelCircumference = 2.8274;  // 900mm wheel (π × 0.9m)
 const unsigned long debounceTime = 15;    // ms — ignores bounce/noise
@@ -43,16 +43,24 @@ volatile unsigned long speedPulses   = 0;
 volatile unsigned long rpmPulses     = 0;
 volatile unsigned long lastSpeedTime = 0;
 volatile unsigned long lastRpmTime   = 0;
+bool lastSpeedState = false;
+bool lastRpmState   = false;
 
 // =============================================================================
 // TEMPERATURE — MAX6675 bit-bang SPI
 // NOTE: tempSCK (D47) and tempSO (D46) have been moved away from D12/D13
 //       to free D12 and D13 for the ECU wire digital functions below.
 // =============================================================================
-const int tempCS  = 10;   // Chip select   — any free digital pin
+const int tempCS  = 50;   // Chip select   — any free digital pin
 const int tempSO  = 46;   // SPI MISO      — moved from D12
 const int tempSCK = 47;   // SPI clock     — moved from D13
 
+// =============================================================================
+// Internal PCM temperature — A15
+// Alternator controller -A14
+// =============================================================================
+const int PCM_Temprature_Pin = A15;
+const int Alternator_Control = A14;
 // =============================================================================
 // FUEL GAUGE — A0
 // =============================================================================
@@ -63,9 +71,9 @@ int  readIndex = 0;
 long total     = 0;
 int  average   = 0;
 
-const float V_EMPTY       = 2.47309;
-const float V_FULL        = 0.19550;
-const float TANK_CAPACITY = 70.03012;
+const float V_EMPTY       = 1.248;
+const float V_FULL        = 0.109;
+const float TANK_CAPACITY = 76.03012;
 float avgKmPerLiter       = 10.0;     // update to your real-world average
 
 // =============================================================================
@@ -118,33 +126,15 @@ float readTemperature() {
 }
 
 // =============================================================================
-// INTERRUPT HANDLERS
-// =============================================================================
-void countSpeed() {
-  if (millis() - lastSpeedTime > debounceTime) {
-    speedPulses++;
-    lastSpeedTime = millis();
-  }
-}
-
-void countRPM() {
-  if (millis() - lastRpmTime > debounceTime) {
-    rpmPulses++;
-    lastRpmTime = millis();
-  }
-}
-
-// =============================================================================
 // SETUP
 // =============================================================================
 void setup() {
   Serial.begin(9600);
 
-  // Speed / RPM interrupts
-  pinMode(speedPin, INPUT_PULLUP);
-  pinMode(rpmPin,   INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(speedPin), countSpeed, FALLING);
-  attachInterrupt(digitalPinToInterrupt(rpmPin),   countRPM,   FALLING);
+  // Speed / RPM — D23/D24 are not interrupt-capable on Mega 2560; polled instead.
+  // Hall sensors output active-HIGH (5V when magnet passes) so plain INPUT, no pullup.
+  pinMode(speedPin, INPUT);
+  pinMode(rpmPin,   INPUT);
 
   // MAX6675 temperature sensor SPI pins
   pinMode(tempCS,  OUTPUT); digitalWrite(tempCS, HIGH);
@@ -179,6 +169,19 @@ void loop() {
   if (digitalRead(LightsDimPin)      == HIGH) LightsDimSeen      = true;
   if (digitalRead(LightsBrightPin)   == HIGH) LightsBrightSeen   = true;
   if (digitalRead(DaytimeLightsPin)  == HIGH) DaytimeLightsSeen  = true;
+
+  // Poll speed / RPM — detect RISING edge from active-HIGH hall sensors
+  bool curSpeed = digitalRead(speedPin) == HIGH;
+  bool curRpm   = digitalRead(rpmPin)   == HIGH;
+  unsigned long now = millis();
+  if (curSpeed && !lastSpeedState) {
+    if (now - lastSpeedTime > debounceTime) { speedPulses++; lastSpeedTime = now; }
+  }
+  if (curRpm && !lastRpmState) {
+    if (now - lastRpmTime > debounceTime) { rpmPulses++; lastRpmTime = now; }
+  }
+  lastSpeedState = curSpeed;
+  lastRpmState   = curRpm;
 
   static unsigned long lastReport = 0;
   if (millis() - lastReport < 1000) return;
