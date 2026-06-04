@@ -82,7 +82,7 @@ float avgKmPerLiter       = 10.0;     // update to your real-world average
 // Signals above 5V clamp at the Arduino protection diode — sufficient for
 // active/inactive detection. Python bridge uses VOLTAGE_SCALE=1.0.
 //
-//			"black-red",    //: Control Lever Position-Timer Control valve :Arduino AnaLog/Digital Pin  5
+//			"red-black",    //: unknown - to be identified :Arduino AnaLog/Digital Pin  5
 //			"black-white",    //: ignition power on-off and Timer Control Valve :Arduino Digital Pin 33
 //			"black-yellow",    //: Connected to ignition key start barrel :Arduino AnaLog/Digital Pin  13
 //			"blue-black",    //: Timer Control Valve :Arduino AnaLog/Digital Pin  2

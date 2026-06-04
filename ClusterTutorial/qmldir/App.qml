@@ -278,7 +278,7 @@ Window {
 			"blue-black",    //: Timer Control Valve :Arduino AnaLog/Digital Pin  2
 			"white-blue",    //: PCM internal control :Arduino AnaLog/Digital Pin  3
 			"green-white",    //: Idle control switch :Arduino AnaLog/Digital Pin  4
-			"black-red",    //: Signal Ground :Arduino AnaLog/Digital Pin  5
+			"red-black",    //: unknown - to be identified :Arduino AnaLog/Digital Pin  5
 			"red-blue",    //: Control Lever Position :Arduino AnaLog/Digital Pin  6
 			"brown-red",    //: unknown :Arduino AnaLog/Digital Pin  7
 			"brown-yellow",    //: unknown :Arduino AnaLog/Digital Pin  8
@@ -301,7 +301,7 @@ Window {
 			"P2 Timer Control Valve",    //: "blue-black",    //: Timer Control Valve :Arduino AnaLog/Digital Pin  2
 			"P3 PCM internal control",    //: "white-blue",    //: PCM internal control :Arduino AnaLog/Digital Pin  3
 			"P4 Idle control switch",    //: "green-white",    //: Idle control switch :Arduino AnaLog/Digital Pin  4
-			"P5 Signal Ground",    //: "black-red",    //: Signal Ground :Arduino AnaLog/Digital Pin  5
+			"P5 unknown - to be identified",    //: "red-black",    //: unknown - to be identified :Arduino AnaLog/Digital Pin  5
 			"P6 Control Lever Position",    //: "red-blue",    //: Control Lever Position :Arduino AnaLog/Digital Pin  6
 			"P7 unknown",    //: "brown-red",    //: unknown :Arduino AnaLog/Digital Pin  7
 			"P8 unknown",    //: "brown-yellow",    //: unknown :Arduino AnaLog/Digital Pin  8

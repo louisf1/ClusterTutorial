@@ -19,7 +19,7 @@ ANALOG_TO_WIRE = {
     2:   1,  # A2  Blue/Black    → index  1 "blue-black"    (Timer Control Valve)
     3:   2,  # A3  White/Blue    → index  2 "white-blue"    (PCM internal control)
     4:   3,  # A4  Green/White   → index  3 "green-white"   (Idle control switch)
-    5:   4,  # A5  Black/Red     → index  4 "black-red"     (Signal Ground)
+    5:   4,  # A5  Red/Black      → index  4 "red-black"     (unknown - to be identified)
     6:   5,  # A6  Red/Blue      → index  5 "red-blue"      (Control Lever Position)
     7:   6,  # A7  Brown/Red     → index  6 "brown-red"     (unknown)
     8:   7,  # A8  Brown/Yellow  → index  7 "brown-yellow"  (unknown)
