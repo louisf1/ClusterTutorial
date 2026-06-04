@@ -219,9 +219,9 @@ void loop() {
   Serial.print("|LITERS:"); Serial.print(litersLeft, 1);
   Serial.print("|RANGE:"); Serial.print(rangeKm, 0);
 
-  // ── ECU wire voltages (A2–A13 via voltage divider) ───────────────────────
+  // ── ECU wire voltages (A1–A13 via 10K ohm resistor) ───────────────────────
   for (int i = 0; i < 13; i++) {
-    float v = analogRead(WIRE_A_PINS[i]) * (5.0 / 1023.0);
+    float v = analogRead(WIRE_A_PINS[i]) * (2.4 * (5.0 / 1023.0));
     Serial.print("|AV"); Serial.print(i + 1);
     Serial.print(":"); Serial.print(v, 2);
   }
