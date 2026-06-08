@@ -35,3 +35,6 @@ sampleqt6compiledebugmethod
 # Python
 __pycache__/
 *.pyc
+
+# Claude Code runtime
+.claude/scheduled_tasks.lock
