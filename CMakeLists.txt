@@ -188,8 +188,6 @@ qt6_add_qml_module(ClusterDashboardApp
 
         # --- ClusterTutorial application QML ---
         ClusterTutorial/qmldir/EventListModel.qml
-        ClusterTutorial/qmldir/Glow_Plugs.qml
-        ClusterTutorial/qmldir/Glow_Plugs.ui.qml
         ClusterTutorial/qmldir/Ecu.qml
         ClusterTutorial/qmldir/Ecu.ui.qml
         ClusterTutorial/qmldir/Cluster_Art.ui.qml
