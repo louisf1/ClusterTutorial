@@ -30,10 +30,9 @@ ANALOG_TO_WIRE = {
     13: 12,  # A13 Black/Yellow  → index 12 "black-yellow"  (Starter Signal)
 }
 DIGITAL_TO_WIRE = {
-    33: 13,  # D33 Black/White → index 13 "black-white" (ignition power)
-    34: 14,  # D34 Brown       → index 14 "brown"       (glow plug relay)
-    35: 15,  # D35 Red/White   → index 15 "red-white"   (unknown)
-    36: 16,  # D36 Red         → index 16 "red"         (standby power)
+    'DVIGNITIONPWR':  13,  # D34 Black/White → index 13 "black-white" (ignition power)
+    'DVSTANDBYPOWER': 14,  # D35 red         → index 14 "red" (standby power)
+    'DVGLOWPLUG':     15,  # D36 Red         → index 15 "red" (Glow Plugs)
 }
 VOLTAGE_SCALE     = 1.0   # no voltage divider — direct 10kΩ series resistor only
 ACTIVE_THRESHOLD  = 2.0   # volts (real, after scale) — wire considered "live"
@@ -114,10 +113,14 @@ def run_master_bridge():
                             lights_bright   = part.split(':')[1] == '1'
                         elif part.startswith("DAYTIMEDRIVING:"):
                             daytime_lights  = part.split(':')[1] == '1'
-                        elif part.startswith("DV34:"):
+                        elif part.startswith("DVGLOWPLUG:"):
                             glow_plug_relay = part.split(':')[1] == '1'
-                        elif part.startswith("DV38:"):
-                            ac_active       = part.split(':')[1] == '1'
+                        elif part.startswith("DVIGNITIONPWR:"):
+                            ignition_power = part.split(':')[1] == '1'
+                        elif part.startswith("DVSTANDBYPOWER:"):
+                            stand_by_power = part.split(':')[1] == '1'
+                        elif part.startswith("DVAIRCONSIGNAL:"):
+                            ac_active = part.split(':')[1] == '1'                                                                                    
 
                     hazard = left_indicator and right_indicator
 
@@ -133,16 +136,16 @@ def run_master_bridge():
                        'Vehicle.Body.Lights.Beam.Low.IsOn':                           Datapoint(lights_dim),
                        'Vehicle.Body.Lights.Beam.High.IsOn':                          Datapoint(lights_bright),
                        'Vehicle.Body.Lights.Running.IsOn':                            Datapoint(daytime_lights),
-                       'Vehicle.Powertrain.IsAutoPowerOptimize':                       Datapoint(glow_plug_relay),
-                       'Vehicle.Cabin.HVAC.IsAirConditioningActive':                   Datapoint(ac_active),
+                       'Vehicle.Powertrain.IsAutoPowerOptimize':                      Datapoint(glow_plug_relay),
+                       'Vehicle.Cabin.HVAC.IsAirConditioningActive':                  Datapoint(ac_active),
                     }
                     # -100 means thermocouple disconnected — skip temp publish
                     if temp_val != -100.0:
                         telemetry['Vehicle.OBD.CoolantTemperature'] = Datapoint(temp_val)
                     client.set_current_values(telemetry)
-                    print(f"TELEMETRY -> Speed: {speed_val} km/h | RPM: {rpm_val} | TEMP: {temp_val} | LITERS: {fuel_liters_val} | RANGE: {fuel_range_val} | L:{int(left_indicator)} R:{int(right_indicator)} H:{int(hazard)} DIM:{int(lights_dim)} BRIGHT:{int(lights_bright)} DT:{int(daytime_lights)} GLOW:{int(glow_plug_relay)} AC:{int(ac_active)}")
+                    print(f"TELEMETRY -> Speed: {speed_val} km/h | RPM: {rpm_val} | TEMP: {temp_val} | LITERS: {fuel_liters_val} | RANGE: {fuel_range_val} | L:{int(left_indicator)} R:{int(right_indicator)} H:{int(hazard)} DIM:{int(lights_dim)} BRIGHT:{int(lights_bright)} DT:{int(daytime_lights)} GLOWPLUGS:{int(glow_plug_relay)} AC:{int(ac_active)}")
 
-                    # ECU wire voltages (AV1–AV13 analog, DV33–DV36 digital)
+                    # ECU wire voltages (AV1–AV13 analog, DVIGNITIONPWR/DVSTANDBYPOWER/DVGLOWPLUG digital)
                     wire_states   = [False] * 20
                     wire_voltages = [0.0]   * 20
 
@@ -157,9 +160,8 @@ def run_master_bridge():
                                 wire_states[idx]   = real_v >= ACTIVE_THRESHOLD
                         elif part.startswith("DV"):
                             label, _, raw = part.partition(':')
-                            pin_num = int(label[2:])
                             is_high = raw.strip() == '1'
-                            idx     = DIGITAL_TO_WIRE.get(pin_num)
+                            idx     = DIGITAL_TO_WIRE.get(label)
                             if idx is not None:
                                 wire_voltages[idx] = 12.0 if is_high else 0.0
                                 wire_states[idx]   = is_high
