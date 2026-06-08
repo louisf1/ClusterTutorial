@@ -125,7 +125,7 @@ void SystemMonitor::updateStats() {
     m_pythonSupportStatus = process.readAllStandardOutput().trimmed().isEmpty() ? "inactive" : "active";
     emit pythonSupportStatusChanged();
 
-    // J. ECU wire states + voltages — written by Python bridge from Arduino AV2-AV13
+    // J. ECU wire states + voltages — written by Python bridge from Arduino AV1-AV13
     QFile jf("/tmp/ecu_wire_states.json");
     if (jf.open(QIODevice::ReadOnly | QIODevice::Text)) {
         QJsonDocument doc = QJsonDocument::fromJson(jf.readAll());
