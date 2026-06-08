@@ -230,11 +230,11 @@ void loop() {
   }
 
   // ── Digital-only ECU wire pins (no ADC — HIGH/LOW reported as 1/0) ─────────
-  Serial.print("|DV33:"); Serial.print(digitalRead(33) == HIGH ? 1 : 0);
-  Serial.print("|DV34:"); Serial.print(digitalRead(34) == HIGH ? 1 : 0);
-  Serial.print("|DV35:"); Serial.print(digitalRead(35) == HIGH ? 1 : 0);
-  Serial.print("|DV36:"); Serial.print(digitalRead(36) == HIGH ? 1 : 0);
-  Serial.print("|DV38:"); Serial.print(digitalRead(38) == HIGH ? 1 : 0);
+  //Serial.print("|DV33:"); Serial.print(digitalRead(33) == HIGH ? 1 : 0);
+  Serial.print("|DVIGNITIONPWR:"); Serial.print(digitalRead(34) == HIGH ? 1 : 0);//Ignition power on/off
+  Serial.print("|DVSTANDBYPOWER:"); Serial.print(digitalRead(35) == HIGH ? 1 : 0);//battery standby power on/off 
+  Serial.print("|DVGLOWPLUG:"); Serial.print(digitalRead(36) == HIGH ? 1 : 0);//glowplug indicator on dash
+  Serial.print("|DVAIRCONSIGNAL:"); Serial.print(digitalRead(38) == HIGH ? 1 : 0);//aircon indicator on/off
 
   // ── Indicators (latched over the 1s window) ──────────────────────────────
   Serial.print("|LINDIC:");      Serial.print(leftIndicatorSeen  ? 1 : 0);
