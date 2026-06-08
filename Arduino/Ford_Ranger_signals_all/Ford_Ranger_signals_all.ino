@@ -153,10 +153,13 @@ void setup() {
   pinMode(LightsBrightPin,   INPUT);
   pinMode(DaytimeLightsPin,  INPUT);
 
-  // Fuel gauge — initialise smoothing buffer
+  // Fuel gauge — prime smoothing buffer with a real reading so the average
+  // starts correct immediately, instead of ramping up from zero over ~20s
+  int fuelSeed = analogRead(fuelPin);
   for (int i = 0; i < numReadings; i++) {
-    readings[i] = 0;
+    readings[i] = fuelSeed;
   }
+  total = (long)fuelSeed * numReadings;
 }
 
 // =============================================================================
