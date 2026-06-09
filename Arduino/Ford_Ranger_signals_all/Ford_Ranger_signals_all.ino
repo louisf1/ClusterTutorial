@@ -87,7 +87,7 @@ float avgKmPerLiter       = 10.0;     // update to your real-world average
 //			"black-yellow",    //: Connected to ignition key start barrel :Arduino AnaLog/Digital Pin  13
 //			"blue-black",    //: Timer Control Valve :Arduino AnaLog/Digital Pin  2
 //			"blue-pink",    //: Crankshaft Position Sensor :Arduino AnaLog/Digital Pin 1
-//			"brown",    //: Glow plug relay :AnaLog/Digital Digital Pin 34
+//			"brown",    //: Glow plug relay :Arduino Digital Pin 41
 //			"brown-red",    //: unknown :Arduino AnaLog/Digital Pin  7
 //			"brown-white",    //: Control Lever Position :Arduino AnaLog/Digital Pin  9
 //			"brown-yellow",    //: unknown :Arduino AnaLog/Digital Pin  8
@@ -105,7 +105,7 @@ float avgKmPerLiter       = 10.0;     // update to your real-world average
 const int WIRE_A_PINS[13] = {A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13 };
 
 // Digital pins — reserved for future functions (input_pullup configured in setup)
-const int WIRE_D_PINS[18] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 33, 39, 35, 36, 38};
+const int WIRE_D_PINS[18] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 33, 39, 35, 41, 38};
 
 // =============================================================================
 // TEMPERATURE READ
@@ -233,7 +233,7 @@ void loop() {
   //Serial.print("|DV33:"); Serial.print(digitalRead(33) == HIGH ? 1 : 0);
   Serial.print("|DVIGNITIONPWR:"); Serial.print(digitalRead(39) == HIGH ? 1 : 0);//Ignition power on/off
   Serial.print("|DVSTANDBYPOWER:"); Serial.print(digitalRead(35) == HIGH ? 1 : 0);//battery standby power on/off 
-  Serial.print("|DVGLOWPLUG:"); Serial.print(digitalRead(36) == HIGH ? 1 : 0);//glowplug indicator on dash
+  Serial.print("|DVGLOWPLUG:"); Serial.print(digitalRead(41) == HIGH ? 1 : 0);//glowplug indicator on dash
   Serial.print("|DVAIRCONSIGNAL:"); Serial.print(digitalRead(38) == HIGH ? 1 : 0);//aircon indicator on/off
 
   // ── Indicators (latched over the 1s window) ──────────────────────────────

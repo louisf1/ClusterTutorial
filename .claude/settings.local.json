@@ -91,7 +91,13 @@
       "Bash(DISPLAY=:1 timeout 45 gimp -i -d -f -b \"\\(let* \\(\\(image \\(car \\(plug-in-screenshot RUN-NONINTERACTIVE 0 0 0 0 0 0\\)\\)\\)\\) \\(gimp-image-flatten image\\) \\(file-png-save RUN-NONINTERACTIVE image \\(car \\(gimp-image-get-active-drawable image\\)\\) \\\\\"/tmp/dashboard_shots/test.png\\\\\" \\\\\"test\\\\\" 0 9 1 1 1 1 1\\) \\(gimp-image-delete image\\)\\)\" -b '\\(gimp-quit 0\\)')",
       "Bash(echo \"--- exit=$? ---\")",
       "Bash(pkill -9 -f \"gimp -i\")",
-      "Bash(./arduino_upload.sh *)"
+      "Bash(./arduino_upload.sh *)",
+      "Bash(stdbuf -oL grep -o 'GLOWPLUGS:.')",
+      "Bash(uniq -c /tmp/glowplug_watch2.log)",
+      "Bash(uniq /tmp/glowplug_watch2.log)",
+      "Bash(uniq /tmp/glowplug_watch3.log)",
+      "Bash(git -C /home/louis/ClusterWorx log --oneline --all)",
+      "Bash(git *)"
     ]
   }
 }
