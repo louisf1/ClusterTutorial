@@ -56,11 +56,36 @@ const int tempSO  = 46;   // SPI MISO      — moved from D12
 const int tempSCK = 47;   // SPI clock     — moved from D13
 
 // =============================================================================
-// Internal PCM temperature — A15
-// Alternator controller -A14
+// ALTERNATOR EXCITATION CONTROL — Arduino-only, no dashboard comms
+// Inputs (alternator output voltage, monitored via 7805VC-protected dividers,
+// 2 wires for redundancy):
+//   A15 = Red wire        (Standby power, P35)
+//   A14 = Black/White wire (Ignition power, P39)
+// Output:
+//   D44 = Excite signal (PWM -> RC filter -> field driver), 0-1.0V max
+//
+// Closed loop: every ALT_STEP_INTERVAL_MS, if the monitored alternator
+// voltage exceeds ALT_TARGET_MAX_V, the excite voltage is reduced by
+// ALT_STEP_V; otherwise it is increased by ALT_STEP_V. Output is clamped
+// to [0, ALT_OUT_MAX_V] as a hard safety cap.
 // =============================================================================
-const int PCM_Temprature_Pin = A15;
-const int Alternator_Control = A14;
+const int AltMonitorRedPin = A15;
+const int AltMonitorBWPin  = A14;
+const int AltExcitePin     = 44;
+
+// TODO: calibrate against real wire voltage. Raw ADC (0-1023 = 0-5V at the
+// pin) x ALT_MONITOR_SCALE must equal the actual alternator output voltage.
+const float ALT_MONITOR_SCALE = 3.0;
+
+const float ALT_TARGET_MAX_V = 14.5;
+const float ALT_STEP_V       = 0.01;
+const float ALT_OUT_MIN_V    = 0.0;
+const float ALT_OUT_MAX_V    = 1.0;   // safety cap
+const float ALT_OUT_SUPPLY_V = 5.0;   // PWM/RC-filter reference voltage
+const unsigned long ALT_STEP_INTERVAL_MS = 10;
+
+float altExciteVoltage   = 0.0;
+unsigned long altLastStepTime = 0;
 // =============================================================================
 // FUEL GAUGE — A0
 // =============================================================================
@@ -126,10 +151,39 @@ float readTemperature() {
 }
 
 // =============================================================================
+// ALTERNATOR EXCITATION CONTROL — high-rate, runs every loop() iteration
+// =============================================================================
+void updateAlternatorExcitation() {
+  float vRed = analogRead(AltMonitorRedPin) * (ALT_OUT_SUPPLY_V / 1023.0) * ALT_MONITOR_SCALE;
+  float vBW  = analogRead(AltMonitorBWPin)  * (ALT_OUT_SUPPLY_V / 1023.0) * ALT_MONITOR_SCALE;
+
+  // Redundant readings — use the higher of the two (clamp early, err safe)
+  float vAlternator = max(vRed, vBW);
+
+  unsigned long now = millis();
+  if (now - altLastStepTime < ALT_STEP_INTERVAL_MS) return;
+  altLastStepTime = now;
+
+  if (vAlternator > ALT_TARGET_MAX_V) {
+    altExciteVoltage -= ALT_STEP_V;
+  } else {
+    altExciteVoltage += ALT_STEP_V;
+  }
+  altExciteVoltage = constrain(altExciteVoltage, ALT_OUT_MIN_V, ALT_OUT_MAX_V);
+
+  int pwmValue = (int)((altExciteVoltage / ALT_OUT_SUPPLY_V) * 255.0 + 0.5);
+  analogWrite(AltExcitePin, pwmValue);
+}
+
+// =============================================================================
 // SETUP
 // =============================================================================
 void setup() {
   Serial.begin(9600);
+
+  // Alternator excitation output — start at 0V, ramps up via control loop
+  pinMode(AltExcitePin, OUTPUT);
+  analogWrite(AltExcitePin, 0);
 
   // Speed / RPM — D23/D24 are not interrupt-capable on Mega 2560; polled instead.
   // Hall sensors output active-HIGH (5V when magnet passes) so plain INPUT, no pullup.
@@ -166,6 +220,10 @@ void setup() {
 // MAIN LOOP
 // =============================================================================
 void loop() {
+  // Alternator excitation control — runs every iteration, independent of
+  // the 1s telemetry report below.
+  updateAlternatorExcitation();
+
   // Latch indicator state on every fast loop iteration so blinks are never missed
   if (digitalRead(leftIndicatorPin)  == HIGH) leftIndicatorSeen  = true;
   if (digitalRead(rightIndicatorPin) == HIGH) rightIndicatorSeen = true;
