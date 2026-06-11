@@ -310,7 +310,7 @@ void loop() {
   //Serial.print("|DV33:"); Serial.print(digitalRead(33) == HIGH ? 1 : 0);
   Serial.print("|DVIGNITIONPWR:"); Serial.print(digitalRead(14) == HIGH ? 1 : 0);//Ignition power on/off
   Serial.print("|DVSTANDBYPOWER:"); Serial.print(digitalRead(35) == HIGH ? 1 : 0);//battery standby power on/off 
-  Serial.print("|DVGLOWPLUG:"); Serial.print(digitalRead(7) == LOW ? 1 : 0);//glowplug indicator on dash (opto inverts: LOW=active)
+  Serial.print("|DVGLOWPLUG:"); Serial.print(digitalRead(11) == HIGH ? 1 : 0);//glowplug indicator on dash (HIGH=active)
   Serial.print("|DVAIRCONSIGNAL:"); Serial.print(digitalRead(5) == HIGH ? 1 : 0);//aircon indicator on/off
 
   // ── Alternator excitation debug ──────────────────────────────────────────

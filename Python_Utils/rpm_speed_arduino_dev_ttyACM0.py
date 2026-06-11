@@ -32,7 +32,7 @@ ANALOG_TO_WIRE = {
 DIGITAL_TO_WIRE = {
     'DVIGNITIONPWR':  13,  # D14 Black/White → index 13 "black-white" (ignition power)
     'DVSTANDBYPOWER': 14,  # D35 red         → index 14 "red" (standby power)
-    'DVGLOWPLUG':     15,  # D7 Red          → index 15 "red" (Glow Plugs)
+    'DVGLOWPLUG':     15,  # D11 Red         → index 15 "red" (Glow Plugs)
 }
 VOLTAGE_SCALE     = 1.0   # no voltage divider — direct 10kΩ series resistor only
 ACTIVE_THRESHOLD  = 2.0   # volts (real, after scale) — wire considered "live"
