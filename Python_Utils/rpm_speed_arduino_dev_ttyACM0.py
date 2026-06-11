@@ -67,6 +67,7 @@ def run_master_bridge():
                 'Vehicle.Body.Lights.Running.IsOn':                            Datapoint(False),
                 'Vehicle.Powertrain.IsAutoPowerOptimize':                      Datapoint(False),
                 'Vehicle.Cabin.HVAC.IsAirConditioningActive':                  Datapoint(False),
+                'Vehicle.ADAS.DMS.IsError':                                    Datapoint(False),
             })
             with open(WIRE_STATE_FILE, 'w') as jf:
                 json.dump({'states': [False] * 20, 'voltages': [0.0] * 20}, jf)
@@ -124,27 +125,6 @@ def run_master_bridge():
 
                     hazard = left_indicator and right_indicator
 
-                    telemetry = {
-                       'Vehicle.Speed':                                               Datapoint(speed_val),
-                       'Vehicle.OBD.EngineSpeed':                                     Datapoint(rpm_val),
-                       'Vehicle.OBD.FuelLevel':                                       Datapoint(fuel_liters_val),
-                       'Vehicle.Powertrain.FuelSystem.Range':                         Datapoint(fuel_range_val),
-                       'Vehicle.Powertrain.FuelSystem.IsFuelLevelLow':                Datapoint(IsFuelLevelLow),
-                       'Vehicle.Body.Lights.DirectionIndicator.Left.IsSignaling':     Datapoint(left_indicator),
-                       'Vehicle.Body.Lights.DirectionIndicator.Right.IsSignaling':    Datapoint(right_indicator),
-                       'Vehicle.Body.Lights.Hazard.IsSignaling':                      Datapoint(hazard),
-                       'Vehicle.Body.Lights.Beam.Low.IsOn':                           Datapoint(lights_dim),
-                       'Vehicle.Body.Lights.Beam.High.IsOn':                          Datapoint(lights_bright),
-                       'Vehicle.Body.Lights.Running.IsOn':                            Datapoint(daytime_lights),
-                       'Vehicle.Powertrain.IsAutoPowerOptimize':                      Datapoint(glow_plug_relay),
-                       'Vehicle.Cabin.HVAC.IsAirConditioningActive':                  Datapoint(ac_active),
-                    }
-                    # -100 means thermocouple disconnected — skip temp publish
-                    if temp_val != -100.0:
-                        telemetry['Vehicle.OBD.CoolantTemperature'] = Datapoint(temp_val)
-                    client.set_current_values(telemetry)
-                    print(f"TELEMETRY -> Speed: {speed_val} km/h | RPM: {rpm_val} | TEMP: {temp_val} | LITERS: {fuel_liters_val} | RANGE: {fuel_range_val} | L:{int(left_indicator)} R:{int(right_indicator)} H:{int(hazard)} DIM:{int(lights_dim)} BRIGHT:{int(lights_bright)} DT:{int(daytime_lights)} GLOWPLUGS:{int(glow_plug_relay)} AC:{int(ac_active)}")
-
                     # ECU wire voltages (AV1–AV13 analog, DVIGNITIONPWR/DVSTANDBYPOWER/DVGLOWPLUG digital)
                     wire_states   = [False] * 20
                     wire_voltages = [0.0]   * 20
@@ -168,6 +148,32 @@ def run_master_bridge():
 
                     with open(WIRE_STATE_FILE, 'w') as jf:
                         json.dump({'states': wire_states, 'voltages': wire_voltages}, jf)
+
+                    # ECU STATUS screen shows wire indices 0-14 (AV1-AV13 + ignition/standby power).
+                    # If any of those reads 0V, light the ECU warning icon.
+                    ecu_error = any(v <= 0.01 for v in wire_voltages[:15])
+
+                    telemetry = {
+                       'Vehicle.Speed':                                               Datapoint(speed_val),
+                       'Vehicle.OBD.EngineSpeed':                                     Datapoint(rpm_val),
+                       'Vehicle.OBD.FuelLevel':                                       Datapoint(fuel_liters_val),
+                       'Vehicle.Powertrain.FuelSystem.Range':                         Datapoint(fuel_range_val),
+                       'Vehicle.Powertrain.FuelSystem.IsFuelLevelLow':                Datapoint(IsFuelLevelLow),
+                       'Vehicle.Body.Lights.DirectionIndicator.Left.IsSignaling':     Datapoint(left_indicator),
+                       'Vehicle.Body.Lights.DirectionIndicator.Right.IsSignaling':    Datapoint(right_indicator),
+                       'Vehicle.Body.Lights.Hazard.IsSignaling':                      Datapoint(hazard),
+                       'Vehicle.Body.Lights.Beam.Low.IsOn':                           Datapoint(lights_dim),
+                       'Vehicle.Body.Lights.Beam.High.IsOn':                          Datapoint(lights_bright),
+                       'Vehicle.Body.Lights.Running.IsOn':                            Datapoint(daytime_lights),
+                       'Vehicle.Powertrain.IsAutoPowerOptimize':                      Datapoint(glow_plug_relay),
+                       'Vehicle.Cabin.HVAC.IsAirConditioningActive':                  Datapoint(ac_active),
+                       'Vehicle.ADAS.DMS.IsError':                                    Datapoint(ecu_error),
+                    }
+                    # -100 means thermocouple disconnected — skip temp publish
+                    if temp_val != -100.0:
+                        telemetry['Vehicle.OBD.CoolantTemperature'] = Datapoint(temp_val)
+                    client.set_current_values(telemetry)
+                    print(f"TELEMETRY -> Speed: {speed_val} km/h | RPM: {rpm_val} | TEMP: {temp_val} | LITERS: {fuel_liters_val} | RANGE: {fuel_range_val} | L:{int(left_indicator)} R:{int(right_indicator)} H:{int(hazard)} DIM:{int(lights_dim)} BRIGHT:{int(lights_bright)} DT:{int(daytime_lights)} GLOWPLUGS:{int(glow_plug_relay)} AC:{int(ac_active)} ECUERR:{int(ecu_error)}")
 
                 except (ValueError, IndexError) as e:
                     print(f"⚠️ Malformed data received: {line} ({e})")
