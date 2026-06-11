@@ -1,32 +1,29 @@
 // =============================================================================
-// K-Line Diagnostic — Grey (D17) and White-Blue (D19) passive bus monitor
+// K-Line Diagnostic — passive bus monitor
 //
-// Wiring (per channel):
-//   K-Line wire ──[10kΩ]──┬──────────► RX pin (D17 or D19)
-//                          └──[5.1kΩ]──► GND
-//   (node = 4.0V when bus is 12V idle → safe on 5V pin; 0V when LOW)
+// CH_A (Grey/Brown-Red)  — D17, software bit-bang sampler, reports every 4s
+// CH_B (White-Blue)      — D19 = Serial1 RX, hardware UART at 1200 baud
+//                          Prints every received byte as hex + timestamp
 //
-// Reports every 4 seconds per channel:
-//   - Bus state, transition count, min/max pulse width, estimated baud rate
-//   - Histogram of pulse widths (helps identify protocol/baud)
+// White-Blue shows ~1200 baud activity (not KWP2000).
+// Hardware UART captures frames without bit-timing jitter.
 //
-// K-Line 10.4 kbaud → bit period ~96 µs
-// K-Line 5-baud init → bit period 200 ms
+// D19 connects directly to White-Blue — no divider needed if ECU drives
+// to 5V-compatible levels. If idle is >5V, add 10kΩ+5.1kΩ divider first.
 //
 // Open Serial Monitor at 115200 baud.
 // =============================================================================
+
+// --- Software sampler for CH_A (D17) ---
 
 struct KCh {
   const char* name;
   uint8_t rx;
 };
 
-const KCh CH_A = { "GREY",       17 };
-const KCh CH_B = { "WHITE-BLUE", 19 };
+const KCh CH_A = { "BROWN-RED", 17 };
 
 const unsigned long REPORT_MS = 4000;
-
-// Pulse-width histogram buckets
 const int BUCKETS = 6;
 const unsigned long LIMITS[BUCKETS] = { 100, 500, 5000, 50000, 500000, 0xFFFFFFFFUL };
 const char* LABELS[BUCKETS] = { "<100us", "100-500us", "500us-5ms", "5-50ms", "50-500ms", ">500ms" };
@@ -43,7 +40,7 @@ struct ChanState {
   unsigned long lastReport;
 };
 
-ChanState stA, stB;
+ChanState stA;
 
 void resetState(ChanState& s) {
   s.transitions  = 0;
@@ -60,13 +57,8 @@ void sampleChannel(const KCh& c, ChanState& s) {
   int state = digitalRead(c.rx);
   s.totalSamples++;
   if (state == HIGH) s.highSamples++;
-
   unsigned long now = micros();
-  if (s.lastState < 0) {
-    s.lastState   = state;
-    s.lastTransUs = now;
-    return;
-  }
+  if (s.lastState < 0) { s.lastState = state; s.lastTransUs = now; return; }
   if (state != s.lastState) {
     unsigned long pw = now - s.lastTransUs;
     if (pw < s.minPulse) s.minPulse = pw;
@@ -83,55 +75,58 @@ void sampleChannel(const KCh& c, ChanState& s) {
 void printReport(const KCh& c, ChanState& s) {
   if (millis() - s.lastReport < REPORT_MS) return;
   s.lastReport = millis();
-
   float duty = s.totalSamples ? (100.0f * s.highSamples / s.totalSamples) : 0.0f;
-  unsigned long sps = s.totalSamples / (REPORT_MS / 1000UL);
-
   Serial.print(F("[")); Serial.print(c.name); Serial.print(F("]  "));
   Serial.print(digitalRead(c.rx) == HIGH ? F("HIGH") : F("LOW "));
   Serial.print(F("  HIGH%=")); Serial.print(duty, 1);
-  Serial.print(F("  SPS~")); Serial.print(sps);
   Serial.print(F("  Trans=")); Serial.println(s.transitions);
-
   if (s.transitions >= 2) {
     Serial.print(F("    MinPulse=")); Serial.print(s.minPulse); Serial.print(F("us"));
     Serial.print(F("  MaxPulse=")); Serial.print(s.maxPulse); Serial.print(F("us"));
-    unsigned long baud = 1000000UL / s.minPulse;
-    Serial.print(F("  EstBaud~")); Serial.println(baud);
+    Serial.print(F("  EstBaud~")); Serial.println(1000000UL / s.minPulse);
     Serial.print(F("    Hist: "));
     for (int b = 0; b < BUCKETS; b++) {
-      if (s.hist[b]) {
-        Serial.print(LABELS[b]); Serial.print('='); Serial.print(s.hist[b]); Serial.print(F("  "));
-      }
+      if (s.hist[b]) { Serial.print(LABELS[b]); Serial.print('='); Serial.print(s.hist[b]); Serial.print(F("  ")); }
     }
     Serial.println();
   } else {
-    Serial.println(F("    (no transitions this window — line static)"));
+    Serial.println(F("    (no transitions — line static)"));
   }
-
   resetState(s);
-  s.lastReport = millis();  // set after reset so timer restarts cleanly
+  s.lastReport = millis();
 }
 
 // =============================================================================
 void setup() {
   Serial.begin(115200);
+  Serial1.begin(1200);        // D19 = RX1 — White-Blue at 1200 baud
   pinMode(CH_A.rx, INPUT);
-  pinMode(CH_B.rx, INPUT);
   resetState(stA);
-  resetState(stB);
   stA.lastReport = millis();
-  stB.lastReport = millis();
+
   Serial.println(F("=== K-Line Diagnostic ==="));
-  Serial.print(F("GREY D17 idle: "));  Serial.println(digitalRead(CH_A.rx) == HIGH ? F("HIGH") : F("LOW"));
-  Serial.print(F("WHITE-BLUE D19 idle: ")); Serial.println(digitalRead(CH_B.rx) == HIGH ? F("HIGH") : F("LOW"));
-  Serial.println(F("Sampling both channels — report every 4s"));
+  Serial.print(F("BROWN-RED D17 idle: "));
+  Serial.println(digitalRead(CH_A.rx) == HIGH ? F("HIGH") : F("LOW"));
+  Serial.print(F("WHITE-BLUE D19 idle (Serial1 1200 baud): "));
+  Serial.println(digitalRead(19) == HIGH ? F("HIGH") : F("LOW"));
+  Serial.println(F("Sampling — BROWN-RED report every 4s, WHITE-BLUE bytes printed live"));
   Serial.println();
 }
 
 void loop() {
+  // Capture Serial1 bytes (White-Blue, 1200 baud) and echo back
+  while (Serial1.available()) {
+    uint8_t b = Serial1.read();
+    Serial.print(F("WB RX  t=")); Serial.print(millis());
+    Serial.print(F("ms  0x"));
+    if (b < 0x10) Serial.print('0');
+    Serial.print(b, HEX);
+    Serial.print(F("  (")); Serial.print(b); Serial.println(F(")"));
+    Serial1.write(0x10);
+    Serial.println(F("WB TX  0x10"));
+  }
+
+  // Software sampler for Brown-Red
   sampleChannel(CH_A, stA);
-  sampleChannel(CH_B, stB);
   printReport(CH_A, stA);
-  printReport(CH_B, stB);
 }
