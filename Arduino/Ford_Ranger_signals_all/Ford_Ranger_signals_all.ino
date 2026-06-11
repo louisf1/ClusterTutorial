@@ -73,9 +73,10 @@ const int AltMonitorRedPin = A15;
 const int AltMonitorBWPin  = A14;
 const int AltExcitePin     = 44;
 
-// TODO: calibrate against real wire voltage. Raw ADC (0-1023 = 0-5V at the
-// pin) x ALT_MONITOR_SCALE must equal the actual alternator output voltage.
-const float ALT_MONITOR_SCALE = 3.0;
+// Calibrated 2026-06-10: 12V applied to red wire -> RAWRED read 0.36V,
+// giving scale 12 / 0.36 = 33.33. Assumed same for black-white (separate
+// 7805VC unit, same circuit) until verified independently.
+const float ALT_MONITOR_SCALE = 33.33;
 
 const float ALT_TARGET_MAX_V = 14.5;
 const float ALT_STEP_V       = 0.01;
@@ -86,6 +87,12 @@ const unsigned long ALT_STEP_INTERVAL_MS = 10;
 
 float altExciteVoltage   = 0.0;
 unsigned long altLastStepTime = 0;
+
+// Latest readings, for debug telemetry only
+float altDebugVRed   = 0.0;
+float altDebugVBW    = 0.0;
+float altDebugRawRed = 0.0;  // raw pin voltage, 0-5V, before ALT_MONITOR_SCALE
+float altDebugRawBW  = 0.0;  // raw pin voltage, 0-5V, before ALT_MONITOR_SCALE
 // =============================================================================
 // FUEL GAUGE — A0
 // =============================================================================
@@ -130,7 +137,7 @@ float avgKmPerLiter       = 10.0;     // update to your real-world average
 const int WIRE_A_PINS[13] = {A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13 };
 
 // Digital pins — reserved for future functions (input_pullup configured in setup)
-const int WIRE_D_PINS[18] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 33, 39, 35, 32, 38};
+const int WIRE_D_PINS[18] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 33, 36, 35, 32, 38};
 
 // =============================================================================
 // TEMPERATURE READ
@@ -154,11 +161,19 @@ float readTemperature() {
 // ALTERNATOR EXCITATION CONTROL — high-rate, runs every loop() iteration
 // =============================================================================
 void updateAlternatorExcitation() {
-  float vRed = analogRead(AltMonitorRedPin) * (ALT_OUT_SUPPLY_V / 1023.0) * ALT_MONITOR_SCALE;
-  float vBW  = analogRead(AltMonitorBWPin)  * (ALT_OUT_SUPPLY_V / 1023.0) * ALT_MONITOR_SCALE;
+  float rawRed = analogRead(AltMonitorRedPin) * (ALT_OUT_SUPPLY_V / 1023.0);
+  float rawBW  = analogRead(AltMonitorBWPin)  * (ALT_OUT_SUPPLY_V / 1023.0);
+
+  float vRed = rawRed * ALT_MONITOR_SCALE;
+  float vBW  = rawBW  * ALT_MONITOR_SCALE;
 
   // Redundant readings — use the higher of the two (clamp early, err safe)
   float vAlternator = max(vRed, vBW);
+
+  altDebugVRed    = vRed;
+  altDebugVBW     = vBW;
+  altDebugRawRed  = rawRed;
+  altDebugRawBW   = rawBW;
 
   unsigned long now = millis();
   if (now - altLastStepTime < ALT_STEP_INTERVAL_MS) return;
@@ -289,10 +304,17 @@ void loop() {
 
   // ── Digital-only ECU wire pins (no ADC — HIGH/LOW reported as 1/0) ─────────
   //Serial.print("|DV33:"); Serial.print(digitalRead(33) == HIGH ? 1 : 0);
-  Serial.print("|DVIGNITIONPWR:"); Serial.print(digitalRead(39) == HIGH ? 1 : 0);//Ignition power on/off
+  Serial.print("|DVIGNITIONPWR:"); Serial.print(digitalRead(36) == HIGH ? 1 : 0);//Ignition power on/off
   Serial.print("|DVSTANDBYPOWER:"); Serial.print(digitalRead(35) == HIGH ? 1 : 0);//battery standby power on/off 
   Serial.print("|DVGLOWPLUG:"); Serial.print(digitalRead(32) == LOW ? 1 : 0);//glowplug indicator on dash (opto inverts: LOW=active)
   Serial.print("|DVAIRCONSIGNAL:"); Serial.print(digitalRead(38) == HIGH ? 1 : 0);//aircon indicator on/off
+
+  // ── Alternator excitation debug ──────────────────────────────────────────
+  Serial.print("|RAWRED:");  Serial.print(altDebugRawRed, 3);
+  Serial.print("|RAWBW:");   Serial.print(altDebugRawBW, 3);
+  Serial.print("|ALTRED:");  Serial.print(altDebugVRed, 2);
+  Serial.print("|ALTBW:");   Serial.print(altDebugVBW, 2);
+  Serial.print("|ALTOUT:");  Serial.print(altExciteVoltage, 2);
 
   // ── Indicators (latched over the 1s window) ──────────────────────────────
   Serial.print("|LINDIC:");      Serial.print(leftIndicatorSeen  ? 1 : 0);

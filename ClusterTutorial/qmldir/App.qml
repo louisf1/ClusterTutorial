@@ -291,7 +291,7 @@ Window {
 			"green",    //: FICD solenoid Valve no1 :Arduino AnaLog/Digital Pin  11
 			"pink",    //: FICD solenoid Valve no2 :Arduino AnaLog/Digital Pin  12
 			"black-yellow",    //: Connected to ignition key start barrel :Arduino AnaLog/Digital Pin  13
-			"black-white",    //: ignition power on-off and Timer Control Valve :Arduino Digital Pin 39																								
+			"black-white",    //: ignition power on-off and Timer Control Valve :Arduino Digital Pin 36
 			"red"    //: standby power :Arduino Digital Pin 35
 		    ];
 		    return (i >= 0 && i < colors.length) ? colors[i] : "";
@@ -312,7 +312,7 @@ Window {
 			"P11 FICD solenoid Valve no1",    //: "green",    //: FICD solenoid Valve no1 :Arduino AnaLog/Digital Pin  11
 			"P12 FICD solenoid Valve no2",    //: "pink",    //: FICD solenoid Valve no2 :Arduino AnaLog/Digital Pin  12
 			"P13 Ignition key start barrel",    //: "black-yellow",    //: Connected to ignition key start barrel :Arduino AnaLog/Digital Pin  13			
-			"P39 Ignition power",    //: "black-white",    //: ignition power on-off :Arduino Digital Pin 39
+			"P36 Ignition power",    //: "black-white",    //: ignition power on-off :Arduino Digital Pin 36
 			"P35 Standby power",    //: "red",    //: standby power on :Arduino Digital Pin 35
    			];
 		    
