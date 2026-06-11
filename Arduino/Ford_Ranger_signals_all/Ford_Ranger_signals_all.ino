@@ -43,6 +43,13 @@ const int SparePins[12] = {2, 3, 4, 6, 7, 8, 9, 10, 12, 13, 32, 38};
 bool SparePinSeen[12]   = {false, false, false, false, false, false,
                            false, false, false, false, false, false};
 
+// D5 (aircon) and D11 (glow plug) — keep their existing INPUT_PULLUP signal
+// reads (DVAIRCONSIGNAL/DVGLOWPLUG) AND, each loop, briefly drive the pin LOW
+// then switch back to INPUT_PULLUP to see if an external signal pulls it back
+// HIGH on its own. Latched as SPARE5/SPARE11 for comparison/refinement.
+const int DualModePins[2] = {5, 11};
+bool DualModePinSeen[2]   = {false, false};
+
 // =============================================================================
 // SPEED & RPM
 // =============================================================================
@@ -276,6 +283,16 @@ void loop() {
     digitalWrite(SparePins[i], LOW);
   }
 
+  // D5/D11: briefly drive LOW, then switch back to INPUT_PULLUP — if the
+  // signal pulls the pin back HIGH on its own, latch SPARE5/SPARE11.
+  // DVAIRCONSIGNAL/DVGLOWPLUG reads later this loop see INPUT_PULLUP as before.
+  for (int i = 0; i < 2; i++) {
+    pinMode(DualModePins[i], OUTPUT);
+    digitalWrite(DualModePins[i], LOW);
+    pinMode(DualModePins[i], INPUT_PULLUP);
+    if (digitalRead(DualModePins[i]) == HIGH) DualModePinSeen[i] = true;
+  }
+
   // Poll speed / RPM — detect RISING edge from active-HIGH hall sensors
   bool curSpeed = digitalRead(speedPin) == HIGH;
   bool curRpm   = digitalRead(rpmPin)   == HIGH;
@@ -367,6 +384,8 @@ void loop() {
   Serial.print("|SPARE13:"); Serial.print(SparePinSeen[9]  ? 1 : 0);
   Serial.print("|SPARE32:"); Serial.print(SparePinSeen[10] ? 1 : 0);
   Serial.print("|SPARE38:"); Serial.print(SparePinSeen[11] ? 1 : 0);
+  Serial.print("|SPARE5:");  Serial.print(DualModePinSeen[0] ? 1 : 0);
+  Serial.print("|SPARE11:"); Serial.print(DualModePinSeen[1] ? 1 : 0);
 
   leftIndicatorSeen  = false;
   rightIndicatorSeen = false;
@@ -375,6 +394,8 @@ void loop() {
   DaytimeLightsSeen  = false;
   ParkingLightsSeen  = false;
   for (int i = 0; i < 12; i++) SparePinSeen[i] = false;
+  DualModePinSeen[0] = false;
+  DualModePinSeen[1] = false;
 
   Serial.println();   // end of line — Python readline() triggers on this
 }
