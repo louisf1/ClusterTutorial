@@ -30,7 +30,7 @@ ANALOG_TO_WIRE = {
     13: 12,  # A13 Black/Yellow  → index 12 "black-yellow"  (Starter Signal)
 }
 DIGITAL_TO_WIRE = {
-    'DVIGNITIONPWR':  13,  # D36 Black/White → index 13 "black-white" (ignition power)
+    'DVIGNITIONPWR':  13,  # D14 Black/White → index 13 "black-white" (ignition power)
     'DVSTANDBYPOWER': 14,  # D35 red         → index 14 "red" (standby power)
     'DVGLOWPLUG':     15,  # D41 Red         → index 15 "red" (Glow Plugs)
 }
