@@ -24,11 +24,13 @@ const int rightIndicatorPin = 26;
 const int LightsDimPin      = 27;
 const int LightsBrightPin   = 28;
 const int DaytimeLightsPin  = 29;
+const int ParkingLightsPin  = 22;
 bool leftIndicatorSeen  = false;
 bool rightIndicatorSeen = false;
 bool LightsDimSeen      = false;
 bool LightsBrightSeen   = false;
 bool DaytimeLightsSeen  = false;
+bool ParkingLightsSeen  = false;
 
 // =============================================================================
 // SPEED & RPM
@@ -221,6 +223,7 @@ void setup() {
   pinMode(LightsDimPin,      INPUT);
   pinMode(LightsBrightPin,   INPUT);
   pinMode(DaytimeLightsPin,  INPUT);
+  pinMode(ParkingLightsPin,  INPUT);
 
   // Fuel gauge — prime smoothing buffer with a real reading so the average
   // starts correct immediately, instead of ramping up from zero over ~20s
@@ -245,6 +248,7 @@ void loop() {
   if (digitalRead(LightsDimPin)      == HIGH) LightsDimSeen      = true;
   if (digitalRead(LightsBrightPin)   == HIGH) LightsBrightSeen   = true;
   if (digitalRead(DaytimeLightsPin)  == HIGH) DaytimeLightsSeen  = true;
+  if (digitalRead(ParkingLightsPin)  == HIGH) ParkingLightsSeen  = true;
 
   // Poll speed / RPM — detect RISING edge from active-HIGH hall sensors
   bool curSpeed = digitalRead(speedPin) == HIGH;
@@ -322,12 +326,14 @@ void loop() {
   Serial.print("|LIGHTSDIM:");     Serial.print(LightsDimSeen      ? 1 : 0);
   Serial.print("|LIGHTSBRIGHT:");  Serial.print(LightsBrightSeen   ? 1 : 0);
   Serial.print("|DAYTIMEDRIVING:"); Serial.print(DaytimeLightsSeen ? 1 : 0);
+  Serial.print("|PARKINGLIGHTS:");  Serial.print(ParkingLightsSeen ? 1 : 0);
 
   leftIndicatorSeen  = false;
   rightIndicatorSeen = false;
   LightsDimSeen      = false;
   LightsBrightSeen   = false;
   DaytimeLightsSeen  = false;
+  ParkingLightsSeen  = false;
 
   Serial.println();   // end of line — Python readline() triggers on this
 }
