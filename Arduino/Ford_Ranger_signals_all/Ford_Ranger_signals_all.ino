@@ -32,11 +32,16 @@ bool LightsBrightSeen   = false;
 bool DaytimeLightsSeen  = false;
 bool ParkingLightsSeen  = false;
 
-// Spare pins D2-D4 — held LOW (pulled down) by default, briefly switched to
+// Spare pins — held LOW (pulled down) by default, briefly switched to
 // INPUT each loop to sample for a HIGH pulse, then driven LOW again.
 // D1 excluded (Serial0 TX, controlled by USART hardware).
-const int SparePins[3] = {2, 3, 4};
-bool SparePinSeen[3]   = {false, false, false};
+// D33 excluded (confirmed dead — stuck at 4.7V even when driven OUTPUT LOW).
+// D2-D4 were the original spare set; D6,7,8,9,10,12,13,32,38 were previously
+// "reserved" INPUT_PULLUP wire pins that float high with nothing connected —
+// moved here so they sit at a known 0V instead.
+const int SparePins[12] = {2, 3, 4, 6, 7, 8, 9, 10, 12, 13, 32, 38};
+bool SparePinSeen[12]   = {false, false, false, false, false, false,
+                           false, false, false, false, false, false};
 
 // =============================================================================
 // SPEED & RPM
@@ -144,8 +149,8 @@ float avgKmPerLiter       = 10.0;     // update to your real-world average
 // Analog pins — voltage reads only
 const int WIRE_A_PINS[13] = {A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13 };
 
-// Digital pins — reserved for future functions (input_pullup configured in setup)
-const int WIRE_D_PINS[14] = {5, 6, 7, 8, 9, 10, 11, 12, 13, 33, 14, 35, 32, 38};
+// Digital pins actively used for ECU wire signals (input_pullup configured in setup)
+const int WIRE_D_PINS[4] = {5, 11, 14, 35};
 
 // =============================================================================
 // TEMPERATURE READ
@@ -218,13 +223,13 @@ void setup() {
   pinMode(tempSO,  INPUT);
   pinMode(tempSCK, OUTPUT);
 
-  // ECU wire digital pins — INPUT_PULLUP, functions assigned later
-  for (int i = 0; i < 14; i++) {
+  // ECU wire digital pins — INPUT_PULLUP, actively assigned signals
+  for (int i = 0; i < 4; i++) {
     pinMode(WIRE_D_PINS[i], INPUT_PULLUP);
   }
 
-  // Spare pins D2-D4 — held LOW (pulled down) by default
-  for (int i = 0; i < 3; i++) {
+  // Spare pins — held LOW (pulled down) by default
+  for (int i = 0; i < 12; i++) {
     pinMode(SparePins[i], OUTPUT);
     digitalWrite(SparePins[i], LOW);
   }
@@ -262,9 +267,9 @@ void loop() {
   if (digitalRead(DaytimeLightsPin)  == HIGH) DaytimeLightsSeen  = true;
   if (digitalRead(ParkingLightsPin)  == HIGH) ParkingLightsSeen  = true;
 
-  // Spare pins D2-D4: briefly switch to INPUT to sample for a HIGH pulse,
+  // Spare pins: briefly switch to INPUT to sample for a HIGH pulse,
   // then drive back LOW (kept pulled down by default)
-  for (int i = 0; i < 3; i++) {
+  for (int i = 0; i < 12; i++) {
     pinMode(SparePins[i], INPUT);
     if (digitalRead(SparePins[i]) == HIGH) SparePinSeen[i] = true;
     pinMode(SparePins[i], OUTPUT);
@@ -349,10 +354,19 @@ void loop() {
   Serial.print("|DAYTIMEDRIVING:"); Serial.print(DaytimeLightsSeen ? 1 : 0);
   Serial.print("|PARKINGLIGHTS:");  Serial.print(ParkingLightsSeen ? 1 : 0);
 
-  // ── Spare pins D2-D4 (latched HIGH-pulse detection) ───────────────────────
-  Serial.print("|SPARE2:"); Serial.print(SparePinSeen[0] ? 1 : 0);
-  Serial.print("|SPARE3:"); Serial.print(SparePinSeen[1] ? 1 : 0);
-  Serial.print("|SPARE4:"); Serial.print(SparePinSeen[2] ? 1 : 0);
+  // ── Spare pins (latched HIGH-pulse detection) ─────────────────────────────
+  Serial.print("|SPARE2:");  Serial.print(SparePinSeen[0]  ? 1 : 0);
+  Serial.print("|SPARE3:");  Serial.print(SparePinSeen[1]  ? 1 : 0);
+  Serial.print("|SPARE4:");  Serial.print(SparePinSeen[2]  ? 1 : 0);
+  Serial.print("|SPARE6:");  Serial.print(SparePinSeen[3]  ? 1 : 0);
+  Serial.print("|SPARE7:");  Serial.print(SparePinSeen[4]  ? 1 : 0);
+  Serial.print("|SPARE8:");  Serial.print(SparePinSeen[5]  ? 1 : 0);
+  Serial.print("|SPARE9:");  Serial.print(SparePinSeen[6]  ? 1 : 0);
+  Serial.print("|SPARE10:"); Serial.print(SparePinSeen[7]  ? 1 : 0);
+  Serial.print("|SPARE12:"); Serial.print(SparePinSeen[8]  ? 1 : 0);
+  Serial.print("|SPARE13:"); Serial.print(SparePinSeen[9]  ? 1 : 0);
+  Serial.print("|SPARE32:"); Serial.print(SparePinSeen[10] ? 1 : 0);
+  Serial.print("|SPARE38:"); Serial.print(SparePinSeen[11] ? 1 : 0);
 
   leftIndicatorSeen  = false;
   rightIndicatorSeen = false;
@@ -360,9 +374,7 @@ void loop() {
   LightsBrightSeen   = false;
   DaytimeLightsSeen  = false;
   ParkingLightsSeen  = false;
-  SparePinSeen[0] = false;
-  SparePinSeen[1] = false;
-  SparePinSeen[2] = false;
+  for (int i = 0; i < 12; i++) SparePinSeen[i] = false;
 
   Serial.println();   // end of line — Python readline() triggers on this
 }
