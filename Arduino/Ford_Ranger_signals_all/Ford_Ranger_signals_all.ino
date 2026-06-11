@@ -32,6 +32,12 @@ bool LightsBrightSeen   = false;
 bool DaytimeLightsSeen  = false;
 bool ParkingLightsSeen  = false;
 
+// Spare pins D2-D4 — held LOW (pulled down) by default, briefly switched to
+// INPUT each loop to sample for a HIGH pulse, then driven LOW again.
+// D1 excluded (Serial0 TX, controlled by USART hardware).
+const int SparePins[3] = {2, 3, 4};
+bool SparePinSeen[3]   = {false, false, false};
+
 // =============================================================================
 // SPEED & RPM
 // =============================================================================
@@ -139,7 +145,7 @@ float avgKmPerLiter       = 10.0;     // update to your real-world average
 const int WIRE_A_PINS[13] = {A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13 };
 
 // Digital pins — reserved for future functions (input_pullup configured in setup)
-const int WIRE_D_PINS[18] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 33, 14, 35, 32, 38};
+const int WIRE_D_PINS[14] = {5, 6, 7, 8, 9, 10, 11, 12, 13, 33, 14, 35, 32, 38};
 
 // =============================================================================
 // TEMPERATURE READ
@@ -213,8 +219,14 @@ void setup() {
   pinMode(tempSCK, OUTPUT);
 
   // ECU wire digital pins — INPUT_PULLUP, functions assigned later
-  for (int i = 0; i < 18; i++) {
+  for (int i = 0; i < 14; i++) {
     pinMode(WIRE_D_PINS[i], INPUT_PULLUP);
+  }
+
+  // Spare pins D2-D4 — held LOW (pulled down) by default
+  for (int i = 0; i < 3; i++) {
+    pinMode(SparePins[i], OUTPUT);
+    digitalWrite(SparePins[i], LOW);
   }
 
   // Indicator and lights inputs via V508VC voltage regulator (active HIGH, external pull-down)
@@ -249,6 +261,15 @@ void loop() {
   if (digitalRead(LightsBrightPin)   == HIGH) LightsBrightSeen   = true;
   if (digitalRead(DaytimeLightsPin)  == HIGH) DaytimeLightsSeen  = true;
   if (digitalRead(ParkingLightsPin)  == HIGH) ParkingLightsSeen  = true;
+
+  // Spare pins D2-D4: briefly switch to INPUT to sample for a HIGH pulse,
+  // then drive back LOW (kept pulled down by default)
+  for (int i = 0; i < 3; i++) {
+    pinMode(SparePins[i], INPUT);
+    if (digitalRead(SparePins[i]) == HIGH) SparePinSeen[i] = true;
+    pinMode(SparePins[i], OUTPUT);
+    digitalWrite(SparePins[i], LOW);
+  }
 
   // Poll speed / RPM — detect RISING edge from active-HIGH hall sensors
   bool curSpeed = digitalRead(speedPin) == HIGH;
@@ -328,12 +349,20 @@ void loop() {
   Serial.print("|DAYTIMEDRIVING:"); Serial.print(DaytimeLightsSeen ? 1 : 0);
   Serial.print("|PARKINGLIGHTS:");  Serial.print(ParkingLightsSeen ? 1 : 0);
 
+  // ── Spare pins D2-D4 (latched HIGH-pulse detection) ───────────────────────
+  Serial.print("|SPARE2:"); Serial.print(SparePinSeen[0] ? 1 : 0);
+  Serial.print("|SPARE3:"); Serial.print(SparePinSeen[1] ? 1 : 0);
+  Serial.print("|SPARE4:"); Serial.print(SparePinSeen[2] ? 1 : 0);
+
   leftIndicatorSeen  = false;
   rightIndicatorSeen = false;
   LightsDimSeen      = false;
   LightsBrightSeen   = false;
   DaytimeLightsSeen  = false;
   ParkingLightsSeen  = false;
+  SparePinSeen[0] = false;
+  SparePinSeen[1] = false;
+  SparePinSeen[2] = false;
 
   Serial.println();   // end of line — Python readline() triggers on this
 }
