@@ -33,7 +33,12 @@ SystemMonitor::SystemMonitor(QObject *parent) : QObject(parent) {
     // Setup the timer for periodic Linux stats updates
     m_timer = new QTimer(this);
     connect(m_timer, &QTimer::timeout, this, &SystemMonitor::updateStats);
-    m_timer->start(1000); 
+    m_timer->start(1000);
+
+    // Fast timer — page-switch button, polled at 100ms for low-latency response
+    m_fastTimer = new QTimer(this);
+    connect(m_fastTimer, &QTimer::timeout, this, &SystemMonitor::updateFastStats);
+    m_fastTimer->start(100);
 
     // Initialize all 20 ECU wires to inactive / 0 V
     m_ecuWireStates.clear();
@@ -150,3 +155,20 @@ void SystemMonitor::updateStats() {
         }
     }
 } // end updateStats slot
+
+// Dashboard page-switch button (D9) — polled at 100ms from the FAST report,
+// fires once on rising edge
+void SystemMonitor::updateFastStats() {
+    QFile jf("/tmp/ecu_fast_state.json");
+    if (jf.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QJsonDocument doc = QJsonDocument::fromJson(jf.readAll());
+        jf.close();
+        if (!doc.isNull() && doc.isObject()) {
+            bool pageButton = doc.object()["pageButton"].toBool();
+            if (pageButton && !m_lastPageButton) {
+                emit pageButtonPressed();
+            }
+            m_lastPageButton = pageButton;
+        }
+    }
+} // end updateFastStats slot

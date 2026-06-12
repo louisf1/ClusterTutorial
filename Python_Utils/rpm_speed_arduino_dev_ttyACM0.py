@@ -37,6 +37,7 @@ DIGITAL_TO_WIRE = {
 VOLTAGE_SCALE     = 1.0   # no voltage divider — direct 10kΩ series resistor only
 ACTIVE_THRESHOLD  = 2.0   # volts (real, after scale) — wire considered "live"
 WIRE_STATE_FILE   = '/tmp/ecu_wire_states.json'
+FAST_STATE_FILE   = '/tmp/ecu_fast_state.json'
 
 def run_master_bridge():
     try:
@@ -72,11 +73,36 @@ def run_master_bridge():
             })
             with open(WIRE_STATE_FILE, 'w') as jf:
                 json.dump({'states': [False] * 20, 'voltages': [0.0] * 20}, jf)
+            with open(FAST_STATE_FILE, 'w') as jf:
+                json.dump({'pageButton': False}, jf)
             print("🧹 Stale KUKSA values cleared.")
 
             while True:
                 line = ser.readline().decode('utf-8', errors='ignore').strip()
                 if not line:
+                    continue
+
+                # FAST line — page button + indicators, sent every 100ms,
+                # independent of the 1s telemetry line below.
+                if line.startswith("FAST|"):
+                    page_button     = False
+                    left_indicator  = False
+                    right_indicator = False
+                    for part in line.split('|')[1:]:
+                        if part.startswith("PAGEBTN:"):
+                            page_button     = part.split(':')[1] == '1'
+                        elif part.startswith("LINDIC:"):
+                            left_indicator  = part.split(':')[1] == '1'
+                        elif part.startswith("RINDIC:"):
+                            right_indicator = part.split(':')[1] == '1'
+
+                    client.set_current_values({
+                        'Vehicle.Body.Lights.DirectionIndicator.Left.IsSignaling':  Datapoint(left_indicator),
+                        'Vehicle.Body.Lights.DirectionIndicator.Right.IsSignaling': Datapoint(right_indicator),
+                        'Vehicle.Body.Lights.Hazard.IsSignaling':                   Datapoint(left_indicator and right_indicator),
+                    })
+                    with open(FAST_STATE_FILE, 'w') as jf:
+                        json.dump({'pageButton': page_button}, jf)
                     continue
 
                 # Format: SPD:xx|RPM:xx|TMP:xx|LITERS:xx|RANGE:xx|AV2:x.xx|...|AV13:x.xx
@@ -103,6 +129,8 @@ def run_master_bridge():
                     lights_bright   = False
                     daytime_lights  = False
                     parking_lights  = False
+                    parking_brake   = False
+                    seatbelt        = False
                     glow_plug_relay = False
                     ac_active       = False
                     for part in parts[5:]:
@@ -118,6 +146,10 @@ def run_master_bridge():
                             daytime_lights  = part.split(':')[1] == '1'
                         elif part.startswith("PARKINGLIGHTS:"):
                             parking_lights  = part.split(':')[1] == '1'
+                        elif part.startswith("PARKINGBRAKE:"):
+                            parking_brake   = part.split(':')[1] == '1'
+                        elif part.startswith("SEATBELT:"):
+                            seatbelt        = part.split(':')[1] == '1'
                         elif part.startswith("DVGLOWPLUG:"):
                             glow_plug_relay = part.split(':')[1] == '1'
                         elif part.startswith("DVIGNITIONPWR:"):
@@ -125,7 +157,7 @@ def run_master_bridge():
                         elif part.startswith("DVSTANDBYPOWER:"):
                             stand_by_power = part.split(':')[1] == '1'
                         elif part.startswith("DVAIRCONSIGNAL:"):
-                            ac_active = part.split(':')[1] == '1'                                                                                    
+                            ac_active = part.split(':')[1] == '1'
 
                     hazard = left_indicator and right_indicator
 
@@ -173,12 +205,19 @@ def run_master_bridge():
                        'Vehicle.Cabin.HVAC.IsAirConditioningActive':                  Datapoint(ac_active),
                        'Vehicle.ADAS.DMS.IsError':                                    Datapoint(ecu_error),
                        'Vehicle.Body.Lights.Parking.IsOn':                            Datapoint(parking_lights),
+                       'Vehicle.Chassis.ParkingBrake.IsEngaged':                      Datapoint(parking_brake),
+                       'Vehicle.Cabin.Seat.Row1.DriverSide.IsBelted':                 Datapoint(seatbelt),
+                       'Vehicle.Cabin.Seat.Row1.Middle.IsBelted':                     Datapoint(seatbelt),
+                       'Vehicle.Cabin.Seat.Row1.PassengerSide.IsBelted':              Datapoint(seatbelt),
+                       'Vehicle.Cabin.Seat.Row2.DriverSide.IsBelted':                 Datapoint(seatbelt),
+                       'Vehicle.Cabin.Seat.Row2.Middle.IsBelted':                     Datapoint(seatbelt),
+                       'Vehicle.Cabin.Seat.Row2.PassengerSide.IsBelted':              Datapoint(seatbelt),
                     }
                     # -100 means thermocouple disconnected — skip temp publish
                     if temp_val != -100.0:
                         telemetry['Vehicle.OBD.CoolantTemperature'] = Datapoint(temp_val)
                     client.set_current_values(telemetry)
-                    print(f"TELEMETRY -> Speed: {speed_val} km/h | RPM: {rpm_val} | TEMP: {temp_val} | LITERS: {fuel_liters_val} | RANGE: {fuel_range_val} | L:{int(left_indicator)} R:{int(right_indicator)} H:{int(hazard)} DIM:{int(lights_dim)} BRIGHT:{int(lights_bright)} DT:{int(daytime_lights)} PARK:{int(parking_lights)} GLOWPLUGS:{int(glow_plug_relay)} AC:{int(ac_active)} ECUERR:{int(ecu_error)}")
+                    print(f"TELEMETRY -> Speed: {speed_val} km/h | RPM: {rpm_val} | TEMP: {temp_val} | LITERS: {fuel_liters_val} | RANGE: {fuel_range_val} | L:{int(left_indicator)} R:{int(right_indicator)} H:{int(hazard)} DIM:{int(lights_dim)} BRIGHT:{int(lights_bright)} DT:{int(daytime_lights)} PARK:{int(parking_lights)} PBRAKE:{int(parking_brake)} SEATBELT:{int(seatbelt)} GLOWPLUGS:{int(glow_plug_relay)} AC:{int(ac_active)} ECUERR:{int(ecu_error)}")
 
                 except (ValueError, IndexError) as e:
                     print(f"⚠️ Malformed data received: {line} ({e})")

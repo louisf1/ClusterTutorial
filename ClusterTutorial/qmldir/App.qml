@@ -48,10 +48,20 @@ Window {
      Shortcut {
         sequence: "Space"
         onActivated: {
-            view.currentIndex = (view.currentIndex + 1) % 3 
+            view.currentIndex = (view.currentIndex + 1) % 3
             console.log("Page Switched to: " + view.currentIndex)
         }
       }
+
+     // Physical page-switch button on Arduino D9 — replaces the spacebar
+     // for normal dashboard use (Space remains for desktop testing).
+     Connections {
+        target: SysHealth
+        function onPageButtonPressed() {
+            view.currentIndex = (view.currentIndex + 1) % 3
+            console.log("Page Switched to: " + view.currentIndex)
+        }
+     }
 
     Item {
         id: dashboardWrapper

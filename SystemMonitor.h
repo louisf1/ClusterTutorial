@@ -46,7 +46,8 @@ public:
     void parseKLineData(QByteArray hexResponse);
 
 public slots:
-    void updateStats(); // Called by the timer
+    void updateStats(); // Called by the 1s timer
+    void updateFastStats(); // Called by the 100ms timer — page button
     void updateScrollingLog(const QString &message);
 
 signals:
@@ -62,6 +63,7 @@ signals:
     void cpuTempChanged();
     void ecuWireStatesChanged();
     void ecuWireVoltagesChanged();
+    void pageButtonPressed(); // Fired once per physical D9 button press
     void newLogEntry(QString message); // This "carries" the K-Line string to QML
 
 private:
@@ -77,8 +79,10 @@ private:
     float m_cpuTemp = 0.0;
 
     QTimer *m_timer = nullptr;
+    QTimer *m_fastTimer = nullptr;
     QVariantList m_ecuWireStates;    // 20 booleans  — wire active/inactive
     QVariantList m_ecuWireVoltages;  // 20 floats (V) — real voltage after ×3 scale
+    bool m_lastPageButton = false;   // edge-detect for the D9 page-switch button
 }; // end SystemMonitor class
 
 #endif // end SYSTEMMONITOR_H
