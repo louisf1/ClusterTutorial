@@ -64,6 +64,7 @@ signals:
     void ecuWireStatesChanged();
     void ecuWireVoltagesChanged();
     void pageButtonPressed(); // Fired once per physical D9 button press
+    void tripResetTriggered(); // Fired once per D7 trip-reset pulse
     void newLogEntry(QString message); // This "carries" the K-Line string to QML
 
 private:
@@ -83,6 +84,7 @@ private:
     QVariantList m_ecuWireStates;    // 20 booleans  — wire active/inactive
     QVariantList m_ecuWireVoltages;  // 20 floats (V) — real voltage after ×3 scale
     bool m_lastPageButton = false;   // edge-detect for the D9 page-switch button
+    bool m_lastTripReset = false;    // edge-detect for the D7 trip-reset signal
 }; // end SystemMonitor class
 
 #endif // end SYSTEMMONITOR_H

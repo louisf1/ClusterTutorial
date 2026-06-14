@@ -210,6 +210,7 @@ public:
     }
 
 void loadConfig(const QString &filePath) {
+    m_filePath = filePath;
     QFile file(filePath);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         qDebug() << "ERROR: Could not open VSS config file:" << filePath;
@@ -276,6 +277,17 @@ void loadConfig(const QString &filePath) {
         if (!e.hmiProperty.empty() && e.hmiProperty != "NO_HMI_Property" && m_values) {
             QVariant qv = makeQVariant(e.type, e.initValue);
             if (qv.isValid()) applyToHmi(e.hmiProperty, e.type, qv);
+        }
+
+        // Seed the odometer/trip accumulators from the persisted init values
+        // so counting resumes from where it left off after a restart.
+        if (e.hmiProperty == "totalKms") {
+            m_totalKmsAccum = QString::fromStdString(e.initValue).toDouble();
+            m_lastTotalKmsStr = QString::number(
+                static_cast<long long>(std::round(m_totalKmsAccum)));
+        } else if (e.hmiProperty == "tripKms") {
+            m_tripKmsAccum = QString::fromStdString(e.initValue).toDouble();
+            m_lastTripKmsStr = QString::number(m_tripKmsAccum, 'f', 1);
         }
     }
 
@@ -345,6 +357,75 @@ void loadConfig(const QString &filePath) {
                 updateConfigFile(filePath, hmiProperty, formatForFile(type, newValue));
         });
     });
+
+    // Start odometer/trip accumulation, ticking once per second based on
+    // the current speedometer reading.
+    if (!m_odoTimer) {
+        m_odoTimer = new QTimer(this);
+        connect(m_odoTimer, &QTimer::timeout, this, [this, filePath]() {
+            updateOdometer(filePath);
+        });
+        m_odoTimer->start(1000);
+    }
+}
+
+// Accumulates distance travelled (based on the current kph reading) into
+// the total odometer and trip counters, updates the dashboard, publishes
+// the new totals to KUKSA, and persists them to VSS_paths.txt whenever the
+// displayed value changes.
+void updateOdometer(const QString &filePath)
+{
+    if (!m_values) return;
+
+    const double kph = m_values->property("kph").toDouble();
+    if (kph <= 0.0) return;
+
+    const double deltaKm = kph / 3600.0; // timer ticks every 1 second
+    m_totalKmsAccum += deltaKm;
+    m_tripKmsAccum  += deltaKm;
+
+    const QString totalStr = QString::number(
+        static_cast<long long>(std::round(m_totalKmsAccum)));
+    if (totalStr != m_lastTotalKmsStr) {
+        m_lastTotalKmsStr = totalStr;
+        m_values->setProperty("totalKms", totalStr);
+
+        kuksa::val::v2::Value kVal;
+        kVal.set_float_(static_cast<float>(m_totalKmsAccum));
+        m_client->publishValue("Vehicle.TraveledDistanceSinceStart", kVal);
+
+        updateConfigFile(filePath, "totalKms",
+            formatForFile("float", QVariant(m_totalKmsAccum)));
+    }
+
+    const QString tripStr = QString::number(m_tripKmsAccum, 'f', 1);
+    if (tripStr != m_lastTripKmsStr) {
+        m_lastTripKmsStr = tripStr;
+        m_values->setProperty("tripKms", tripStr);
+
+        kuksa::val::v2::Value kVal;
+        kVal.set_float_(static_cast<float>(m_tripKmsAccum));
+        m_client->publishValue("Vehicle.TripMeterReading", kVal);
+
+        updateConfigFile(filePath, "tripKms",
+            formatForFile("float", QVariant(m_tripKmsAccum)));
+    }
+}
+
+// Resets the trip meter to zero — triggered by a D7 pulse (Arduino spare
+// pin), forwarded via /tmp/ecu_fast_state.json and SystemMonitor.
+void resetTripMeter()
+{
+    m_tripKmsAccum   = 0.0;
+    m_lastTripKmsStr = "0.0";
+    m_values->setProperty("tripKms", m_lastTripKmsStr);
+
+    kuksa::val::v2::Value kVal;
+    kVal.set_float_(0.0f);
+    m_client->publishValue("Vehicle.TripMeterReading", kVal);
+
+    updateConfigFile(m_filePath, "tripKms", formatForFile("float", QVariant(0.0)));
+    qDebug() << "Trip meter reset to 0 (D7 signal)";
 }
 
 // Applies a live or init value to the correct QML property, including
@@ -519,6 +600,14 @@ private:
 
     QObject *m_values;
     std::shared_ptr<kuksa::KuksaClient> m_client;
+
+    // Odometer/trip accumulation state
+    double m_totalKmsAccum = 0.0;
+    double m_tripKmsAccum  = 0.0;
+    QString m_lastTotalKmsStr;
+    QString m_lastTripKmsStr;
+    QTimer *m_odoTimer = nullptr;
+    QString m_filePath;
 };
 
 // =============================================================================
@@ -660,6 +749,9 @@ int main(int argc, char *argv[])
         qDebug() << "Values singleton acquired — starting KuksaHandler.";
         KuksaHandler *handler = new KuksaHandler(valuesObject, &app);
         handler->loadConfig(QCoreApplication::applicationDirPath() + "/VSS_paths.txt");
+
+        QObject::connect(&sysMon, &SystemMonitor::tripResetTriggered,
+                          handler, &KuksaHandler::resetTripMeter);
     } else {
         qWarning() << "Values singleton not found — Kuksa data will not update the dashboard."
                    << "\n  Check 1: ClusterTutorial/qmldir/qmldir contains:"

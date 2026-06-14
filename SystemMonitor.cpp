@@ -169,6 +169,12 @@ void SystemMonitor::updateFastStats() {
                 emit pageButtonPressed();
             }
             m_lastPageButton = pageButton;
+
+            bool tripReset = doc.object()["tripReset"].toBool();
+            if (tripReset && !m_lastTripReset) {
+                emit tripResetTriggered();
+            }
+            m_lastTripReset = tripReset;
         }
     }
 } // end updateFastStats slot

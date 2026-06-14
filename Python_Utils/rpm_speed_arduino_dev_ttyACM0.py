@@ -74,8 +74,11 @@ def run_master_bridge():
             with open(WIRE_STATE_FILE, 'w') as jf:
                 json.dump({'states': [False] * 20, 'voltages': [0.0] * 20}, jf)
             with open(FAST_STATE_FILE, 'w') as jf:
-                json.dump({'pageButton': False}, jf)
+                json.dump({'pageButton': False, 'tripReset': False}, jf)
             print("🧹 Stale KUKSA values cleared.")
+
+            last_trip_reset  = False
+            last_page_button = False
 
             while True:
                 line = ser.readline().decode('utf-8', errors='ignore').strip()
@@ -101,8 +104,9 @@ def run_master_bridge():
                         'Vehicle.Body.Lights.DirectionIndicator.Right.IsSignaling': Datapoint(right_indicator),
                         'Vehicle.Body.Lights.Hazard.IsSignaling':                   Datapoint(left_indicator and right_indicator),
                     })
+                    last_page_button = page_button
                     with open(FAST_STATE_FILE, 'w') as jf:
-                        json.dump({'pageButton': page_button}, jf)
+                        json.dump({'pageButton': page_button, 'tripReset': last_trip_reset}, jf)
                     continue
 
                 # Format: SPD:xx|RPM:xx|TMP:xx|LITERS:xx|RANGE:xx|AV2:x.xx|...|AV13:x.xx
@@ -133,6 +137,7 @@ def run_master_bridge():
                     seatbelt        = False
                     glow_plug_relay = False
                     ac_active       = False
+                    trip_reset      = False
                     for part in parts[5:]:
                         if part.startswith("LINDIC:"):
                             left_indicator  = part.split(':')[1] == '1'
@@ -158,6 +163,12 @@ def run_master_bridge():
                             stand_by_power = part.split(':')[1] == '1'
                         elif part.startswith("DVAIRCONSIGNAL:"):
                             ac_active = part.split(':')[1] == '1'
+                        elif part.startswith("SPARE7:"):
+                            trip_reset = part.split(':')[1] == '1'
+
+                    last_trip_reset = trip_reset
+                    with open(FAST_STATE_FILE, 'w') as jf:
+                        json.dump({'pageButton': last_page_button, 'tripReset': trip_reset}, jf)
 
                     hazard = left_indicator and right_indicator
 
@@ -217,7 +228,7 @@ def run_master_bridge():
                     if temp_val != -100.0:
                         telemetry['Vehicle.OBD.CoolantTemperature'] = Datapoint(temp_val)
                     client.set_current_values(telemetry)
-                    print(f"TELEMETRY -> Speed: {speed_val} km/h | RPM: {rpm_val} | TEMP: {temp_val} | LITERS: {fuel_liters_val} | RANGE: {fuel_range_val} | L:{int(left_indicator)} R:{int(right_indicator)} H:{int(hazard)} DIM:{int(lights_dim)} BRIGHT:{int(lights_bright)} DT:{int(daytime_lights)} PARK:{int(parking_lights)} PBRAKE:{int(parking_brake)} SEATBELT:{int(seatbelt)} GLOWPLUGS:{int(glow_plug_relay)} AC:{int(ac_active)} ECUERR:{int(ecu_error)}")
+                    print(f"TELEMETRY -> Speed: {speed_val} km/h | RPM: {rpm_val} | TEMP: {temp_val} | LITERS: {fuel_liters_val} | RANGE: {fuel_range_val} | L:{int(left_indicator)} R:{int(right_indicator)} H:{int(hazard)} DIM:{int(lights_dim)} BRIGHT:{int(lights_bright)} DT:{int(daytime_lights)} PARK:{int(parking_lights)} PBRAKE:{int(parking_brake)} SEATBELT:{int(seatbelt)} GLOWPLUGS:{int(glow_plug_relay)} AC:{int(ac_active)} ECUERR:{int(ecu_error)} TRIPRESET:{int(trip_reset)}")
 
                 except (ValueError, IndexError) as e:
                     print(f"⚠️ Malformed data received: {line} ({e})")
