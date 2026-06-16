@@ -77,9 +77,9 @@ def simulate_dashboard():
             IsFuelLevelLow = bool(random.getrandbits(1))
             bool_oillevel=bool(random.getrandbits(1))
             if bool_oillevel == True:
-             string_oillevel="True"
+             string_oillevel="CRITICALLY_LOW"
             if bool_oillevel == False:
-             string_oillevel="False"
+             string_oillevel="NORMAL"
             #Lights_Beam_High_IsOn = False
             #Lights_Beam_Low_IsOn = False
             #Lights_Parking_IsOn = False
@@ -101,6 +101,24 @@ def simulate_dashboard():
 #Vehicle.Powertrain.FuelSystem.IsFuelLevelLow|boolean|fuelLevel
 #Vehicle.Powertrain.FuelSystem.Range|uint32|displayRange
 #Vehicle.Powertrain.FuelSystem.AverageConsumption|float|displayKpl
+#Test Client> getMetaData Vehicle.Powertrain.CombustionEngine.EngineOil.Level
+#{
+#    "path": "Vehicle.Powertrain.CombustionEngine.EngineOil.Level",
+#    "metadata": {
+#        "data_type": "STRING",
+#        "entry_type": "SENSOR",
+#        "description": "Engine oil level.",
+#        "value_restriction": {
+#            "allowed_values": [
+#                "CRITICALLY_LOW",
+#                "LOW",
+#                "NORMAL",
+#                "HIGH",
+#                "CRITICALLY_HIGH"
+#            ]
+#        }
+#    }
+#}
 
             updates = {
                 "Vehicle.Speed": Datapoint(float(speed)),
