@@ -18,6 +18,8 @@ def simulate_dashboard():
         trip_kms = 12.345      # Testing your toFixed(1) logic
         fuel_liters = 405.0
         Gear=1
+        string_oillevel="true"
+        bool_oillevel=True
         
         while True:
             # 1. Simulate Gauges (Speed & RPM)
@@ -56,37 +58,42 @@ def simulate_dashboard():
             Transmission_CurrentGear = bool(random.getrandbits(1))
             ABS_IsEnabled = bool(random.getrandbits(1))
             ABS_IsEngaged = bool(random.getrandbits(1))
-            #IsEngaged = bool(random.getrandbits(1))
-            #Lights_Beam_High_IsOn = bool(random.getrandbits(1))
-            #Lights_Beam_Low_IsOn = bool(random.getrandbits(1))
-            #Lights_Parking_IsOn = bool(random.getrandbits(1))
-            #Lights_Running_IsOn = bool(random.getrandbits(1))
-            #IsAirConditioningActive = bool(random.getrandbits(1))
-            #ParkingBrake_IsEngaged = bool(random.getrandbits(1))
-            #ParkingLight_IsEngaged = bool(random.getrandbits(1))            
+            IsEngaged = bool(random.getrandbits(1))
+            Lights_Beam_High_IsOn = bool(random.getrandbits(1))
+            Lights_Beam_Low_IsOn = bool(random.getrandbits(1))
+            Lights_Parking_IsOn = bool(random.getrandbits(1))
+            Lights_Running_IsOn = bool(random.getrandbits(1))
+            IsAirConditioningActive = bool(random.getrandbits(1))
+            ParkingBrake_IsEngaged = bool(random.getrandbits(1))
+            ParkingLight_IsEngaged = bool(random.getrandbits(1))            
             Row1_PassengerSide_IsBelted = bool(random.getrandbits(1))
             Row1_Driver_IsBelted = bool(random.getrandbits(1))
             Row1_Middle_IsBelted = bool(random.getrandbits(1))
             Row2_PassengerSide_IsBelted = bool(random.getrandbits(1))
             Row2_Driver_IsBelted = bool(random.getrandbits(1))
             Row2_Middle_IsBelted = bool(random.getrandbits(1))
-            #IsServiceDue = bool(random.getrandbits(1))
-            #Is_Lights_Parking_IsOn = bool(random.getrandbits(1))
+            IsServiceDue = bool(random.getrandbits(1))
+            Is_Lights_Parking_IsOn = bool(random.getrandbits(1))
             IsFuelLevelLow = bool(random.getrandbits(1))
-            Lights_Beam_High_IsOn = False
-            Lights_Beam_Low_IsOn = False
-            Lights_Parking_IsOn = False
-            Lights_Running_IsOn = False
-            IsEngaged = False
-            Lights_Beam_High_IsOn = False
-            Lights_Beam_Low_IsOn = False
-            Lights_Parking_IsOn = False
-            Lights_Running_IsOn = False
-            IsAirConditioningActive =  False
-            ParkingBrake_IsEngaged =  False
-            ParkingLight_IsEngaged =  False
-            IsServiceDue = False
-            Is_Lights_Parking_IsOn = False
+            bool_oillevel=bool(random.getrandbits(1))
+            if bool_oillevel == True:
+             string_oillevel="True"
+            if bool_oillevel == False:
+             string_oillevel="False"
+            #Lights_Beam_High_IsOn = False
+            #Lights_Beam_Low_IsOn = False
+            #Lights_Parking_IsOn = False
+            #Lights_Running_IsOn = False
+            #IsEngaged = False
+            #Lights_Beam_High_IsOn = False
+            #Lights_Beam_Low_IsOn = False
+            #Lights_Parking_IsOn = False
+            #Lights_Running_IsOn = False
+            #IsAirConditioningActive =  False
+            #ParkingBrake_IsEngaged =  False
+            #ParkingLight_IsEngaged =  False
+            #IsServiceDue = False
+            #Is_Lights_Parking_IsOn = False
             
             # 4. Update Databroker
 # Wrap each value in a Datapoint object
@@ -128,8 +135,7 @@ def simulate_dashboard():
                 "Vehicle.Cabin.Seat.Row2.Middle.IsBelted": Datapoint(Row2_Middle_IsBelted),
                 "Vehicle.Cabin.Seat.Row2.PassengerSide.IsBelted": Datapoint(Row2_PassengerSide_IsBelted),
                 "Vehicle.ADAS.DMS.IsError": Datapoint(left_indicator),
-                
-
+                "Vehicle.Powertrain.CombustionEngine.EngineOil.Level": Datapoint(string_oillevel),
                }
 
 

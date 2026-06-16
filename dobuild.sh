@@ -70,8 +70,8 @@ cmake --build . --parallel "$(nproc)"
 # =============================================================================
 # 5. Stage runtime assets
 # =============================================================================
-echo "==> Staging assets..."
-cp "$PROJECT_DIR/VSS_paths.txt" .
+##echo "==> Staging assets..."
+##cp "$PROJECT_DIR/VSS_paths.txt" .
 
 # =============================================================================
 # 6. Start hardware interface
