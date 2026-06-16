@@ -199,7 +199,7 @@ Item {
                 color: "#FFFFFF"
                 text: "8999"
                 horizontalAlignment: Text.AlignHCenter
-                font.pixelSize: 62
+                font.pixelSize: 248
                 font.family: "Cherry"
             }
         }
