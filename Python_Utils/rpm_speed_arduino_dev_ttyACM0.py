@@ -3,6 +3,8 @@ import time
 import subprocess
 import os
 import json
+import csv
+from datetime import datetime
 
 from kuksa_client.grpc import VSSClient, Datapoint
 
@@ -39,7 +41,83 @@ ACTIVE_THRESHOLD  = 2.0   # volts (real, after scale) — wire considered "live"
 WIRE_STATE_FILE   = '/tmp/ecu_wire_states.json'
 FAST_STATE_FILE   = '/tmp/ecu_fast_state.json'
 
+# --- KPL (km per litre) rolling log ---
+KPL_LOG_FILE    = '/tmp/kpl_log.csv'   # timestamp, liters, odo_km
+KPL_MAX_RECORDS = 6                    # 6 × 10 min = 1 hour sliding window
+KPL_INTERVAL    = 600                  # seconds between log entries
+VSS_BUILD_FILE  = '/home/louis/ClusterWorx/build/VSS_paths.txt'
+
+def _read_persisted_odo():
+    """Read totalKms persisted in the 4th pipe field of VSS_paths.txt."""
+    try:
+        with open(VSS_BUILD_FILE) as f:
+            for line in f:
+                if 'TraveledDistanceSinceStart' in line and not line.startswith('#'):
+                    parts = line.strip().split('|')
+                    if len(parts) >= 4 and parts[3]:
+                        return float(parts[3])
+    except Exception:
+        pass
+    return 0.0
+
+def _load_kpl_records():
+    records = []
+    try:
+        with open(KPL_LOG_FILE, newline='') as f:
+            for row in csv.reader(f):
+                if len(row) == 3:
+                    records.append((row[0], float(row[1]), float(row[2])))
+    except FileNotFoundError:
+        pass
+    return records
+
+def _save_kpl_records(records):
+    with open(KPL_LOG_FILE, 'w', newline='') as f:
+        w = csv.writer(f)
+        for r in records:
+            w.writerow(r)
+
+def _calc_kpl(records):
+    """KPL from first→last record: km driven / litres consumed."""
+    if len(records) < 2:
+        return 0.0
+    fuel_used = records[0][1] - records[-1][1]   # litres consumed (positive)
+    km_driven = records[-1][2] - records[0][2]   # km gained
+    if fuel_used <= 0 or km_driven <= 0:
+        return 0.0
+    return round(km_driven / fuel_used, 2)
+
+def _init_kpl_log_if_missing():
+    """Seed the log with 6 dummy records so the file exists from day one."""
+    if os.path.exists(KPL_LOG_FILE):
+        return
+    now = time.time()
+    records = []
+    for i in range(KPL_MAX_RECORDS):
+        t   = now - (KPL_MAX_RECORDS - 1 - i) * KPL_INTERVAL
+        ts  = datetime.fromtimestamp(t).strftime('%Y-%m-%d %H:%M:%S')
+        lit = round(65.0 - i * 1.0, 2)        # 65→60 L  (1 L / 10 min)
+        odo = round(160000.0 + i * 10.0, 1)   # 160000→160050 km (10 km / 10 min)
+        records.append((ts, lit, odo))
+    _save_kpl_records(records)
+    print(f"KPL log seeded with {KPL_MAX_RECORDS} dummy records → {KPL_LOG_FILE}")
+
+def update_kpl_log(fuel_liters):
+    """Append entry, trim to KPL_MAX_RECORDS, return current KPL average."""
+    odo     = _read_persisted_odo()
+    records = _load_kpl_records()
+    ts      = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    records.append((ts, round(fuel_liters, 2), round(odo, 1)))
+    if len(records) > KPL_MAX_RECORDS:
+        records = records[-KPL_MAX_RECORDS:]
+    _save_kpl_records(records)
+    return _calc_kpl(records)
+
+
 def run_master_bridge():
+    _init_kpl_log_if_missing()
+    last_kpl_time = 0   # log first entry immediately on first valid telemetry
+
     try:
         ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=0.1)
         time.sleep(2)  # Give Arduino a moment to reboot after connection
@@ -233,6 +311,18 @@ def run_master_bridge():
                     if temp_val != -100.0:
                         telemetry['Vehicle.OBD.CoolantTemperature'] = Datapoint(temp_val)
                     client.set_current_values(telemetry)
+
+                    # KPL rolling log — update every 10 minutes
+                    now = time.time()
+                    if now - last_kpl_time >= KPL_INTERVAL:
+                        kpl = update_kpl_log(fuel_liters_val)
+                        last_kpl_time = now
+                        if kpl > 0:
+                            client.set_current_values({
+                                'Vehicle.Powertrain.FuelSystem.AverageConsumption':
+                                    Datapoint(float(kpl))
+                            })
+                        print(f"KPL log entry written → {kpl} km/L  (file: {KPL_LOG_FILE})")
                     print(f"TELEMETRY -> Speed: {speed_val} km/h | RPM: {rpm_val} | TEMP: {temp_val} | LITERS: {fuel_liters_val} | RANGE: {fuel_range_val} | L:{int(left_indicator)} R:{int(right_indicator)} H:{int(hazard)} DIM:{int(lights_dim)} BRIGHT:{int(lights_bright)} DT:{int(daytime_lights)} PARK:{int(parking_lights)} PBRAKE:{int(parking_brake)} SEATBELT:{int(seatbelt)} GLOWPLUGS:{int(glow_plug_relay)} AC:{int(ac_active)} ECUERR:{int(ecu_error)} TRIPRESET:{int(trip_reset)} OIL:{'normal' if oil_signal else 'low'}")
 
                 except (ValueError, IndexError) as e:
