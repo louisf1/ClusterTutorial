@@ -462,7 +462,20 @@ void applyToHmi(const std::string &hmiProperty,
         m_values->setProperty("tripKms",
             QString::number(val.toFloat(), 'f', 1));
     } else {
-        m_values->setProperty(hmiProperty.c_str(), val);
+        QVariant toSet = val;
+        // VSS paths typed "string" but bound to QML bool properties need explicit
+        // conversion — Qt6's setProperty does not reliably coerce QString→bool.
+        if (val.typeId() == QMetaType::QString) {
+            int idx = m_values->metaObject()->indexOfProperty(hmiProperty.c_str());
+            if (idx >= 0) {
+                QMetaProperty mp = m_values->metaObject()->property(idx);
+                if (mp.metaType().id() == QMetaType::Bool) {
+                    const QString s = val.toString().toLower().trimmed();
+                    toSet = QVariant(s == "true" || s == "1");
+                }
+            }
+        }
+        m_values->setProperty(hmiProperty.c_str(), toSet);
     }
 }
 
