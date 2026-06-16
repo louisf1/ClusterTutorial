@@ -70,7 +70,7 @@ def run_master_bridge():
                 'Vehicle.Cabin.HVAC.IsAirConditioningActive':                  Datapoint(False),
                 'Vehicle.ADAS.DMS.IsError':                                    Datapoint(False),
                 'Vehicle.Body.Lights.Parking.IsOn':                            Datapoint(False),
-                'Vehicle.Powertrain.CombustionEngine.EngineOil.Level':        Datapoint("true"),
+                'Vehicle.Powertrain.CombustionEngine.EngineOil.Level':        Datapoint("NORMAL"),
             })
             with open(WIRE_STATE_FILE, 'w') as jf:
                 json.dump({'states': [False] * 20, 'voltages': [0.0] * 20}, jf)
@@ -227,7 +227,7 @@ def run_master_bridge():
                        'Vehicle.Cabin.Seat.Row2.DriverSide.IsBelted':                 Datapoint(seatbelt),
                        'Vehicle.Cabin.Seat.Row2.Middle.IsBelted':                     Datapoint(seatbelt),
                        'Vehicle.Cabin.Seat.Row2.PassengerSide.IsBelted':              Datapoint(seatbelt),
-                       'Vehicle.Powertrain.CombustionEngine.EngineOil.Level':         Datapoint("true" if oil_signal else "false"),
+                       'Vehicle.Powertrain.CombustionEngine.EngineOil.Level':         Datapoint("NORMAL" if oil_signal else "LOW"),
                     }
                     # -100 means thermocouple disconnected — skip temp publish
                     if temp_val != -100.0:

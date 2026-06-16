@@ -124,7 +124,12 @@
 #Vehicle.Cabin.Convertible.Status|string|NO_HMI_Property
 #Vehicle.Cabin.Door.Row1.DriverSide.IsChildLockActive|boolean|NO_HMI_Property
 #Vehicle.Cabin.Door.Row1.DriverSide.IsLocked|boolean|NO_HMI_Property
-#Vehicle.Cabin.Door.Row1.DriverSide.IsOpen|boolean|NO_HMI_Property
+
+Vehicle.Cabin.Door.Row1.DriverSide.IsOpen|boolean|doorsSignal
+Vehicle.Cabin.Door.Row1.PassengerSide.IsOpen|boolean|doorsSignal
+Vehicle.Cabin.Door.Row2.DriverSide.IsOpen|boolean|doorsSignal
+Vehicle.Cabin.Door.Row2.PassengerSide.IsOpen|boolean|doorsSignal
+
 #Vehicle.Cabin.Door.Row1.DriverSide.Shade.Position|uint8|NO_HMI_Property
 #Vehicle.Cabin.Door.Row1.DriverSide.Shade.Switch|string|NO_HMI_Property
 #Vehicle.Cabin.Door.Row1.DriverSide.Window.IsOpen|boolean|NO_HMI_Property
@@ -132,7 +137,7 @@
 #Vehicle.Cabin.Door.Row1.DriverSide.Window.Switch|string|NO_HMI_Property
 #Vehicle.Cabin.Door.Row1.PassengerSide.IsChildLockActive|boolean|NO_HMI_Property
 #Vehicle.Cabin.Door.Row1.PassengerSide.IsLocked|boolean|NO_HMI_Property
-#Vehicle.Cabin.Door.Row1.PassengerSide.IsOpen|boolean|NO_HMI_Property
+
 #Vehicle.Cabin.Door.Row1.PassengerSide.Shade.Position|uint8|NO_HMI_Property
 #Vehicle.Cabin.Door.Row1.PassengerSide.Shade.Switch|string|NO_HMI_Property
 #Vehicle.Cabin.Door.Row1.PassengerSide.Window.IsOpen|boolean|NO_HMI_Property
@@ -140,7 +145,6 @@
 #Vehicle.Cabin.Door.Row1.PassengerSide.Window.Switch|string|NO_HMI_Property
 #Vehicle.Cabin.Door.Row2.DriverSide.IsChildLockActive|boolean|NO_HMI_Property
 #Vehicle.Cabin.Door.Row2.DriverSide.IsLocked|boolean|NO_HMI_Property
-#Vehicle.Cabin.Door.Row2.DriverSide.IsOpen|boolean|NO_HMI_Property
 #Vehicle.Cabin.Door.Row2.DriverSide.Shade.Position|uint8|NO_HMI_Property
 #Vehicle.Cabin.Door.Row2.DriverSide.Shade.Switch|string|NO_HMI_Property
 #Vehicle.Cabin.Door.Row2.DriverSide.Window.IsOpen|boolean|NO_HMI_Property
@@ -148,7 +152,7 @@
 #Vehicle.Cabin.Door.Row2.DriverSide.Window.Switch|string|NO_HMI_Property
 #Vehicle.Cabin.Door.Row2.PassengerSide.IsChildLockActive|boolean|NO_HMI_Property
 #Vehicle.Cabin.Door.Row2.PassengerSide.IsLocked|boolean|NO_HMI_Property
-#Vehicle.Cabin.Door.Row2.PassengerSide.IsOpen|boolean|NO_HMI_Property
+
 #Vehicle.Cabin.Door.Row2.PassengerSide.Shade.Position|uint8|NO_HMI_Property
 #Vehicle.Cabin.Door.Row2.PassengerSide.Shade.Switch|string|NO_HMI_Property
 #Vehicle.Cabin.Door.Row2.PassengerSide.Window.IsOpen|boolean|NO_HMI_Property
@@ -931,7 +935,7 @@ Vehicle.OBD.EngineSpeed|float|rpm
 Vehicle.OBD.FuelLevel|float|liters
 Vehicle.Powertrain.CombustionEngine.EngineCoolant.Level|string|NO_HMI_Property
 #### EngineOil.Level false (level is low) or true (level is normal) — D4 INPUT_PULLUP
-Vehicle.Powertrain.CombustionEngine.EngineOil.Level|string|oilSignal
+Vehicle.Powertrain.CombustionEngine.EngineOil.Level|string|string_oilSignal
 Vehicle.Powertrain.FuelSystem.AverageConsumption|float|displayKpl
 Vehicle.Powertrain.FuelSystem.IsFuelLevelLow|boolean|fuelLevel
 Vehicle.Powertrain.FuelSystem.Range|uint32|displayRange

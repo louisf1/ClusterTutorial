@@ -83,7 +83,22 @@ QtObject {
 
     property bool ecu: false
     property bool glowPlugs: false
-    property bool oilSignal: false
+
+    property bool doorsSignal: false
+       
+    //property string string_oilSignal: "CRITICALLY_LOW"
+    //property string string_oilSignal: "LOW"
+    //property string string_oilSignal: "NORMAL"
+    //property string string_oilSignal: "HIGH"
+    //property string string_oilSignal: "CRITICALLY_HIGH"
+
+    property string string_oilSignal: "NORMAL"
+    // Binding auto-recomputes whenever string_oilSignal changes.
+    // Warning light on for any level other than NORMAL.
+    property bool bool_oilSignal: string_oilSignal === "CRITICALLY_LOW" ||
+                                   string_oilSignal === "LOW"            ||
+                                   string_oilSignal === "HIGH"           ||
+                                   string_oilSignal === "CRITICALLY_HIGH"
     
     /* tachometer dial values */
     property int temp: 40 

@@ -332,7 +332,9 @@ qt6_add_qml_module(ClusterDashboardApp
         ClusterTutorial/qmldir/icons/glowEcuOff.png
         ClusterTutorial/qmldir/icons/signalOil.png
         ClusterTutorial/qmldir/icons/signalOilOn.png
-
+        ClusterTutorial/qmldir/icons/carDoorsClosed.png
+        ClusterTutorial/qmldir/icons/carDoorsOpen.png
+        
         # --- Wayland protocol XML (bundled as resource for reference) ---
         protocol/agl-shell.xml
 )

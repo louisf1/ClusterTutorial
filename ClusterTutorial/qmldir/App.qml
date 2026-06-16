@@ -517,8 +517,8 @@ Window {
     Item {
         id: dragHandle
         z: 1000
-        width: 48
-        height: 48
+        width: 32
+        height: 32
         anchors.top:    parent.top
         anchors.left:  parent.left
         anchors.topMargin:   10

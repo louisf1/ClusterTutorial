@@ -59,9 +59,18 @@ Item {
 
         IsoIcon {
            id: oilSignalIcon
-           active: Values.oilSignal
+           active: Values.bool_oilSignal
+           // Signal on for NORMAL
            engineIconOffSource: "icons/signalOil.png"
+           // Signal on for any off CRITICALLY_LOW, LOW, HIGH, CRITICALLY_HIGH
            engineIconOnSource: "icons/signalOilOn.png"
+        }
+        
+        IsoIcon {
+           id: carDoorsSignalIcon
+           active: Values.doorsSignal
+           engineIconOffSource: "icons/carDoorsClosed.png"
+           engineIconOnSource: "icons/carDoorsOpen.png"
         }
     }
 }
