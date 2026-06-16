@@ -59,9 +59,17 @@ bool SeatbeltSeen       = false;
 // D8 removed from this set — now the dedicated seatbelt switch input.
 // D9 removed from this set — now the dedicated dashboard page-switch button.
 // D4 promoted to OilLevelPin (oil level sensor INPUT_PULLUP).
-const int SparePins[8] = {2, 3, 6, 7, 12, 13, 32, 38};
-bool SparePinSeen[8]   = {false, false, false, false,
-                          false, false, false, false};
+// D3 promoted to DoorPin (door open sensor — active HIGH, 5V = any door open).
+const int SparePins[7] = {2, 6, 7, 12, 13, 32, 38};
+bool SparePinSeen[7]   = {false, false, false, false,
+                          false, false, false};
+
+// =============================================================================
+// DOOR OPEN SIGNAL — D3
+// Active HIGH: 5V = any door open, 0V = all doors closed.
+// Plain INPUT — signal driven externally; no pull-up needed.
+// =============================================================================
+const int DoorPin = 3;
 
 // =============================================================================
 // OIL LEVEL SIGNAL — D4
@@ -273,8 +281,11 @@ void setup() {
     pinMode(WIRE_D_PINS[i], INPUT_PULLUP);
   }
 
+  // Door open sensor — active HIGH from external signal, plain INPUT
+  pinMode(DoorPin, INPUT);
+
   // Spare pins — held LOW (pulled down) by default
-  for (int i = 0; i < 8; i++) {
+  for (int i = 0; i < 7; i++) {
     pinMode(SparePins[i], OUTPUT);
     digitalWrite(SparePins[i], LOW);
   }
@@ -325,7 +336,7 @@ void loop() {
 
   // Spare pins: briefly switch to INPUT to sample for a HIGH pulse,
   // then drive back LOW (kept pulled down by default)
-  for (int i = 0; i < 8; i++) {
+  for (int i = 0; i < 7; i++) {
     pinMode(SparePins[i], INPUT);
     if (digitalRead(SparePins[i]) == HIGH) SparePinSeen[i] = true;
     pinMode(SparePins[i], OUTPUT);
@@ -445,14 +456,14 @@ void loop() {
 
   // ── Spare pins (latched HIGH-pulse detection) ─────────────────────────────
   Serial.print("|SPARE2:");  Serial.print(SparePinSeen[0]  ? 1 : 0);
-  Serial.print("|SPARE3:");  Serial.print(SparePinSeen[1]  ? 1 : 0);
+  Serial.print("|DVDOORSIGNAL:"); Serial.print(digitalRead(DoorPin) == HIGH ? 1 : 0);//door open (HIGH=open, LOW=closed)
   Serial.print("|DVOILSIGNAL:"); Serial.print(digitalRead(OilLevelPin) == HIGH ? 1 : 0);//oil level (HIGH=normal, LOW=low)
-  Serial.print("|SPARE6:");  Serial.print(SparePinSeen[2]  ? 1 : 0);
-  Serial.print("|SPARE7:");  Serial.print(SparePinSeen[3]  ? 1 : 0);
-  Serial.print("|SPARE12:"); Serial.print(SparePinSeen[4]  ? 1 : 0);
-  Serial.print("|SPARE13:"); Serial.print(SparePinSeen[5]  ? 1 : 0);
-  Serial.print("|SPARE32:"); Serial.print(SparePinSeen[6]  ? 1 : 0);
-  Serial.print("|SPARE38:"); Serial.print(SparePinSeen[7]  ? 1 : 0);
+  Serial.print("|SPARE6:");  Serial.print(SparePinSeen[1]  ? 1 : 0);
+  Serial.print("|SPARE7:");  Serial.print(SparePinSeen[2]  ? 1 : 0);
+  Serial.print("|SPARE12:"); Serial.print(SparePinSeen[3]  ? 1 : 0);
+  Serial.print("|SPARE13:"); Serial.print(SparePinSeen[4]  ? 1 : 0);
+  Serial.print("|SPARE32:"); Serial.print(SparePinSeen[5]  ? 1 : 0);
+  Serial.print("|SPARE38:"); Serial.print(SparePinSeen[6]  ? 1 : 0);
   Serial.print("|SPARE5:");  Serial.print(DualModePinSeen[0] ? 1 : 0);
   Serial.print("|SPARE11:"); Serial.print(DualModePinSeen[1] ? 1 : 0);
 
@@ -465,7 +476,7 @@ void loop() {
   ParkingLightsSeen  = false;
   ParkingBrakeSeen   = false;
   SeatbeltSeen       = false;
-  for (int i = 0; i < 8; i++) SparePinSeen[i] = false;
+  for (int i = 0; i < 7; i++) SparePinSeen[i] = false;
   DualModePinSeen[0] = false;
   DualModePinSeen[1] = false;
   PageButtonSeen     = false;

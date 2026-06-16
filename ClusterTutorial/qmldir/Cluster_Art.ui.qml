@@ -224,7 +224,12 @@ Item {
         Speed_dial_195_151 {
             x: 95
             y: 91
-            kplDisplay: Values.displayKpl
+            kplDisplay: {
+                var n = parseFloat(Values.displayKpl);
+                if (isNaN(n) || n < 0) n = 0.0;
+                var s = n.toFixed(2);
+                return s.length < 5 ? ("0" + s) : s;
+            }
             kphDisplay: Values.displayKph
             kphFrame: Values.kph
         }

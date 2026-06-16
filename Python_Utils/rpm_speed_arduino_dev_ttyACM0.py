@@ -149,6 +149,10 @@ def run_master_bridge():
                 'Vehicle.ADAS.DMS.IsError':                                    Datapoint(False),
                 'Vehicle.Body.Lights.Parking.IsOn':                            Datapoint(False),
                 'Vehicle.Powertrain.CombustionEngine.EngineOil.Level':        Datapoint("NORMAL"),
+                'Vehicle.Cabin.Door.Row1.DriverSide.IsOpen':                  Datapoint(False),
+                'Vehicle.Cabin.Door.Row1.PassengerSide.IsOpen':               Datapoint(False),
+                'Vehicle.Cabin.Door.Row2.DriverSide.IsOpen':                  Datapoint(False),
+                'Vehicle.Cabin.Door.Row2.PassengerSide.IsOpen':               Datapoint(False),
             })
             with open(WIRE_STATE_FILE, 'w') as jf:
                 json.dump({'states': [False] * 20, 'voltages': [0.0] * 20}, jf)
@@ -217,6 +221,7 @@ def run_master_bridge():
                     glow_plug_relay = False
                     ac_active       = False
                     oil_signal      = True   # default: oil normal until read
+                    door_open       = False
                     trip_reset      = False
                     for part in parts[5:]:
                         if part.startswith("LINDIC:"):
@@ -243,6 +248,8 @@ def run_master_bridge():
                             stand_by_power = part.split(':')[1] == '1'
                         elif part.startswith("DVAIRCONSIGNAL:"):
                             ac_active = part.split(':')[1] == '1'
+                        elif part.startswith("DVDOORSIGNAL:"):
+                            door_open = part.split(':')[1] == '1'   # 1=HIGH=door open, 0=closed
                         elif part.startswith("DVOILSIGNAL:"):
                             oil_signal = part.split(':')[1] == '1'  # 1=HIGH=normal, 0=LOW=low
                         elif part.startswith("SPARE7:"):
@@ -306,6 +313,10 @@ def run_master_bridge():
                        'Vehicle.Cabin.Seat.Row2.Middle.IsBelted':                     Datapoint(seatbelt),
                        'Vehicle.Cabin.Seat.Row2.PassengerSide.IsBelted':              Datapoint(seatbelt),
                        'Vehicle.Powertrain.CombustionEngine.EngineOil.Level':         Datapoint("NORMAL" if oil_signal else "LOW"),
+                       'Vehicle.Cabin.Door.Row1.DriverSide.IsOpen':                   Datapoint(door_open),
+                       'Vehicle.Cabin.Door.Row1.PassengerSide.IsOpen':                Datapoint(door_open),
+                       'Vehicle.Cabin.Door.Row2.DriverSide.IsOpen':                   Datapoint(door_open),
+                       'Vehicle.Cabin.Door.Row2.PassengerSide.IsOpen':                Datapoint(door_open),
                     }
                     # -100 means thermocouple disconnected — skip temp publish
                     if temp_val != -100.0:
@@ -323,7 +334,7 @@ def run_master_bridge():
                                     Datapoint(float(kpl))
                             })
                         print(f"KPL log entry written → {kpl} km/L  (file: {KPL_LOG_FILE})")
-                    print(f"TELEMETRY -> Speed: {speed_val} km/h | RPM: {rpm_val} | TEMP: {temp_val} | LITERS: {fuel_liters_val} | RANGE: {fuel_range_val} | L:{int(left_indicator)} R:{int(right_indicator)} H:{int(hazard)} DIM:{int(lights_dim)} BRIGHT:{int(lights_bright)} DT:{int(daytime_lights)} PARK:{int(parking_lights)} PBRAKE:{int(parking_brake)} SEATBELT:{int(seatbelt)} GLOWPLUGS:{int(glow_plug_relay)} AC:{int(ac_active)} ECUERR:{int(ecu_error)} TRIPRESET:{int(trip_reset)} OIL:{'normal' if oil_signal else 'low'}")
+                    print(f"TELEMETRY -> Speed: {speed_val} km/h | RPM: {rpm_val} | TEMP: {temp_val} | LITERS: {fuel_liters_val} | RANGE: {fuel_range_val} | L:{int(left_indicator)} R:{int(right_indicator)} H:{int(hazard)} DIM:{int(lights_dim)} BRIGHT:{int(lights_bright)} DT:{int(daytime_lights)} PARK:{int(parking_lights)} PBRAKE:{int(parking_brake)} SEATBELT:{int(seatbelt)} GLOWPLUGS:{int(glow_plug_relay)} AC:{int(ac_active)} ECUERR:{int(ecu_error)} TRIPRESET:{int(trip_reset)} OIL:{'normal' if oil_signal else 'low'} DOOR:{'open' if door_open else 'closed'}")
 
                 except (ValueError, IndexError) as e:
                     print(f"⚠️ Malformed data received: {line} ({e})")
