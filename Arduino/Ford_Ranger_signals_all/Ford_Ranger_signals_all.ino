@@ -52,15 +52,23 @@ bool SeatbeltSeen       = false;
 // INPUT each loop to sample for a HIGH pulse, then driven LOW again.
 // D1 excluded (Serial0 TX, controlled by USART hardware).
 // D33 excluded (confirmed dead — stuck at 4.7V even when driven OUTPUT LOW).
-// D2-D4 were the original spare set; D6,7,8,9,12,13,32,38 were previously
+// D2-D3 were the original spare set; D6,7,8,9,12,13,32,38 were previously
 // "reserved" INPUT_PULLUP wire pins that float high with nothing connected —
 // moved here so they sit at a known 0V instead.
 // D10 removed from this set — now the dedicated parking brake switch input.
 // D8 removed from this set — now the dedicated seatbelt switch input.
 // D9 removed from this set — now the dedicated dashboard page-switch button.
-const int SparePins[9] = {2, 3, 4, 6, 7, 12, 13, 32, 38};
-bool SparePinSeen[9]   = {false, false, false, false,
-                          false, false, false, false, false};
+// D4 promoted to OilLevelPin (oil level sensor INPUT_PULLUP).
+const int SparePins[8] = {2, 3, 6, 7, 12, 13, 32, 38};
+bool SparePinSeen[8]   = {false, false, false, false,
+                          false, false, false, false};
+
+// =============================================================================
+// OIL LEVEL SIGNAL — D4
+// Oil level sensor: float switch, closes to GND when oil is LOW.
+// INPUT_PULLUP: HIGH = oil normal, LOW = oil low.
+// =============================================================================
+const int OilLevelPin = 4;
 
 // =============================================================================
 // DASHBOARD PAGE-SWITCH BUTTON — D9
@@ -266,10 +274,13 @@ void setup() {
   }
 
   // Spare pins — held LOW (pulled down) by default
-  for (int i = 0; i < 9; i++) {
+  for (int i = 0; i < 8; i++) {
     pinMode(SparePins[i], OUTPUT);
     digitalWrite(SparePins[i], LOW);
   }
+
+  // Oil level sensor — INPUT_PULLUP, float switch to GND when oil is low
+  pinMode(OilLevelPin, INPUT_PULLUP);
 
   // Dashboard page-switch button — internal pull-up, button pulls to GND
   pinMode(PageButtonPin, INPUT_PULLUP);
@@ -314,7 +325,7 @@ void loop() {
 
   // Spare pins: briefly switch to INPUT to sample for a HIGH pulse,
   // then drive back LOW (kept pulled down by default)
-  for (int i = 0; i < 9; i++) {
+  for (int i = 0; i < 8; i++) {
     pinMode(SparePins[i], INPUT);
     if (digitalRead(SparePins[i]) == HIGH) SparePinSeen[i] = true;
     pinMode(SparePins[i], OUTPUT);
@@ -435,13 +446,13 @@ void loop() {
   // ── Spare pins (latched HIGH-pulse detection) ─────────────────────────────
   Serial.print("|SPARE2:");  Serial.print(SparePinSeen[0]  ? 1 : 0);
   Serial.print("|SPARE3:");  Serial.print(SparePinSeen[1]  ? 1 : 0);
-  Serial.print("|SPARE4:");  Serial.print(SparePinSeen[2]  ? 1 : 0);
-  Serial.print("|SPARE6:");  Serial.print(SparePinSeen[3]  ? 1 : 0);
-  Serial.print("|SPARE7:");  Serial.print(SparePinSeen[4]  ? 1 : 0);
-  Serial.print("|SPARE12:"); Serial.print(SparePinSeen[5]  ? 1 : 0);
-  Serial.print("|SPARE13:"); Serial.print(SparePinSeen[6]  ? 1 : 0);
-  Serial.print("|SPARE32:"); Serial.print(SparePinSeen[7]  ? 1 : 0);
-  Serial.print("|SPARE38:"); Serial.print(SparePinSeen[8]  ? 1 : 0);
+  Serial.print("|DVOILSIGNAL:"); Serial.print(digitalRead(OilLevelPin) == HIGH ? 1 : 0);//oil level (HIGH=normal, LOW=low)
+  Serial.print("|SPARE6:");  Serial.print(SparePinSeen[2]  ? 1 : 0);
+  Serial.print("|SPARE7:");  Serial.print(SparePinSeen[3]  ? 1 : 0);
+  Serial.print("|SPARE12:"); Serial.print(SparePinSeen[4]  ? 1 : 0);
+  Serial.print("|SPARE13:"); Serial.print(SparePinSeen[5]  ? 1 : 0);
+  Serial.print("|SPARE32:"); Serial.print(SparePinSeen[6]  ? 1 : 0);
+  Serial.print("|SPARE38:"); Serial.print(SparePinSeen[7]  ? 1 : 0);
   Serial.print("|SPARE5:");  Serial.print(DualModePinSeen[0] ? 1 : 0);
   Serial.print("|SPARE11:"); Serial.print(DualModePinSeen[1] ? 1 : 0);
 
@@ -454,7 +465,7 @@ void loop() {
   ParkingLightsSeen  = false;
   ParkingBrakeSeen   = false;
   SeatbeltSeen       = false;
-  for (int i = 0; i < 9; i++) SparePinSeen[i] = false;
+  for (int i = 0; i < 8; i++) SparePinSeen[i] = false;
   DualModePinSeen[0] = false;
   DualModePinSeen[1] = false;
   PageButtonSeen     = false;

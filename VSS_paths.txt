@@ -930,7 +930,8 @@ Vehicle.OBD.CoolantTemperature|float|temp
 Vehicle.OBD.EngineSpeed|float|rpm
 Vehicle.OBD.FuelLevel|float|liters
 Vehicle.Powertrain.CombustionEngine.EngineCoolant.Level|string|NO_HMI_Property
-Vehicle.Powertrain.CombustionEngine.EngineOil.Level|string|NO_HMI_Property
+#### EngineOil.Level false (level is low) or true (level is normal) — D4 INPUT_PULLUP
+Vehicle.Powertrain.CombustionEngine.EngineOil.Level|string|oilSignal
 Vehicle.Powertrain.FuelSystem.AverageConsumption|float|displayKpl
 Vehicle.Powertrain.FuelSystem.IsFuelLevelLow|boolean|fuelLevel
 Vehicle.Powertrain.FuelSystem.Range|uint32|displayRange

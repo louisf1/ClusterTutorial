@@ -70,6 +70,7 @@ def run_master_bridge():
                 'Vehicle.Cabin.HVAC.IsAirConditioningActive':                  Datapoint(False),
                 'Vehicle.ADAS.DMS.IsError':                                    Datapoint(False),
                 'Vehicle.Body.Lights.Parking.IsOn':                            Datapoint(False),
+                'Vehicle.Powertrain.CombustionEngine.EngineOil.Level':        Datapoint("true"),
             })
             with open(WIRE_STATE_FILE, 'w') as jf:
                 json.dump({'states': [False] * 20, 'voltages': [0.0] * 20}, jf)
@@ -137,6 +138,7 @@ def run_master_bridge():
                     seatbelt        = False
                     glow_plug_relay = False
                     ac_active       = False
+                    oil_signal      = True   # default: oil normal until read
                     trip_reset      = False
                     for part in parts[5:]:
                         if part.startswith("LINDIC:"):
@@ -163,6 +165,8 @@ def run_master_bridge():
                             stand_by_power = part.split(':')[1] == '1'
                         elif part.startswith("DVAIRCONSIGNAL:"):
                             ac_active = part.split(':')[1] == '1'
+                        elif part.startswith("DVOILSIGNAL:"):
+                            oil_signal = part.split(':')[1] == '1'  # 1=HIGH=normal, 0=LOW=low
                         elif part.startswith("SPARE7:"):
                             trip_reset = part.split(':')[1] == '1'
 
@@ -223,12 +227,13 @@ def run_master_bridge():
                        'Vehicle.Cabin.Seat.Row2.DriverSide.IsBelted':                 Datapoint(seatbelt),
                        'Vehicle.Cabin.Seat.Row2.Middle.IsBelted':                     Datapoint(seatbelt),
                        'Vehicle.Cabin.Seat.Row2.PassengerSide.IsBelted':              Datapoint(seatbelt),
+                       'Vehicle.Powertrain.CombustionEngine.EngineOil.Level':         Datapoint("true" if oil_signal else "false"),
                     }
                     # -100 means thermocouple disconnected — skip temp publish
                     if temp_val != -100.0:
                         telemetry['Vehicle.OBD.CoolantTemperature'] = Datapoint(temp_val)
                     client.set_current_values(telemetry)
-                    print(f"TELEMETRY -> Speed: {speed_val} km/h | RPM: {rpm_val} | TEMP: {temp_val} | LITERS: {fuel_liters_val} | RANGE: {fuel_range_val} | L:{int(left_indicator)} R:{int(right_indicator)} H:{int(hazard)} DIM:{int(lights_dim)} BRIGHT:{int(lights_bright)} DT:{int(daytime_lights)} PARK:{int(parking_lights)} PBRAKE:{int(parking_brake)} SEATBELT:{int(seatbelt)} GLOWPLUGS:{int(glow_plug_relay)} AC:{int(ac_active)} ECUERR:{int(ecu_error)} TRIPRESET:{int(trip_reset)}")
+                    print(f"TELEMETRY -> Speed: {speed_val} km/h | RPM: {rpm_val} | TEMP: {temp_val} | LITERS: {fuel_liters_val} | RANGE: {fuel_range_val} | L:{int(left_indicator)} R:{int(right_indicator)} H:{int(hazard)} DIM:{int(lights_dim)} BRIGHT:{int(lights_bright)} DT:{int(daytime_lights)} PARK:{int(parking_lights)} PBRAKE:{int(parking_brake)} SEATBELT:{int(seatbelt)} GLOWPLUGS:{int(glow_plug_relay)} AC:{int(ac_active)} ECUERR:{int(ecu_error)} TRIPRESET:{int(trip_reset)} OIL:{'normal' if oil_signal else 'low'}")
 
                 except (ValueError, IndexError) as e:
                     print(f"⚠️ Malformed data received: {line} ({e})")

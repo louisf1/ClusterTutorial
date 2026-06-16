@@ -56,6 +56,13 @@ Item {
            engineIconOffSource: "icons/glowPlugsOff.png"
            engineIconOnSource: "icons/glowPlugsOn.png"
         }
+
+        IsoIcon {
+           id: oilSignalIcon
+           active: Values.oilSignal
+           engineIconOffSource: "icons/signalOil.png"
+           engineIconOnSource: "icons/signalOilOn.png"
+        }
     }
 }
 

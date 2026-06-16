@@ -83,6 +83,7 @@ QtObject {
 
     property bool ecu: false
     property bool glowPlugs: false
+    property bool oilSignal: false
     
     /* tachometer dial values */
     property int temp: 40 
