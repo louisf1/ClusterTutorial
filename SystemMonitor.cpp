@@ -116,16 +116,24 @@ void SystemMonitor::updateStats() {
     m_bluetoothStatus = process.readAllStandardOutput().trimmed();
     emit bluetoothStatusChanged();
 
-    // I. Arduino status — check USB serial device presence (no systemctl service exists)
-    process.start("sh", QStringList() << "-c"
-        << "test -e /dev/ttyACM0 && echo active || echo inactive");
+    // I. Arduino status — check ttyACM0 first, fall back to ttyACM1
+    process.start("sh", QStringList() << "-c" << "test -e /dev/ttyACM0 && echo ttyACM0 || (test -e /dev/ttyACM1 && echo ttyACM1 || echo inactive)");
     process.waitForFinished(500);
-    m_arduinoStatus = process.readAllStandardOutput().trimmed();
+    {
+        QString arduinoPort = process.readAllStandardOutput().trimmed();
+        if (arduinoPort == "inactive") {
+            if (m_arduinoStatus != "inactive") qDebug() << "[Arduino] No device on ttyACM0 or ttyACM1";
+            m_arduinoStatus = "inactive";
+        } else {
+            if (m_arduinoStatus != "active") qDebug() << "[Arduino] Connected on" << arduinoPort;
+            m_arduinoStatus = "active";
+        }
+    }
     emit arduinoStatusChanged();
 
     // J. Python support status — check if bridge script process is running
     process.start("sh", QStringList() << "-c"
-        << "ps aux | grep [r]pm_speed_arduino_dev_ttyACM0 | grep -v grep");
+        << "ps aux | grep [r]pm_speed_arduino_dev_ttyACM | grep -v grep");
     process.waitForFinished(500);
     m_pythonSupportStatus = process.readAllStandardOutput().trimmed().isEmpty() ? "inactive" : "active";
     emit pythonSupportStatusChanged();

@@ -45,10 +45,19 @@ export QML2_IMPORT_PATH="$QML_IMPORT_PATH"
 # =============================================================================
 echo "==> Starting Arduino hardware interface..."
 set +e
-/home/louis/bin/arduino-cli compile --upload --fqbn arduino:avr:mega -p /dev/ttyACM0 \
-    /home/louis/ClusterWorx/Arduino/Ford_Ranger_signals_all/Ford_Ranger_signals_all.ino
+ARDUINO_PORT=""
+for _p in /dev/ttyACM0 /dev/ttyACM1; do
+    if [ -e "$_p" ]; then ARDUINO_PORT="$_p"; break; fi
+done
+if [ -z "$ARDUINO_PORT" ]; then
+    echo "⚠️  No Arduino found on ttyACM0 or ttyACM1 — skipping upload"
+else
+    echo "==> Uploading to Arduino on $ARDUINO_PORT"
+    /home/louis/bin/arduino-cli compile --upload --fqbn arduino:avr:mega -p "$ARDUINO_PORT" \
+        /home/louis/ClusterWorx/Arduino/Ford_Ranger_signals_all/Ford_Ranger_signals_all.ino
+fi
 set -e
-sleep 2  # wait for Arduino to reset and re-enumerate on ttyACM0
+sleep 2  # wait for Arduino to reset and re-enumerate
 
 echo "==> Starting Python hardware bridge..."
 /home/louis/.conan-env/bin/python3 -u /home/louis/ClusterWorx/Python_Utils/rpm_speed_arduino_dev_ttyACM0.py &

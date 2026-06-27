@@ -12,7 +12,7 @@
 set -e
 
 SKETCH="${1:-$HOME/ClusterWorx/Arduino/Ford_Ranger_signals_all/Ford_Ranger_signals_all.ino}"
-PORT="/dev/ttyACM0"
+PORT="/dev/ttyACM1"
 FQBN="arduino:avr:mega"
 BRIDGE="arduino-bridge.service"
 

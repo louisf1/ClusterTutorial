@@ -9,8 +9,8 @@ from datetime import datetime
 from kuksa_client.grpc import VSSClient, Datapoint
 
 # --- CONFIGURATION ---
-SERIAL_PORT = '/dev/ttyACM0'
 BAUD_RATE = 9600
+SERIAL_PORTS = ['/dev/ttyACM0', '/dev/ttyACM1']
 KUKSA_IP = '127.0.0.1'
 KUKSA_PORT = 55555
 
@@ -19,9 +19,9 @@ KUKSA_PORT = 55555
 ANALOG_TO_WIRE = {
     1:   0,  # A1  Blue/Pink     → index  0 "blue-pink"     (Crankshaft Position Sensor)
     2:   1,  # A2  Blue/Black    → index  1 "blue-black"    (Timer Control Valve)
-    3:   2,  # A3  White/Blue    → index  2 "white-blue"    (PCM internal control)
+    3:   2,  # A3  Brown         → index  2 "brown"         (Glow Plug Relay Swicth)
     4:   3,  # A4  Green/White   → index  3 "green-white"   (Idle control switch)
-    5:   4,  # A5  Red/Black      → index  4 "red-black"     (unknown - to be identified)
+    5:   4,  # A5  Red/Black     → index  4 "red-black"     (unknown - to be identified)
     6:   5,  # A6  Red/Blue      → index  5 "red-blue"      (Control Lever Position)
     7:   6,  # A7  Brown/Red     → index  6 "brown-red"     (unknown)
     8:   7,  # A8  Brown/Yellow  → index  7 "brown-yellow"  (unknown)
@@ -30,11 +30,12 @@ ANALOG_TO_WIRE = {
     11: 10,  # A11 Green         → index 10 "green"         (FICD solenoid Valve no1)
     12: 11,  # A12 Pink          → index 11 "pink"          (FICD solenoid Valve no2)
     13: 12,  # A13 Black/Yellow  → index 12 "black-yellow"  (Starter Signal)
+    14: 13,  # A14 Black/White   - index 13 "Black/white"   (ECU Power on)
+    15: 14,  # A15 Red           - index 14 "Red"           (StandBy Power)
 }
 DIGITAL_TO_WIRE = {
-    'DVIGNITIONPWR':  13,  # D14 Black/White → index 13 "black-white" (ignition power)
-    'DVSTANDBYPOWER': 14,  # D35 red         → index 14 "red" (standby power)
-    'DVGLOWPLUG':     15,  # D11 Red         → index 15 "red" (Glow Plugs)
+    'DVGLOWPLUG':     15,  # D11 Brown → index 15 "brown" (Glow Plugs)
+    # DVIGNITIONPWR/DVSTANDBYPOWER removed — now read as AV14/AV15 analog (ANALOG_TO_WIRE 14→13, 15→14)
 }
 VOLTAGE_SCALE     = 1.0   # no voltage divider — direct 10kΩ series resistor only
 ACTIVE_THRESHOLD  = 2.0   # volts (real, after scale) — wire considered "live"
@@ -118,12 +119,17 @@ def run_master_bridge():
     _init_kpl_log_if_missing()
     last_kpl_time = 0   # log first entry immediately on first valid telemetry
 
-    try:
-        ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=0.1)
-        time.sleep(2)  # Give Arduino a moment to reboot after connection
-        print(f"✅ Arduino Serial Link Active on {SERIAL_PORT}")
-    except Exception as e:
-        print(f"❌ Serial Error: {e}. Check your USB connection!")
+    ser = None
+    for port in SERIAL_PORTS:
+        try:
+            ser = serial.Serial(port, BAUD_RATE, timeout=0.1)
+            time.sleep(2)  # Give Arduino a moment to reboot after connection
+            print(f"✅ Arduino Serial Link Active on {port}")
+            break
+        except Exception as e:
+            print(f"⚠️  Could not open {port}: {e}")
+    if ser is None:
+        print(f"❌ Serial Error: no Arduino found on {SERIAL_PORTS}. Check your USB connection!")
         return
 
     try:
@@ -192,7 +198,7 @@ def run_master_bridge():
                         json.dump({'pageButton': page_button, 'tripReset': last_trip_reset}, jf)
                     continue
 
-                # Format: SPD:xx|RPM:xx|TMP:xx|LITERS:xx|RANGE:xx|AV2:x.xx|...|AV13:x.xx
+                # Format: SPD:xx|RPM:xx|TMP:xx|LITERS:xx|RANGE:xx|AV1:x.xx|...|AV15:x.xx
                 if "SPD:" not in line or "|RPM:" not in line:
                     continue
 
@@ -242,10 +248,6 @@ def run_master_bridge():
                             seatbelt        = part.split(':')[1] == '1'
                         elif part.startswith("DVGLOWPLUG:"):
                             glow_plug_relay = part.split(':')[1] == '1'
-                        elif part.startswith("DVIGNITIONPWR:"):
-                            ignition_power = part.split(':')[1] == '1'
-                        elif part.startswith("DVSTANDBYPOWER:"):
-                            stand_by_power = part.split(':')[1] == '1'
                         elif part.startswith("DVAIRCONSIGNAL:"):
                             ac_active = part.split(':')[1] == '1'
                         elif part.startswith("DVDOORSIGNAL:"):
@@ -261,7 +263,7 @@ def run_master_bridge():
 
                     hazard = left_indicator and right_indicator
 
-                    # ECU wire voltages (AV1–AV13 analog, DVIGNITIONPWR/DVSTANDBYPOWER/DVGLOWPLUG digital)
+                    # ECU wire voltages (AV1–AV15 analog; AV14=ignition power, AV15=standby power)
                     wire_states   = [False] * 20
                     wire_voltages = [0.0]   * 20
 

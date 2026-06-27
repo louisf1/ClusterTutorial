@@ -52,7 +52,7 @@ bool SeatbeltSeen       = false;
 // INPUT each loop to sample for a HIGH pulse, then driven LOW again.
 // D1 excluded (Serial0 TX, controlled by USART hardware).
 // D33 excluded (confirmed dead — stuck at 4.7V even when driven OUTPUT LOW).
-// D2-D3 were the original spare set; D6,7,8,9,12,13,32,38 were previously
+// D2-D3 were glowthe original spare set; D6,7,8,9,12,13,32,38 were previously
 // "reserved" INPUT_PULLUP wire pins that float high with nothing connected —
 // moved here so they sit at a known 0V instead.
 // D10 removed from this set — now the dedicated parking brake switch input.
@@ -199,11 +199,11 @@ float avgKmPerLiter       = 10.0;     // update to your real-world average
 //			"yellow"    //: EGR solonoid Valve :Arduino AnaLog/Digital Pin 10
 // =============================================================================
 
-// Analog pins — voltage reads only
-const int WIRE_A_PINS[13] = {A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13 };
+// Analog pins — voltage reads only (A14=ignition power, A15=standby power)
+const int WIRE_A_PINS[15] = {A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14, A15};
 
-// Digital pins actively used for ECU wire signals (input_pullup configured in setup)
-const int WIRE_D_PINS[4] = {6, 12, 14, 35};
+// NOT USED  Digital pins actively used for ECU wire signals (input_pullup configured in setup)
+//const int WIRE_D_PINS[4] = { 6, 12, 14, 35 };
 
 // =============================================================================
 // TEMPERATURE READ
@@ -276,10 +276,10 @@ void setup() {
   pinMode(tempSO,  INPUT);
   pinMode(tempSCK, OUTPUT);
 
-  // ECU wire digital pins — INPUT_PULLUP, actively assigned signals
-  for (int i = 0; i < 4; i++) {
-    pinMode(WIRE_D_PINS[i], INPUT_PULLUP);
-  }
+  // NOT USED: ECU wire digital pins — INPUT_PULLUP, actively assigned signals
+  //for (int i = 0; i < 4; i++) {
+  //  pinMode(WIRE_D_PINS[i], INPUT_PULLUP);
+  //}
 
   // Door open sensor — active HIGH from external signal, plain INPUT
   pinMode(DoorPin, INPUT);
@@ -423,8 +423,8 @@ void loop() {
   Serial.print("|LITERS:"); Serial.print(litersLeft, 1);
   Serial.print("|RANGE:"); Serial.print(rangeKm, 0);
 
-  // ── ECU wire voltages (A1–A13 via 10K ohm resistor) ───────────────────────
-  for (int i = 0; i < 13; i++) {
+  // ── ECU wire voltages (A1–A15 via 10K ohm resistor) ───────────────────────
+  for (int i = 0; i < 15; i++) {
     float v = analogRead(WIRE_A_PINS[i]) * (2.4 * (5.0 / 1023.0));
     Serial.print("|AV"); Serial.print(i + 1);
     Serial.print(":"); Serial.print(v, 2);
@@ -432,8 +432,8 @@ void loop() {
 
   // ── Digital-only ECU wire pins (no ADC — HIGH/LOW reported as 1/0) ─────────
   //Serial.print("|DV33:"); Serial.print(digitalRead(33) == HIGH ? 1 : 0);
-  Serial.print("|DVIGNITIONPWR:"); Serial.print(digitalRead(14) == HIGH ? 1 : 0);//Ignition power on/off
-  Serial.print("|DVSTANDBYPOWER:"); Serial.print(digitalRead(35) == HIGH ? 1 : 0);//battery standby power on/off 
+  // DVIGNITIONPWR (was digitalRead(14)=TX3, wrong pin) — now covered by AV14 analog
+  // DVSTANDBYPOWER (was digitalRead(35), wrong pin)    — now covered by AV15 analog
   Serial.print("|DVGLOWPLUG:"); Serial.print(digitalRead(11) == HIGH ? 1 : 0);//glowplug indicator on dash (HIGH=active)
   Serial.print("|DVAIRCONSIGNAL:"); Serial.print(digitalRead(5) == HIGH ? 1 : 0);//aircon indicator on/off
 
