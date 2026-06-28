@@ -4,6 +4,8 @@ import subprocess
 import os
 import json
 import csv
+import signal
+import sys
 from datetime import datetime
 
 from kuksa_client.grpc import VSSClient, Datapoint
@@ -41,6 +43,14 @@ VOLTAGE_SCALE     = 1.0   # Arduino applies 10kΩ/5.1kΩ divider scale; value se
 ACTIVE_THRESHOLD  = 2.0   # volts (real, after scale) — wire considered "live"
 WIRE_STATE_FILE   = '/tmp/ecu_wire_states.json'
 FAST_STATE_FILE   = '/tmp/ecu_fast_state.json'
+
+def _zero_wire_states_and_exit(signum, frame):
+    with open(WIRE_STATE_FILE, 'w') as jf:
+        json.dump({'states': [False] * 20, 'voltages': [0.0] * 20}, jf)
+    print("🔌 Wire states zeroed — SIGTERM received.")
+    os._exit(0)  # bypass context managers that may swallow SystemExit
+
+signal.signal(signal.SIGTERM, _zero_wire_states_and_exit)
 
 # --- KPL (km per litre) rolling log ---
 KPL_LOG_FILE    = '/tmp/kpl_log.csv'   # timestamp, liters, odo_km
@@ -116,6 +126,11 @@ def update_kpl_log(fuel_liters):
 
 
 def run_master_bridge():
+    # Zero wire states immediately — if bridge restarts or is searching for Arduino,
+    # the dashboard should show all red rather than stale values
+    with open(WIRE_STATE_FILE, 'w') as jf:
+        json.dump({'states': [False] * 20, 'voltages': [0.0] * 20}, jf)
+
     _init_kpl_log_if_missing()
     last_kpl_time = 0   # log first entry immediately on first valid telemetry
 
@@ -130,6 +145,8 @@ def run_master_bridge():
             print(f"⚠️  Could not open {port}: {e}")
     if ser is None:
         print(f"❌ Serial Error: no Arduino found on {SERIAL_PORTS}. Check your USB connection!")
+        with open(WIRE_STATE_FILE, 'w') as jf:
+            json.dump({'states': [False] * 20, 'voltages': [0.0] * 20}, jf)
         return
 
     try:
@@ -367,6 +384,13 @@ def run_master_bridge():
         print("\n🛑 Shutting down.")
     except Exception as e:
         print(f"❌ Connection lost: {e}")
+    finally:
+        # Zero out wire states so ECU STATUS shows all red when bridge is not running
+        with open(WIRE_STATE_FILE, 'w') as jf:
+            json.dump({'states': [False] * 20, 'voltages': [0.0] * 20}, jf)
+        if ser and ser.is_open:
+            ser.close()
+        print("🔌 Wire states zeroed — bridge exiting.")
 
 if __name__ == "__main__":
     print("🚀 Starting normal operations...")
@@ -377,6 +401,11 @@ if __name__ == "__main__":
         except KeyboardInterrupt:
             print("\n🛑 Shutting down.")
             break
+        except SystemExit:
+            break
         except Exception as e:
             print(f"🔄 Bridge dropped ({e}), reconnecting in 3 s...")
+            time.sleep(3)
+        else:
+            # run_master_bridge returned normally (no Arduino found) — wait before retry
             time.sleep(3)
