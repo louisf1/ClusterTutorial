@@ -169,6 +169,14 @@ def run_master_bridge():
             last_trip_reset  = False
             last_page_button = False
 
+            # Debounce for ECU wire states — require DEBOUNCE_COUNT consecutive
+            # readings above/below ACTIVE_THRESHOLD before changing confirmed state.
+            # Prevents floating/noisy pins from showing false greens.
+            DEBOUNCE_COUNT      = 3
+            wire_above_count    = [0] * 20   # consecutive readings above threshold
+            wire_below_count    = [0] * 20   # consecutive readings below threshold
+            wire_confirmed      = [False] * 20  # debounced state written to JSON
+
             while True:
                 line = ser.readline().decode('utf-8', errors='ignore').strip()
                 if not line:
@@ -284,8 +292,22 @@ def run_master_bridge():
                                 wire_voltages[idx] = 12.0 if is_high else 0.0
                                 wire_states[idx]   = is_high
 
+                    # Apply debounce: only flip confirmed state after DEBOUNCE_COUNT
+                    # consecutive readings on the same side of ACTIVE_THRESHOLD.
+                    for i in range(20):
+                        if wire_states[i]:
+                            wire_above_count[i] += 1
+                            wire_below_count[i]  = 0
+                            if wire_above_count[i] >= DEBOUNCE_COUNT:
+                                wire_confirmed[i] = True
+                        else:
+                            wire_below_count[i] += 1
+                            wire_above_count[i]  = 0
+                            if wire_below_count[i] >= DEBOUNCE_COUNT:
+                                wire_confirmed[i] = False
+
                     with open(WIRE_STATE_FILE, 'w') as jf:
-                        json.dump({'states': wire_states, 'voltages': wire_voltages}, jf)
+                        json.dump({'states': wire_confirmed, 'voltages': wire_voltages}, jf)
 
                     # ECU STATUS screen shows wire indices 0-14 (AV1-AV13 + ignition/standby power).
                     # If any of those reads 0V, light the ECU warning icon.
