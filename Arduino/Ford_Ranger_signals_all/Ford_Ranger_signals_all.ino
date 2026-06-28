@@ -423,9 +423,11 @@ void loop() {
   Serial.print("|LITERS:"); Serial.print(litersLeft, 1);
   Serial.print("|RANGE:"); Serial.print(rangeKm, 0);
 
-  // ── ECU wire voltages (A1–A15 via 10K ohm resistor) ───────────────────────
+  // ── ECU wire voltages (A1–A15) ────────────────────────────────────────────
+  // Voltage divider: 10kΩ series + 5.1kΩ to GND maps 0–14.5V automotive to 0–5V ADC.
+  // Scale factor: 0.25V automotive = 0.0845V ADC → multiply by (0.25/0.0845) = 2.9586
   for (int i = 0; i < 15; i++) {
-    float v = analogRead(WIRE_A_PINS[i]) * (2.4 * (5.0 / 1023.0));
+    float v = analogRead(WIRE_A_PINS[i]) * (5.0 / 1023.0) * (0.25 / 0.0845);
     Serial.print("|AV"); Serial.print(i + 1);
     Serial.print(":"); Serial.print(v, 2);
   }

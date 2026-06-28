@@ -37,7 +37,7 @@ DIGITAL_TO_WIRE = {
     'DVGLOWPLUG':     15,  # D11 Brown → index 15 "brown" (Glow Plugs)
     # DVIGNITIONPWR/DVSTANDBYPOWER removed — now read as AV14/AV15 analog (ANALOG_TO_WIRE 14→13, 15→14)
 }
-VOLTAGE_SCALE     = 1.0   # no voltage divider — direct 10kΩ series resistor only
+VOLTAGE_SCALE     = 1.0   # Arduino applies 10kΩ/5.1kΩ divider scale; value sent is already in automotive volts (0–14.5V)
 ACTIVE_THRESHOLD  = 2.0   # volts (real, after scale) — wire considered "live"
 WIRE_STATE_FILE   = '/tmp/ecu_wire_states.json'
 FAST_STATE_FILE   = '/tmp/ecu_fast_state.json'
