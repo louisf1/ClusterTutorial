@@ -39,6 +39,8 @@ Window {
     color: "black"
     flags: Qt.FramelessWindowHint | Qt.Window
 
+    Component.onCompleted: visibility = Window.FullScreen
+
     // Go fullscreen on whatever screen this window lands on —
     // fires both on initial KWin placement and after a drag-drop.
     onScreenChanged: {
@@ -202,7 +204,7 @@ Window {
 		// 2. ECU K-LINE DIAGNOSTICS BLOCK
 		Rectangle {
 		    id: klineTerminal
-		    width: parent.width - (parent.width - (parent.width / 4)) + 250
+		    width: parent.width - (parent.width - (parent.width / 4)) + 350
 		    height: 660
 		    color: "transparent"
 		    border.color: "#333"

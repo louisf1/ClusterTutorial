@@ -706,9 +706,10 @@ int main(int argc, char *argv[])
             for (QScreen *s : QGuiApplication::screens()) {
                 if (s->size() == QSize(1024, 600)) { target = s; break; }
             }
-            if (!target || win->screen() == target) return;
-            qDebug() << "Moving window to 7-inch screen:" << target->name();
-            win->setScreen(target);
+            if (target && win->screen() != target) {
+                qDebug() << "Moving window to 7-inch screen:" << target->name();
+                win->setScreen(target);
+            }
             win->showFullScreen();
         });
     }
