@@ -201,7 +201,7 @@ Window {
 		        } // // end Vehicle information Column
 		    } // end // end Vehicle information Rectangle
 
-		// 2. ECU K-LINE DIAGNOSTICS BLOCK
+		// 2. ECU K-LINE DIAGNOSTICS BLOCK (TELEMATRY DATA OUTPUT)
 		Rectangle {
 		    id: klineTerminal
 		    width: parent.width - (parent.width - (parent.width / 4)) + 350
