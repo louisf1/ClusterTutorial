@@ -1,6 +1,7 @@
 #include "SystemMonitor.h"
 #include <QDebug>
 #include <QTime>
+#include <QDateTime>
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -106,9 +107,45 @@ void SystemMonitor::updateStats() {
         emit ramPercentChanged();
     } // end ram if
     
-    // F. K-LINE ECU status placeholder
-    float coolantTemp = 85.5;
-    updateScrollingLog("K-LINE: ECT Read Success -> " + QString::number(coolantTemp) + "°C");
+    // F. Arduino telemetry → K-Line scrolling log (noise-filtered)
+    // Reads /tmp/arduino_telemetry.json written by the Python bridge on every serial cycle.
+    // Rule: emit immediately if a value changed; otherwise repeat every 30 seconds.
+    QFile tf("/tmp/arduino_telemetry.json");
+    if (tf.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QJsonDocument tdoc = QJsonDocument::fromJson(tf.readAll());
+        tf.close();
+        if (!tdoc.isNull() && tdoc.isObject()) {
+            QJsonObject cur = tdoc.object();
+            qint64 now = QDateTime::currentMSecsSinceEpoch();
+            const qint64 REPEAT_MS = 30000;
+
+            auto maybeLog = [&](const QString &key, const QString &msg) {
+                bool changed = (m_lastTelemetry.value(key) != cur.value(key));
+                if (changed || (now - m_lastLogTime.value(key, 0)) >= REPEAT_MS) {
+                    updateScrollingLog(msg);
+                    m_lastLogTime[key]    = now;
+                    m_lastTelemetry[key]  = cur.value(key);
+                }
+            };
+
+            maybeLog("speed",        QString("SPD: %1 km/h")           .arg(cur["speed"].toDouble(),  0, 'f', 0));
+            maybeLog("rpm",          QString("RPM: %1")                 .arg(cur["rpm"].toDouble(),    0, 'f', 0));
+            maybeLog("temp",         QString("TEMP: %1 °C")             .arg(cur["temp"].toDouble(),   0, 'f', 1));
+            maybeLog("liters",       QString("FUEL: %1 L")              .arg(cur["liters"].toDouble(), 0, 'f', 1));
+            maybeLog("range",        QString("RANGE: %1 km")            .arg(cur["range"].toDouble(),  0, 'f', 0));
+            maybeLog("glowPlug",     QString("GLOW PLUG: %1")           .arg(cur["glowPlug"].toBool()     ? "ON"      : "OFF"));
+            maybeLog("ac",           QString("A/C: %1")                 .arg(cur["ac"].toBool()            ? "ON"      : "OFF"));
+            maybeLog("lightsDim",    QString("LIGHTS DIM: %1")          .arg(cur["lightsDim"].toBool()     ? "ON"      : "OFF"));
+            maybeLog("lightsBright", QString("LIGHTS BRIGHT: %1")       .arg(cur["lightsBright"].toBool()  ? "ON"      : "OFF"));
+            maybeLog("daytime",      QString("DAYTIME RUNNING: %1")     .arg(cur["daytime"].toBool()       ? "ON"      : "OFF"));
+            maybeLog("parking",      QString("PARKING LIGHTS: %1")      .arg(cur["parking"].toBool()       ? "ON"      : "OFF"));
+            maybeLog("parkingBrake", QString("PARK BRAKE: %1")          .arg(cur["parkingBrake"].toBool()  ? "ON"      : "OFF"));
+            maybeLog("seatbelt",     QString("SEATBELT: %1")            .arg(cur["seatbelt"].toBool()      ? "BUCKLED" : "OPEN"));
+            maybeLog("oilNormal",    QString("OIL LEVEL: %1")           .arg(cur["oilNormal"].toBool()     ? "NORMAL"  : "LOW"));
+            maybeLog("doorOpen",     QString("DOOR: %1")                .arg(cur["doorOpen"].toBool()      ? "OPEN"    : "CLOSED"));
+            maybeLog("ecuError",     QString("ECU ERROR: %1")           .arg(cur["ecuError"].toBool()      ? "YES"     : "NONE"));
+        }
+    }
 
     // H. Bluetooth status — is-active returns exactly "active" or "inactive"
     process.start("systemctl", QStringList() << "is-active" << "bluetooth");

@@ -6,6 +6,8 @@
 #include <QProcess>
 #include <QVariantList>
 #include <QString>
+#include <QMap>
+#include <QJsonObject>
 
 class SystemMonitor : public QObject {
     Q_OBJECT
@@ -85,6 +87,10 @@ private:
     QVariantList m_ecuWireVoltages;  // 20 floats (V) — real voltage after ×3 scale
     bool m_lastPageButton = false;   // edge-detect for the D9 page-switch button
     bool m_lastTripReset = false;    // edge-detect for the D7 trip-reset signal
+
+    // Telemetry log deduplication — last reported value and timestamp per field
+    QJsonObject m_lastTelemetry;
+    QMap<QString, qint64> m_lastLogTime;  // ms since epoch, per field key
 }; // end SystemMonitor class
 
 #endif // end SYSTEMMONITOR_H

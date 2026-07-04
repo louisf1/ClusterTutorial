@@ -326,6 +326,26 @@ def run_master_bridge():
                     with open(WIRE_STATE_FILE, 'w') as jf:
                         json.dump({'states': wire_confirmed, 'voltages': wire_voltages}, jf)
 
+                    with open('/tmp/arduino_telemetry.json', 'w') as jf:
+                        json.dump({
+                            'speed':        speed_val,
+                            'rpm':          rpm_val,
+                            'temp':         temp_val,
+                            'liters':       round(fuel_liters_val, 1),
+                            'range':        fuel_range_val,
+                            'glowPlug':     glow_plug_relay,
+                            'ac':           ac_active,
+                            'lightsDim':    lights_dim,
+                            'lightsBright': lights_bright,
+                            'daytime':      daytime_lights,
+                            'parking':      parking_lights,
+                            'parkingBrake': parking_brake,
+                            'seatbelt':     seatbelt,
+                            'oilNormal':    oil_signal,
+                            'doorOpen':     door_open,
+                            'ecuError':     ecu_error,
+                        }, jf)
+
                     # ECU STATUS screen shows wire indices 0-14 (AV1-AV13 + ignition/standby power).
                     # If any of those reads 0V, light the ECU warning icon.
                     ecu_error = any(v <= 0.01 for v in wire_voltages[:15])
