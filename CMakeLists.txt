@@ -66,6 +66,7 @@ qt6_generate_wayland_protocol_client_sources(ClusterDashboardApp
 target_link_libraries(ClusterDashboardApp PRIVATE 
     # Use the raw library name if the namespace target isn't found
     kuksaclient 
+    ${KUKSA_LIBRARIES}
     Qt6::Core
     Qt6::Gui
     Qt6::Qml
@@ -80,7 +81,7 @@ target_link_libraries(ClusterDashboardApp PRIVATE
 
 # --- 4. Include the Private API and Build Directory ---
 target_include_directories(ClusterDashboardApp PRIVATE 
-    ${KUKSA_LIBRARIES}
+    ${KUKSA_INCLUDE_DIRS}
     ${Qt6Gui_PRIVATE_INCLUDE_DIRS}
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_BINARY_DIR} # <--- Essential for finding generated headers
