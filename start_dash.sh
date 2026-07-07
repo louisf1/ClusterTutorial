@@ -1,4 +1,4 @@
-#/bin/sh
+#!/bin/sh
 
 # 1. Clean up old build artifacts
 cd /home/louis/Documents/QtDesignStudio/examples/ClusterWorx/build
