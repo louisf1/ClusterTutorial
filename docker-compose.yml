@@ -1,11 +1,13 @@
 services:
   databroker:
-    image: ghcr.io/eclipse/kuksa.val/databroker:latest
+    image: ghcr.io/eclipse-kuksa/kuksa-databroker:latest
     container_name: kuksa-databroker
     restart: unless-stopped
     ports:
       - "55555:55555"
-    command: ["--port", "55555", "--insecure"]
+    volumes:
+      - ./vss_broker_catalog.json:/vss_broker_catalog.json:ro
+    command: ["--port", "55555", "--insecure", "--vss", "/vss_broker_catalog.json"]
 
   # Uncomment when you have CAN hardware connected:
   # can-provider:
