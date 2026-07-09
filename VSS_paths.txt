@@ -933,7 +933,7 @@ Vehicle.Chassis.ParkingBrake.IsEngaged|boolean|parkingBrakeActive
 Vehicle.OBD.CoolantTemperature|float|temp
 Vehicle.OBD.EngineSpeed|float|rpm
 Vehicle.OBD.FuelLevel|float|liters
-Vehicle.Powertrain.CombustionEngine.EngineCoolant.Level|string|NO_HMI_Property
+#Vehicle.Powertrain.CombustionEngine.EngineCoolant.Level|string|NO_HMI_Property
 #### EngineOil.Level false (level is low) or true (level is normal) — D4 INPUT_PULLUP
 Vehicle.Powertrain.CombustionEngine.EngineOil.Level|string|string_oilSignal
 Vehicle.Powertrain.FuelSystem.AverageConsumption|float|displayKpl
@@ -950,12 +950,12 @@ Vehicle.VehicleIdentification.BodyType|string|BodyType|PICK-UP
 Vehicle.VehicleIdentification.Brand|string|brand|FORD
 Vehicle.VehicleIdentification.DateVehicleFirstRegistered|string|dateVehicleFirstRegistered|2009
 Vehicle.VehicleIdentification.KnownVehicleDamages|string|knownVehicleDamages|Dashboard_Replace
-Vehicle.VehicleIdentification.LicensePlate|string|licensePlate|BB06NDGP
+#Vehicle.VehicleIdentification.LicensePlate|string|licensePlate|BB06NDGP
 Vehicle.VehicleIdentification.Model|string|modelName|RANGER
 Vehicle.VehicleIdentification.ProductionDate|string|productionDate|2010
 Vehicle.VehicleIdentification.PurchaseDate|string|purchaseDate|JAN2010
 Vehicle.VehicleIdentification.VIN|string|vin|AFATXXMJ2TAA01806
-Vehicle.VehicleIdentification.VehicleExteriorColor|string|vehicleExteriorColor|WHITE
+#Vehicle.VehicleIdentification.VehicleExteriorColor|string|vehicleExteriorColor|WHITE
 Vehicle.VehicleIdentification.VehicleInteriorColor|string|vehicleInteriorColor|BLACK
 Vehicle.VehicleIdentification.VehicleModelDate|string|NO_HMI_Property|2010
 Vehicle.VehicleIdentification.VehicleSeatingCapacity|uint16|VehicleSeatingCapacity|5
