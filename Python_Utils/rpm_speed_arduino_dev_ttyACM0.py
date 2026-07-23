@@ -66,6 +66,16 @@ KPL_MAX_RECORDS = 6                    # 6 × 10 min = 1 hour sliding window
 KPL_INTERVAL    = 600                  # seconds between log entries
 VSS_BUILD_FILE  = '/home/louis/ClusterWorx/build/VSS_paths.txt'
 
+# --- Native coolant sender calibration log (A7 volts -> MAX6675 benchmark °C) ---
+# Append-only (no trimming, unlike the KPL log) — collects every point from a
+# cold-start warm-up so NativeTempCalTable in the .ino can be built from real
+# matched pairs instead of the current placeholder values. A dead/miswired
+# MAX6675 can silently read a plausible 0.0°C instead of tripping the -100.0
+# sentinel, so verify the replacement chip with the raw SPI diagnostic before
+# trusting this log as calibration data.
+NATIVE_TEMP_CAL_LOG_FILE     = '/tmp/native_temp_cal_log.csv'   # timestamp, native_temp_v, max6675_temp_c
+NATIVE_TEMP_CAL_LOG_INTERVAL = 5   # seconds between log entries — coolant temp moves slowly
+
 def _read_persisted_odo():
     """Read totalKms persisted in the 4th pipe field of VSS_paths.txt."""
     try:
@@ -132,6 +142,17 @@ def update_kpl_log(fuel_liters):
     _save_kpl_records(records)
     return _calc_kpl(records)
 
+def log_native_temp_cal_point(native_v, benchmark_c):
+    """Append one (A7 sender voltage, MAX6675 benchmark °C) pair to the
+    calibration log. Caller is responsible for only passing plausible
+    readings from both sensors."""
+    write_header = not os.path.exists(NATIVE_TEMP_CAL_LOG_FILE)
+    with open(NATIVE_TEMP_CAL_LOG_FILE, 'a', newline='') as f:
+        w = csv.writer(f)
+        if write_header:
+            w.writerow(['timestamp', 'native_temp_v', 'max6675_temp_c'])
+        w.writerow([datetime.now().strftime('%Y-%m-%d %H:%M:%S'), native_v, benchmark_c])
+
 
 def run_master_bridge():
     # Zero wire states immediately — if bridge restarts or is searching for Arduino,
@@ -141,6 +162,7 @@ def run_master_bridge():
 
     _init_kpl_log_if_missing()
     last_kpl_time = 0   # log first entry immediately on first valid telemetry
+    last_native_cal_log_time = 0   # log first entry immediately on first valid pair
 
     ser = None
     for port in SERIAL_PORTS:
@@ -427,6 +449,17 @@ def run_master_bridge():
                                     Datapoint(float(kpl))
                             })
                         print(f"KPL log entry written → {kpl} km/L  (file: {KPL_LOG_FILE})")
+
+                    # Native coolant sender calibration log — matched (A7 volts,
+                    # MAX6675 benchmark °C) pairs, only while both readings look
+                    # real (TMP not the -100.0 disconnected sentinel, A7 in a
+                    # sane 0-5V range rather than floating near the ignition rail).
+                    if now - last_native_cal_log_time >= NATIVE_TEMP_CAL_LOG_INTERVAL:
+                        if temp_val != -100.0 and 0.0 < native_temp_v <= 5.5:
+                            log_native_temp_cal_point(native_temp_v, temp_val)
+                            last_native_cal_log_time = now
+                            print(f"Native temp cal point logged → {native_temp_v}V = {temp_val}°C  (file: {NATIVE_TEMP_CAL_LOG_FILE})")
+
                     print(f"TELEMETRY -> Speed: {speed_val} km/h | RPM: {rpm_val} | TEMP: {temp_val} | LITERS: {fuel_liters_val} | RANGE: {fuel_range_val} | L:{int(left_indicator)} R:{int(right_indicator)} H:{int(hazard)} DIM:{int(lights_dim)} BRIGHT:{int(lights_bright)} DT:{int(daytime_lights)} PARK:{int(parking_lights)} PBRAKE:{int(parking_brake)} SEATBELT:{int(seatbelt)} GLOWPLUGS:{int(glow_plug_relay)} AC:{int(ac_active)} ECUERR:{int(ecu_error)} TRIPRESET:{int(trip_reset)} OIL:{'normal' if oil_signal else 'low'} DOOR:{'open' if door_open else 'closed'} | NATIVETEMP_RAW_V:{native_temp_v} NATIVETEMP_C:{native_temp_val}")
 
                 except (ValueError, IndexError) as e:
