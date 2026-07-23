@@ -516,43 +516,43 @@ Window {
     // Sits outside dashboardWrapper so it is never scaled or clipped.
     // Click-drag it to move the window between the 7-inch and large screen;
     // onScreenChanged above resizes automatically once it lands.
-    Item {
-        id: dragHandle
-        z: 1000
-        width: 32
-        height: 32
-        anchors.top:    parent.top
-        anchors.left:  parent.left
-        anchors.topMargin:   10
-        anchors.rightMargin: 10
+    //Item {
+    //    id: dragHandle
+    //    z: 1000
+    //    width: 32
+    //    height: 32
+    //    anchors.top:    parent.top
+    //    anchors.left:  parent.left
+    //    anchors.topMargin:   10
+    //    anchors.rightMargin: 10
 
-        Rectangle {
-            anchors.fill: parent
-            radius: 8
-            color: "#CC0d0d1a"
-            border.color: "#55FFFFFF"
-            border.width: 1
+    //    Rectangle {
+    //        anchors.fill: parent
+    //        radius: 8
+    //        color: "#CC0d0d1a"
+    //        border.color: "#55FFFFFF"
+    //        border.width: 1
 
-            Grid {
-                anchors.centerIn: parent
-                columns: 3
-                spacing: 5
-                Repeater {
-                    model: 9
-                    Rectangle { width: 5; height: 5; radius: 2.5; color: "#BBBBBB" }
-                }
-            }
-        }
+    //        Grid {
+    //            anchors.centerIn: parent
+    //            columns: 3
+    //            spacing: 5
+    //            Repeater {
+    //                model: 9
+    //                Rectangle { width: 5; height: 5; radius: 2.5; color: "#BBBBBB" }
+    //            }
+    //        }
+    //    }
 
-        MouseArea {
-            anchors.fill: parent
-            cursorShape: Qt.SizeAllCursor
-            onPressed: {
-                rootWindow.visibility = Window.Windowed
-                rootWindow.startSystemMove()
-            }
-        }
-    }
+    //    MouseArea {
+    //        anchors.fill: parent
+    //        cursorShape: Qt.SizeAllCursor
+    //        onPressed: {
+    //            rootWindow.visibility = Window.Windowed
+    //            rootWindow.startSystemMove()
+    //        }
+    //    }
+    //}
     // ─────────────────────────────────────────────────────────────────────────
 
 } // End Window
