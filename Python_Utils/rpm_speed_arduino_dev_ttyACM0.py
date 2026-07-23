@@ -44,6 +44,12 @@ ACTIVE_THRESHOLD  = 2.0   # volts (real, after scale) — wire considered "live"
 WIRE_STATE_FILE   = '/tmp/ecu_wire_states.json'
 FAST_STATE_FILE   = '/tmp/ecu_fast_state.json'
 
+# Ignition-off PC suspend — AV14 (Black/White wire, wire index 13) is switched
+# ignition power. Below this for SLEEP_DEBOUNCE_COUNT consecutive 1s readings
+# (ignition off) triggers a suspend; `systemctl suspend` also blanks the screen.
+IGNITION_SLEEP_THRESHOLD_V = 1.5
+SLEEP_DEBOUNCE_COUNT       = 5
+
 def _zero_wire_states_and_exit(signum, frame):
     with open(WIRE_STATE_FILE, 'w') as jf:
         json.dump({'states': [False] * 20, 'voltages': [0.0] * 20}, jf)
@@ -194,6 +200,8 @@ def run_master_bridge():
             wire_below_count    = [0] * 20   # consecutive readings below threshold
             wire_confirmed      = [False] * 20  # debounced state written to JSON
 
+            ignition_below_count = 0   # consecutive 1s readings with AV14 below IGNITION_SLEEP_THRESHOLD_V
+
             while True:
                 line = ser.readline().decode('utf-8', errors='ignore').strip()
                 if not line:
@@ -279,7 +287,7 @@ def run_master_bridge():
                             door_open = part.split(':')[1] == '1'   # 1=HIGH=door open, 0=closed
                         elif part.startswith("DVOILSIGNAL:"):
                             oil_signal = part.split(':')[1] == '1'  # 1=HIGH=normal, 0=LOW=low
-                        elif part.startswith("SPARE7:"):
+                        elif part.startswith("TRIPRESET:"):
                             trip_reset = part.split(':')[1] == '1'
 
                     last_trip_reset = trip_reset
@@ -325,6 +333,18 @@ def run_master_bridge():
 
                     with open(WIRE_STATE_FILE, 'w') as jf:
                         json.dump({'states': wire_confirmed, 'voltages': wire_voltages}, jf)
+
+                    # Ignition-off PC suspend — AV14 (wire index 13) below threshold
+                    # for SLEEP_DEBOUNCE_COUNT consecutive seconds means ignition is off.
+                    if wire_voltages[13] < IGNITION_SLEEP_THRESHOLD_V:
+                        ignition_below_count += 1
+                    else:
+                        ignition_below_count = 0
+
+                    if ignition_below_count >= SLEEP_DEBOUNCE_COUNT:
+                        print(f"🌙 Ignition below {IGNITION_SLEEP_THRESHOLD_V}V for {SLEEP_DEBOUNCE_COUNT}s — suspending PC.")
+                        subprocess.run(['systemctl', 'suspend'])
+                        ignition_below_count = 0  # avoid re-triggering immediately on resume
 
                     # ECU STATUS screen shows wire indices 0-14 (AV1-AV13 + ignition/standby power).
                     # If any of those reads 0V, light the ECU warning icon.
