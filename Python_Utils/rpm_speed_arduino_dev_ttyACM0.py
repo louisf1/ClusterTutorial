@@ -25,7 +25,9 @@ ANALOG_TO_WIRE = {
     4:   3,  # A4  Green/White   → index  3 "green-white"   (Idle control switch)
     5:   4,  # A5  Red/Black     → index  4 "red-black"     (unknown - to be identified)
     6:   5,  # A6  Red/Blue      → index  5 "red-blue"      (Control Lever Position)
-    7:   6,  # A7  Brown/Red     → index  6 "brown-red"     (unknown)
+    # 7: A7/brown-red repurposed for the native coolant temp sender (yellow-black
+    # wire). Arduino still sends AV7 (raw wire voltage, no dict entry so it's
+    # ignored here) — the computed reading comes via NATIVETEMP/NATIVETEMPV.
     8:   7,  # A8  Brown/Yellow  → index  7 "brown-yellow"  (unknown)
     9:   8,  # A9  Brown/White   → index  8 "brown-white"   (Control Lever Position)
     10:  9,  # A10 Yellow        → index  9 "yellow"        (EGR solenoid Valve)
@@ -262,6 +264,8 @@ def run_master_bridge():
                     oil_signal      = True   # default: oil normal until read
                     door_open       = False
                     trip_reset      = False
+                    native_temp_v   = -1.0
+                    native_temp_val = -100.0
                     for part in parts[5:]:
                         if part.startswith("LINDIC:"):
                             left_indicator  = part.split(':')[1] == '1'
@@ -289,6 +293,10 @@ def run_master_bridge():
                             oil_signal = part.split(':')[1] == '1'  # 1=HIGH=normal, 0=LOW=low
                         elif part.startswith("TRIPRESET:"):
                             trip_reset = part.split(':')[1] == '1'
+                        elif part.startswith("NATIVETEMPV:"):
+                            native_temp_v = float(part.split(':')[1])
+                        elif part.startswith("NATIVETEMP:"):
+                            native_temp_val = float(part.split(':')[1])
 
                     last_trip_reset = trip_reset
                     with open(FAST_STATE_FILE, 'w') as jf:
@@ -348,7 +356,11 @@ def run_master_bridge():
 
                     # ECU STATUS screen shows wire indices 0-14 (AV1-AV13 + ignition/standby power).
                     # If any of those reads 0V, light the ECU warning icon.
-                    ecu_error = any(v <= 0.01 for v in wire_voltages[:15])
+                    # Index 6 (A7/brown-red) is excluded — repurposed for the native
+                    # coolant temp sender, so it has no ANALOG_TO_WIRE entry and never
+                    # gets written here, leaving it stuck at its 0.0 default forever,
+                    # which would otherwise permanently trip this check.
+                    ecu_error = any(v <= 0.01 for i, v in enumerate(wire_voltages[:15]) if i != 6)
 
                     telemetry = {
                        'Vehicle.Speed':                                               Datapoint(speed_val),
@@ -415,7 +427,7 @@ def run_master_bridge():
                                     Datapoint(float(kpl))
                             })
                         print(f"KPL log entry written → {kpl} km/L  (file: {KPL_LOG_FILE})")
-                    print(f"TELEMETRY -> Speed: {speed_val} km/h | RPM: {rpm_val} | TEMP: {temp_val} | LITERS: {fuel_liters_val} | RANGE: {fuel_range_val} | L:{int(left_indicator)} R:{int(right_indicator)} H:{int(hazard)} DIM:{int(lights_dim)} BRIGHT:{int(lights_bright)} DT:{int(daytime_lights)} PARK:{int(parking_lights)} PBRAKE:{int(parking_brake)} SEATBELT:{int(seatbelt)} GLOWPLUGS:{int(glow_plug_relay)} AC:{int(ac_active)} ECUERR:{int(ecu_error)} TRIPRESET:{int(trip_reset)} OIL:{'normal' if oil_signal else 'low'} DOOR:{'open' if door_open else 'closed'}")
+                    print(f"TELEMETRY -> Speed: {speed_val} km/h | RPM: {rpm_val} | TEMP: {temp_val} | LITERS: {fuel_liters_val} | RANGE: {fuel_range_val} | L:{int(left_indicator)} R:{int(right_indicator)} H:{int(hazard)} DIM:{int(lights_dim)} BRIGHT:{int(lights_bright)} DT:{int(daytime_lights)} PARK:{int(parking_lights)} PBRAKE:{int(parking_brake)} SEATBELT:{int(seatbelt)} GLOWPLUGS:{int(glow_plug_relay)} AC:{int(ac_active)} ECUERR:{int(ecu_error)} TRIPRESET:{int(trip_reset)} OIL:{'normal' if oil_signal else 'low'} DOOR:{'open' if door_open else 'closed'} | NATIVETEMP_RAW_V:{native_temp_v} NATIVETEMP_C:{native_temp_val}")
 
                 except (ValueError, IndexError) as e:
                     print(f"⚠️ Malformed data received: {line} ({e})")

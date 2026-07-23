@@ -3,8 +3,9 @@
 // =============================================================================
 // Serial output format (one line per second):
 //   SPD:xx.x|RPM:xxxx|TMP:xx.x|LITERS:xx.x|RANGE:xxx
-//   |AV2:x.xx|AV3:x.xx|AV4:x.xx|AV5:x.xx|AV6:x.xx|AV7:x.xx
+//   |AV2:x.xx|AV3:x.xx|AV4:x.xx|AV5:x.xx|AV6:x.xx
 //   |AV8:x.xx|AV9:x.xx|AV10:x.xx|AV11:x.xx|AV12:x.xx|AV13:x.xx
+//   |NATIVETEMPV:x.xx (volts, PCM-driven) |NATIVETEMP:xx.x (°C, A7 coolant sender — see below)
 //   |LINDIC:x|RINDIC:x  (1=active, 0=off — true within INDICATOR_TIMEOUT_MS of last pulse)
 //   |PAGEBTN:x  (1=pressed, 0=not — latched over the 1s window; D19 button to GND)
 //   |TRIPRESET:x  (1=pressed, 0=not — latched over the 1s window; D20 button to GND)
@@ -229,7 +230,71 @@ float avgKmPerLiter       = 10.0;     // update to your real-world average
 // =============================================================================
 
 // Analog pins — voltage reads only (A14=ignition power, A15=standby power)
+// A7 ("brown-red", never identified) is repurposed as the native coolant
+// sender input — see NATIVE COOLANT TEMPERATURE SENDER. It's PCM-powered
+// (no external pull-up needed) and carries the same 10k/5.1k + TVS + cap
+// protection as every other pin here, so it's read through this same loop
+// like all the rest (reported as AV7).
 const int WIRE_A_PINS[15] = {A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14, A15};
+
+// =============================================================================
+// NATIVE COOLANT TEMPERATURE SENDER — A7 (yellow-black wire into the engine
+// block; repurposed from the "brown-red" ECU slot, which was never identified
+// as a live signal).
+//
+// This wire is PCM-powered, not an unpowered single-wire dash-gauge sender —
+// the PCM supplies its own internal reference voltage and pull-up to the
+// sensor and reads the divided voltage back on this same wire (a standard
+// 2-wire ECT sensor circuit). We're just passively tapping that PCM-driven
+// voltage the same way every other AV1-13 ECU wire is read, through A7's
+// existing 10k/5.1k + TVS + cap protection — no external pull-up needed,
+// wire connects straight through.
+//
+// Because the PCM's internal reference voltage and pull-up resistor aren't
+// known, the sender's resistance can't be back-calculated the way a
+// self-excited sender could — the calibration table below maps the
+// *recovered wire voltage* (AV7, already scaled by the standard 10k/5.1k
+// divider formula above) directly to temperature instead.
+//
+// CALIBRATION REQUIRED: the table below is a placeholder, not a verified
+// factory curve. Read NATIVETEMPV (volts) off the serial/bridge log at two
+// known temperatures — engine cold at ambient, and warmed up to normal
+// operating temp (OEM gauge needle at its usual running position) — and
+// replace the two points below. Add a third point if the curve is noticeably
+// non-linear between them.
+//
+// Assumed direction: voltage falls as temperature rises (typical for an NTC
+// sender behind a PCM pull-up). If your calibration readings go the other
+// way, flip the sort order of the table and the comparisons below.
+// =============================================================================
+struct TempCalPoint { float voltage; float tempC; };
+// Placeholder points — replace with real measurements (see comment above).
+// Must stay sorted by descending voltage.
+const TempCalPoint NativeTempCalTable[] = {
+  { 4.0,  20.0 },   // placeholder: cold/ambient
+  { 0.5,  90.0 },   // placeholder: warmed up
+};
+const int NATIVE_TEMP_CAL_POINTS = sizeof(NativeTempCalTable) / sizeof(NativeTempCalTable[0]);
+
+// Converts the AV7 wire voltage to °C via linear interpolation across
+// NativeTempCalTable. Returns -100.0 (matches the MAX6675 sentinel) if the
+// reading is outside a sane 0-5V range.
+float nativeVoltageToTempC(float v) {
+  if (v <= 0.0 || v > 5.5) return -100.0;
+
+  if (v >= NativeTempCalTable[0].voltage) return NativeTempCalTable[0].tempC;
+  for (int i = 0; i < NATIVE_TEMP_CAL_POINTS - 1; i++) {
+    float vHi = NativeTempCalTable[i].voltage;
+    float vLo = NativeTempCalTable[i + 1].voltage;
+    if (v <= vHi && v >= vLo) {
+      float tHi  = NativeTempCalTable[i].tempC;
+      float tLo  = NativeTempCalTable[i + 1].tempC;
+      float frac = (vHi - v) / (vHi - vLo);
+      return tHi + frac * (tLo - tHi);
+    }
+  }
+  return NativeTempCalTable[NATIVE_TEMP_CAL_POINTS - 1].tempC;  // below lowest cal point
+}
 
 // NOT USED  Digital pins actively used for ECU wire signals (input_pullup configured in setup)
 //const int WIRE_D_PINS[4] = { 6, 12, 14, 35 };
@@ -474,13 +539,21 @@ void loop() {
   // ── ECU wire voltages (A1–A15) ────────────────────────────────────────────
   // Voltage divider: 10kΩ series + 5.1kΩ to GND maps 0–14.5V automotive to 0–5V ADC.
   // Scale factor: 0.25V automotive = 0.0845V ADC → multiply by (0.25/0.0845) = 2.9586
-  float ignitionVoltage = 0.0;
+  float ignitionVoltage   = 0.0;
+  float nativeWireVoltage = 0.0;
   for (int i = 0; i < 15; i++) {
     float v = analogRead(WIRE_A_PINS[i]) * (5.0 / 1023.0) * (0.25 / 0.0845);
     Serial.print("|AV"); Serial.print(i + 1);
     Serial.print(":"); Serial.print(v, 2);
-    if (i == 13) ignitionVoltage = v;   // AV14 = A14 = Black/White ignition wire
+    if (i == 13) ignitionVoltage   = v;   // AV14 = A14 = Black/White ignition wire
+    if (i == 6)  nativeWireVoltage = v;   // AV7  = A7  = yellow-black coolant sender
   }
+
+  // ── Native coolant temp sender (A7) — raw volts + calibrated °C ──────────
+  // NATIVETEMPV is what you read off the log to build/verify the
+  // calibration table above; NATIVETEMP is the result of that table.
+  Serial.print("|NATIVETEMPV:"); Serial.print(nativeWireVoltage, 2);
+  Serial.print("|NATIVETEMP:");  Serial.print(nativeVoltageToTempC(nativeWireVoltage), 1);
 
   // ── PC power-switch pulse — ignition-off (sleep) / ignition-on (wake) ────
   // Mirrors the Python bridge's 1.5V / 5s debounce so both paths agree on
