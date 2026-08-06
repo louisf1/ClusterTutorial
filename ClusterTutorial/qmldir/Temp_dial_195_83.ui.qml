@@ -356,7 +356,7 @@ Item {
             height: 412
             rotation: -90
             fillColor: "#00ffffff"
-            strokeColor: "#FF9999"
+            strokeColor: "#3eee6b"
             end: 60.4
             begin: -108
             strokeWidth: 40
@@ -490,27 +490,29 @@ Item {
             }
         }
 
+        // Frame = (coolant C - 40) * 12.5. Green below 95 C,
+        // amber 95-104 C, red at 105 C+ (was pink/80 C/104 C).
         KeyframeGroup {
             target: arc
             property: "strokeColor"
             Keyframe {
-                value: "#FF9999"
-                frame: 499
+                value: "#3eee6b"
+                frame: 687
             }
 
             Keyframe {
                 value: "#df8c49"
-                frame: 500
+                frame: 688
             }
 
             Keyframe {
                 value: "#df8c49"
-                frame: 799
+                frame: 812
             }
 
             Keyframe {
                 value: "#e24141"
-                frame: 800
+                frame: 813
             }
 
             Keyframe {
@@ -524,28 +526,28 @@ Item {
             property: "strokeColor"
 
             Keyframe {
-                value: "#FF9999"
+                value: "#3eee6b"
                 frame: 0
             }
 
             Keyframe {
-                value: "#FF9999"
-                frame: 499
+                value: "#3eee6b"
+                frame: 687
             }
 
             Keyframe {
                 value: "#df8c49"
-                frame: 500
+                frame: 688
             }
 
             Keyframe {
                 value: "#df8c49"
-                frame: 799
+                frame: 812
             }
 
             Keyframe {
                 value: "#e24141"
-                frame: 800
+                frame: 813
             }
 
             Keyframe {

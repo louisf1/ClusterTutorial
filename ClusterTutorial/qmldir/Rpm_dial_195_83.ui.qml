@@ -501,27 +501,29 @@ Item {
             }
         }
 
+        // Frame = RPM/10. Diesel-friendly thresholds: green below 3000 RPM,
+        // amber 3000-4190, red at 4200+ (old 5000/8000 were never reachable).
         KeyframeGroup {
             target: arc
             property: "strokeColor"
             Keyframe {
                 value: "#3eee6b"
-                frame: 499
+                frame: 299
             }
 
             Keyframe {
                 value: "#df8c49"
-                frame: 500
+                frame: 300
             }
 
             Keyframe {
                 value: "#df8c49"
-                frame: 799
+                frame: 419
             }
 
             Keyframe {
                 value: "#e24141"
-                frame: 800
+                frame: 420
             }
 
             Keyframe {
@@ -541,22 +543,22 @@ Item {
 
             Keyframe {
                 value: "#3eee6b"
-                frame: 499
+                frame: 299
             }
 
             Keyframe {
                 value: "#df8c49"
-                frame: 500
+                frame: 300
             }
 
             Keyframe {
                 value: "#df8c49"
-                frame: 799
+                frame: 419
             }
 
             Keyframe {
                 value: "#e24141"
-                frame: 800
+                frame: 420
             }
 
             Keyframe {

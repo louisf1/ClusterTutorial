@@ -209,7 +209,9 @@ Item {
         anchors.leftMargin: 60   // Balanced spacing from left
         anchors.bottomMargin: 570 // Balanced spacing from bottom
         displayRpm: Values.displayRpm
-        rpmFrame: Values.rpm
+        // Timeline frame 100 = 1000 RPM (dial face reads 1-11 x1000),
+        // but Values.rpm is raw engine RPM — scale down by 10 and clamp.
+        rpmFrame: Math.max(0, Math.min(1100, Values.rpm / 10))
     }
 
     FlipableItem {

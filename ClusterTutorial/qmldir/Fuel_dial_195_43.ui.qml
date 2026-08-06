@@ -52,7 +52,6 @@
 import QtQuick 2.8
 import QtQuick.Timeline 1.0
 import QtQuick.Studio.Components 1.0
-import QtQuick.Studio.Effects 1.0
 
 Item {
     id: fuel_dial_195_43
@@ -400,27 +399,20 @@ Item {
             }
         }
 
-        GlowItem {
-            id: glow
-            x: -48
-            y: 60
-            width: 356
-            height: 324
-            color: "#e24141"
-            radius: 11.7
-            samples: 32
-            spread: 0.7
-
-            PieItem {
-                id: pie
-                x: 47
-                y: 33
-                width: 264
-                height: 264
-                fillColor: "#00ffffff"
-                strokeWidth: 4.5
-                end: 360
-            }
+        // The circle used to sit inside a GlowItem, but GlowItem hides its
+        // children and repaints them through a shader effect — under
+        // QT_QUICK_BACKEND=software (required on this board) shaders never
+        // render, so the circle was invisible. Plain PieItem, fixed red.
+        PieItem {
+            id: pie
+            x: -1
+            y: 93
+            width: 264
+            height: 264
+            fillColor: "#00ffffff"
+            strokeColor: "#e24141"
+            strokeWidth: 4.5
+            end: 360
         }
 
         Image {
@@ -517,41 +509,6 @@ Item {
 
         KeyframeGroup {
             target: arc
-            property: "strokeColor"
-
-            Keyframe {
-                frame: 0
-                value: "#e24141"
-            }
-
-            Keyframe {
-                frame: 299
-                value: "#e24141"
-            }
-
-            Keyframe {
-                frame: 300
-                value: "#df8c49"
-            }
-
-            Keyframe {
-                frame: 599
-                value: "#df8c49"
-            }
-
-            Keyframe {
-                frame: 600
-                value: "#3eee6b"
-            }
-
-            Keyframe {
-                frame: 1100
-                value: "#3eee6b"
-            }
-        }
-
-        KeyframeGroup {
-            target: pie
             property: "strokeColor"
 
             Keyframe {
@@ -1145,172 +1102,5 @@ Item {
             }
         }
 
-        KeyframeGroup {
-            target: glow
-            property: "radius"
-            Keyframe {
-                frame: 0
-                value: 11.7
-            }
-
-            Keyframe {
-                frame: 20
-                value: 0
-            }
-
-            Keyframe {
-                frame: 40
-                value: 11.7
-            }
-
-            Keyframe {
-                frame: 60
-                value: 0
-            }
-
-            Keyframe {
-                frame: 80
-                value: 11.7
-            }
-
-            Keyframe {
-                frame: 100
-                value: 0
-            }
-
-            Keyframe {
-                frame: 120
-                value: 11.7
-            }
-
-            Keyframe {
-                frame: 140
-                value: 0
-            }
-
-            Keyframe {
-                frame: 160
-                value: 11.7
-            }
-
-            Keyframe {
-                frame: 180
-                value: 0
-            }
-
-            Keyframe {
-                frame: 200
-                value: 11.7
-            }
-
-            Keyframe {
-                frame: 220
-                value: 0
-            }
-
-            Keyframe {
-                frame: 240
-                value: 11.7
-            }
-
-            Keyframe {
-                frame: 260
-                value: 0
-            }
-
-            Keyframe {
-                frame: 280
-                value: 11.7
-            }
-
-            Keyframe {
-                frame: 300
-                value: 0
-            }
-        }
-
-        KeyframeGroup {
-            target: glow
-            property: "spread"
-            Keyframe {
-                frame: 0
-                value: 0.7
-            }
-
-            Keyframe {
-                frame: 20
-                value: 0
-            }
-
-            Keyframe {
-                frame: 40
-                value: 0.7
-            }
-
-            Keyframe {
-                frame: 60
-                value: 0
-            }
-
-            Keyframe {
-                frame: 80
-                value: 0.7
-            }
-
-            Keyframe {
-                frame: 100
-                value: 0
-            }
-
-            Keyframe {
-                frame: 120
-                value: 0.7
-            }
-
-            Keyframe {
-                frame: 140
-                value: 0
-            }
-
-            Keyframe {
-                frame: 160
-                value: 0.7
-            }
-
-            Keyframe {
-                frame: 180
-                value: 0
-            }
-
-            Keyframe {
-                frame: 200
-                value: 0.7
-            }
-
-            Keyframe {
-                frame: 220
-                value: 0
-            }
-
-            Keyframe {
-                frame: 240
-                value: 0.7
-            }
-
-            Keyframe {
-                frame: 260
-                value: 0
-            }
-
-            Keyframe {
-                frame: 280
-                value: 0.7
-            }
-
-            Keyframe {
-                frame: 300
-                value: 0
-            }
-        }
     }
 }
