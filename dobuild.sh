@@ -10,6 +10,12 @@
 #   - Double slash in path fixed (ClusterWorx//imports)
 #   - QML2_IMPORT_PATH kept for Qt5Compat fallback but clearly labelled
 #   - Script hardened with set -e so it stops on first error
+#   - PATH now prepends $HOME/.local/bin so the pip-installed CMake (>=3.22)
+#     is used instead of the system CMake 3.18.4, which Qt 6.10.3 refuses to
+#     configure with (`CMake 3.22 or higher is required to use Qt`)
+#   - Hardcoded /home/louis/... paths (arduino-cli, conan-env python, hardware
+#     bridge script) replaced with $HOME/$PROJECT_DIR — this machine's user is
+#     "linaro", and no such louis paths exist here
 
 set -e
 trap 'kill $(jobs -p) 2>/dev/null; pkill -f avrdude 2>/dev/null; pkill -f arduino-cli 2>/dev/null' EXIT
@@ -17,33 +23,55 @@ trap 'kill $(jobs -p) 2>/dev/null; pkill -f avrdude 2>/dev/null; pkill -f arduin
 # =============================================================================
 # Configuration — edit these if paths change
 # =============================================================================
-QT_DIR="$HOME/Qt/6.10.3/gcc_64"
+# [FIX] Qt now comes from Debian bookworm packages (qt6-base-dev 6.4.2 etc.,
+#       installed by install_dependencies.sh) in standard system paths.
+#       History: ~/Qt/6.10.3/gcc_64 was the x86-64 desktop Qt — this board is
+#       aarch64, so those binaries cannot execute here (qmlimportscanner died
+#       with 'Syntax error: "(" unexpected' = kernel exec failure on
+#       wrong-arch ELF). The official arm64 builds don't work either: Qt >=6.9
+#       needs glibc >=2.38 (board maxes out at bookworm's 2.36) and Qt 6.8.3's
+#       tools segfault / need GLIBC_2.38 inconsistently. Debian's own arm64
+#       Qt 6.4.2 packages are built for exactly this glibc and just work.
+QT_SYSTEM_BIN="/usr/lib/qt6/bin"
+QT_SYSTEM_QML="/usr/lib/aarch64-linux-gnu/qt6/qml"
 PROJECT_DIR="$HOME/ClusterWorx"
 BUILD_DIR="$PROJECT_DIR/build"
-DESIGN_STUDIO_QML="$HOME/Qt/Tools/QtDesignStudio/qt6_design_studio_reduced_version/qml"
 
 # =============================================================================
 # 1. Environment — set BEFORE cmake so find_package picks up the right Qt
 # =============================================================================
-export PATH="$QT_DIR/bin:$PATH"
-export LD_LIBRARY_PATH="$QT_DIR/qml:$QT_DIR/include:$QT_DIR/lib:$PROJECT_DIR/custom_libs${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export PATH="$HOME/.local/bin:$QT_SYSTEM_BIN:$PATH"
+export LD_LIBRARY_PATH="$PROJECT_DIR/custom_libs${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 
 # QML import search path — priority order (leftmost wins):
 #   1. Project's own imports/ folder
-#   2. Qt Design Studio reduced QML (for Studio Effects, etc.)
-#   3. Qt 6 installed QML
-# [FIX] The original script set QML_IMPORT_PATH twice; the second assignment
-#        silently discarded the first (project imports + Qt qml were lost).
-export QML_IMPORT_PATH="$PROJECT_DIR/imports:$DESIGN_STUDIO_QML:$QT_DIR/qml"
+#   2. System Qt 6 QML modules
+# [FIX] Removed the Qt Design Studio reduced QML path — that install is
+#       x86-64 (came with the desktop Qt) and its plugin .so files can never
+#       load on this aarch64 board. The Studio components the app needs are
+#       bundled in the project's own QML module (3rdparty/...).
+export QML_IMPORT_PATH="$PROJECT_DIR/imports:$QT_SYSTEM_QML"
 
 # QML2_IMPORT_PATH is the Qt5-era name; still read by some Qt6 modules (Core5Compat)
 export QML2_IMPORT_PATH="$QML_IMPORT_PATH"
 
+# [FIX] Software rendering is required on this board: Debian's arm64 Qt 6.4.2
+#       is a desktop-OpenGL build, but the Tinker Board 2 Mali-T860 blob is
+#       OpenGL ES-only, so hardware context creation always fails
+#       (eglChooseConfig returns 0 configs -> "Failed to create RHI").
+#       Remove this if Qt is ever rebuilt with -opengl es2 (GLES support).
+export QT_QUICK_BACKEND=software
+
 # =============================================================================
-# 2. Clean build directory
+# 2. Build directory — incremental by default, wiped only with --clean
 # =============================================================================
-echo "==> Cleaning build directory: $BUILD_DIR"
-rm -rf "$BUILD_DIR"
+# [FIX] The unconditional rm -rf made every run a full rebuild (slow on this
+#        board) and threw away all progress if a build was interrupted.
+#        Pass --clean for the old behaviour when you need a from-scratch build.
+if [ "${1:-}" = "--clean" ]; then
+    echo "==> Cleaning build directory: $BUILD_DIR"
+    rm -rf "$BUILD_DIR"
+fi
 mkdir -p "$BUILD_DIR"
 cd "$BUILD_DIR"
 
@@ -56,7 +84,7 @@ cd "$BUILD_DIR"
 #        "cmake build" is not a cmake subcommand — it was silently doing nothing
 #        (or erroring, depending on cmake version).
 echo "==> Configuring..."
-cmake -DCMAKE_PREFIX_PATH="$QT_DIR"  --debug-find-pkg=Qt6Gui ..
+cmake ..
 
 # =============================================================================
 # 4. Build
@@ -64,14 +92,22 @@ cmake -DCMAKE_PREFIX_PATH="$QT_DIR"  --debug-find-pkg=Qt6Gui ..
 # [FIX] Using cmake --build instead of bare make:
 #        - Works regardless of whether the generator is Make, Ninja, etc.
 #        - --parallel is the portable equivalent of make -jN
+# [FIX] Parallelism capped at 2 (was $(nproc)=6): the board has ~2 GiB RAM and
+#        no swap, and 6 concurrent cc1plus jobs on the generated qmlcache C++
+#        files trip the kernel OOM killer ("c++: fatal error: Killed signal").
 echo "==> Building..."
-cmake --build . --parallel "$(nproc)"
+cmake --build . --parallel 2
 
 # =============================================================================
 # 5. Stage runtime assets
 # =============================================================================
-##echo "==> Staging assets..."
-##cp "$PROJECT_DIR/VSS_paths.txt" .
+# [FIX] Re-enabled: main.cpp loads VSS_paths.txt from the app dir; without it
+#        KuksaHandler starts with no signal mappings and the dials stay dead.
+#        Copy only if missing: the app persists runtime state (trip meter,
+#        odometer, VIN) back into the build-dir copy, which must survive
+#        rebuilds. (--clean wipes it, so a clean build re-seeds from the repo.)
+echo "==> Staging assets..."
+[ -f VSS_paths.txt ] || cp "$PROJECT_DIR/VSS_paths.txt" .
 
 # =============================================================================
 # 6. Start hardware interface
@@ -86,14 +122,14 @@ if [ -z "$ARDUINO_PORT" ]; then
     echo "⚠️  No Arduino found on ttyACM0 or ttyACM1 — skipping upload"
 else
     echo "==> Uploading to Arduino on $ARDUINO_PORT"
-    /home/louis/bin/arduino-cli compile --upload --fqbn arduino:avr:mega -p "$ARDUINO_PORT" \
-        /home/louis/ClusterWorx/Arduino/Ford_Ranger_signals_all/Ford_Ranger_signals_all.ino
+    "$HOME/bin/arduino-cli" compile --upload --fqbn arduino:avr:mega -p "$ARDUINO_PORT" \
+        "$PROJECT_DIR/Arduino/Ford_Ranger_signals_all/Ford_Ranger_signals_all.ino"
 fi
 set -e
 sleep 2  # wait for Arduino to reset and re-enumerate
 
 echo "==> Starting Python hardware bridge..."
-/home/louis/.conan-env/bin/python3 -u /home/louis/ClusterWorx/Python_Utils/rpm_speed_arduino_dev_ttyACM0.py &
+"$HOME/.conan-env/bin/python3" -u "$PROJECT_DIR/Python_Utils/rpm_speed_arduino_dev_ttyACM0.py" &
 PYTHON_PID=$!
 
 # =============================================================================

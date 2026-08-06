@@ -16,12 +16,16 @@
 # =============================================================================
 
 # [FIX] CMP0048 must be set BEFORE project() to have any effect
-cmake_minimum_required(VERSION 3.21.1)
+cmake_minimum_required(VERSION 3.18.4)
 cmake_policy(SET CMP0048 NEW)
 
-# Pin Qt to the manually installed version — avoids mixing with system Qt
-# Override on the command line if needed: cmake -DCMAKE_PREFIX_PATH=... ..
-list(PREPEND CMAKE_PREFIX_PATH "$ENV{HOME}/Qt/6.10.3/gcc_64")
+# [FIX] Qt comes from Debian bookworm packages (qt6-base-dev 6.4.2, installed
+#       by install_dependencies.sh) in standard system paths — no prefix pin
+#       needed. The previous pin to ~/Qt/6.10.3/gcc_64 was the x86-64 build,
+#       unusable on this aarch64 board; the official arm64 builds (6.8/6.10)
+#       crash or need glibc >=2.38, newer than this Debian 11 vendor image can
+#       provide. Override on the command line if needed:
+#       cmake -DCMAKE_PREFIX_PATH=... ..
 
 project(ClusterDashboard
     VERSION 1.0
@@ -56,6 +60,10 @@ find_package(Qt6 REQUIRED COMPONENTS
     Core5Compat
 )
 find_package(Qt6 OPTIONAL_COMPONENTS GuiPrivate)
+
+# [FIX] Debian's libgrpc-dev ships pkg-config files but no CMake config
+#       package, so find_package(gRPC) needs our own module (cmake/FindgRPC.cmake).
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 find_package(Protobuf REQUIRED)
 find_package(gRPC REQUIRED)

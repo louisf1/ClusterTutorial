@@ -19,7 +19,6 @@ Backgrounds_195_610.ui 1.0 Backgrounds_195_610.ui.qml
 BorderItem           1.0 BorderItem.qml
 Cherry 1.0 Cherry.qml
 Cluster_Art.ui 1.0 Cluster_Art.ui.qml
-singleton Constants 1.0 Constants.qml
 CustomDot 1.0 CustomDot.qml
 DirectoryFontLoader 1.0 DirectoryFontLoader.qml
 EllipseItem 1.0 EllipseItem.qml
@@ -52,4 +51,3 @@ SvgPathItem 1.0 SvgPathItem.qml
 Temp_dial_195_83.ui 1.0 Temp_dial_195_83.ui.qml
 TextItem 1.0 TextItem.qml
 TriangleItem 1.0 TriangleItem.qml
-Values 1.0 Values.qml

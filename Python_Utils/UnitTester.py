@@ -16,7 +16,7 @@ def simulate_dashboard():
         Temp = 40
         total_kms = 12500.456  # Testing your Math.round() logic
         trip_kms = 12.345      # Testing your toFixed(1) logic
-        fuel_liters = 405.0
+        fuel_liters = 85.0
         Gear=1
         string_oillevel="true"
         bool_oillevel=True
@@ -25,10 +25,10 @@ def simulate_dashboard():
             # 1. Simulate Gauges (Speed & RPM)
             speed = min(120.0, speed + random.uniform(-2, 5)) if speed < 100 else speed + random.uniform(-5, 2)
            
-            if (rpm > 1100): 
-                rpm = 10
+            if (rpm > 9100): 
+                rpm = 0
             else:
-                rpm = rpm + 10
+                rpm = rpm + 1000
                             
             if (Temp > 150): 
                 Temp = 40
@@ -40,10 +40,10 @@ def simulate_dashboard():
             else:
                 Gear = Gear + 1
 
-            if (fuel_liters > 1000): 
+            if (fuel_liters > 100): 
                 fuel_liters = 10
             else:
-                fuel_liters = fuel_liters + 100
+                fuel_liters = fuel_liters + 10
                                 
             # 2. Simulate Distance (Total & Trip)
             # Incrementing slightly each loop
