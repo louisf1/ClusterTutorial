@@ -228,7 +228,9 @@ if ! id -nG "$USER" | grep -qw dialout; then
 fi
 
 echo "==> Building and installing kuksaclient (KUKSA C++ client library)"
-KUKSA_CPP_DIR="$HOME/ClusterWorx/kuksa-incubation-main/kuksa-cpp-client"
+# Tracked in the repo (kuksa-incubation-main/ is gitignored, so fresh clones
+# never had the sources there).
+KUKSA_CPP_DIR="$HOME/ClusterWorx/kuksa-cpp-client"
 
 # [FIX] Upstream kuksa-cpp-client ships a broken CMake config template:
 #       cmake/kuksaclientConfig.cmake.in lacks the @PACKAGE_INIT@ marker that

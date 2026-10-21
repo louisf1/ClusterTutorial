@@ -80,7 +80,7 @@ public:
     const grpc::Status status = mStubV1->Get(&context, request, &response);
 
     if (!status.ok()) {
-      mLogger->debug("RPC failed: {}", status.error_message());
+      mLogger->warn("RPC failed: code={} message={}", static_cast<int>(status.error_code()), status.error_message());
       return false;
     }
 
@@ -112,7 +112,7 @@ public:
     const grpc::Status status = mStubV1->Set(&context, request, &response);
 
     if (!status.ok()) {
-      mLogger->debug("RPC failed: {}", status.error_message());
+      mLogger->warn("RPC failed: code={} message={}", static_cast<int>(status.error_code()), status.error_message());
       return false;
     }
 
@@ -211,7 +211,7 @@ public:
     const grpc::Status status = mStubV2->GetValue(&context, request, &response);
 
     if (!status.ok()) {
-      mLogger->debug("RPC failed: {}", status.error_message());
+      mLogger->warn("RPC failed: code={} message={}", static_cast<int>(status.error_code()), status.error_message());
       return false;
     }
 
@@ -306,7 +306,7 @@ public:
     const grpc::Status status = mStubV2->Actuate(&context, request, &response);
 
     if (!status.ok()) {
-      mLogger->debug("RPC failed: {}", status.error_message());
+      mLogger->warn("RPC failed: code={} message={}", static_cast<int>(status.error_code()), status.error_message());
       return false;
     }
 
@@ -345,7 +345,7 @@ public:
         mStubV2->PublishValue(&context, request, &response);
 
     if (!status.ok()) {
-      mLogger->debug("RPC failed: {}", status.error_message());
+      mLogger->warn("RPC failed: code={} message={}", static_cast<int>(status.error_code()), status.error_message());
       return false;
     }
 
@@ -367,7 +367,7 @@ public:
         mStubV2->GetServerInfo(&context, request, &response);
 
     if (!status.ok()) {
-      mLogger->debug("RPC failed: {}", status.error_message());
+      mLogger->warn("RPC failed: code={} message={}", static_cast<int>(status.error_code()), status.error_message());
       return false;
     }
 
@@ -406,7 +406,7 @@ public:
       // happy path
       return datapoints;
     } else {
-      mLogger->debug("RPC failed: {}", status.error_message());
+      mLogger->warn("RPC failed: code={} message={}", static_cast<int>(status.error_code()), status.error_message());
       return {};
     }
   }
