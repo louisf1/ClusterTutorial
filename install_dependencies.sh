@@ -12,8 +12,7 @@
 # Installs Qt 6.4.2 arm64 from Debian bookworm packages (see the Qt [FIX]
 # block below for why no official Qt binary distribution works on this board).
 #
-# Does NOT install: arduino-cli (expected at ~/bin/arduino-cli — install from
-# https://arduino.github.io/arduino-cli/latest/installation/ if missing).
+# Also installs arduino-cli to ~/bin/arduino-cli (+ arduino:avr core).
 #
 # Usage: ./install_dependencies.sh
 
@@ -63,18 +62,27 @@ sudo apt-get install -y \
     libfuse2
 
 echo "==> Python (Conan + kuksa-client run in a venv to avoid PEP 668 conflicts)"
-sudo apt-get install -y \
-    python3-pip \
-    python3-venv \
-    python3.9-venv
+# [FIX] The versioned venv package must match the installed python3 (3.9 on
+#       the Rockchip bullseye image, 3.13 on Raspberry Pi OS trixie, ...).
+#       Hardcoding python3.9-venv made apt abort on any other distro.
+PY_VER="$(python3 -c 'import sys; print("%d.%d" % sys.version_info[:2])')"
+PY_PKGS="python3-pip python3-venv"
+if apt-cache show "python${PY_VER}-venv" >/dev/null 2>&1; then
+    PY_PKGS="$PY_PKGS python${PY_VER}-venv"
+fi
+sudo apt-get install -y $PY_PKGS
 
-# [FIX] Debian 12's apt cmake is 3.18.4, but Qt 6.10.3 refuses to configure
+# [FIX] Debian 11's apt cmake is 3.18.4, but Qt 6.10.3 refuses to configure
 #       with anything older than 3.22 ("CMake 3.22 or higher is required to
 #       use Qt"). Install a newer CMake via pip into ~/.local/bin, which
 #       dobuild.sh prepends onto PATH ahead of the system one.
-echo "==> Installing CMake >=3.22 via pip (system apt cmake is too old for Qt 6.10.3)"
-#python3 -m pip install --user --upgrade "cmake>=3.22"
-python3 -m pip install --upgrade "cmake>=3.22"
+#       Skipped when the system cmake is already new enough (e.g. trixie's
+#       3.31) — a system-wide pip install would fail there anyway (PEP 668).
+if ! printf '3.22\n%s\n' "$(cmake --version | awk 'NR==1{print $3}')" | sort -V -C; then
+    echo "==> Installing CMake >=3.22 via pip (system apt cmake is too old for Qt 6.10.3)"
+    #python3 -m pip install --user --upgrade "cmake>=3.22"
+    python3 -m pip install --upgrade "cmake>=3.22"
+fi
 
 # [FIX] The official Qt arm64 binaries need glibc >=2.35 and GLIBCXX >=3.4.30;
 #       this Rockchip vendor image is Debian 11 (glibc 2.31, GCC 10). A full
@@ -155,9 +163,16 @@ QT_BOOKWORM_PKGS="qt6-base-dev qt6-base-private-dev qt6-declarative-dev \
     libwayland-egl1 libwayland-server0 libwayland-dev libinput-dev \
     libx11-dev libwacom-dev libglib2.0-dev libglib2.0-dev-bin libglib2.0-bin \
     libglib2.0-0 libgudev-1.0-dev"
+# [FIX] Only pin to /bookworm when the bookworm source was added above
+#       (bullseye vendor image). On bookworm/trixie (e.g. Raspberry Pi OS),
+#       install the distro's own Qt 6 packages directly.
 QT_BOOKWORM_LIST=""
 for _pkg in $QT_BOOKWORM_PKGS; do
-    QT_BOOKWORM_LIST="$QT_BOOKWORM_LIST $_pkg/bookworm"
+    if [ -f /etc/apt/sources.list.d/bookworm.list ]; then
+        QT_BOOKWORM_LIST="$QT_BOOKWORM_LIST $_pkg/bookworm"
+    else
+        QT_BOOKWORM_LIST="$QT_BOOKWORM_LIST $_pkg"
+    fi
 done
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
     -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" \
@@ -168,7 +183,7 @@ if [ ! -d "$HOME/.conan-env" ]; then
     python3 -m venv "$HOME/.conan-env"
 fi
 "$HOME/.conan-env/bin/pip" install --upgrade pip -q
-"$HOME/.conan-env/bin/pip" install conan kuksa-client -q
+"$HOME/.conan-env/bin/pip" install conan kuksa-client pyserial -q
 
 if ! grep -q '.conan-env/bin' "$HOME/.bashrc" 2>/dev/null; then
     echo 'export PATH="$HOME/.conan-env/bin:$PATH"' >> "$HOME/.bashrc"
@@ -194,6 +209,23 @@ if ! command -v docker >/dev/null 2>&1; then
     echo "NOTE: log out/in (or run 'newgrp docker') for the docker group membership to take effect."
 fi
 sudo systemctl enable --now docker
+
+echo "==> arduino-cli + AVR core (dobuild.sh uploads the Mega sketch on ttyACM0/1)"
+# dobuild.sh expects arduino-cli at ~/bin/arduino-cli. The official installer
+# picks the right binary for the arch (ARM64 on Pi / Rockchip, x86-64 on PC).
+if [ ! -x "$HOME/bin/arduino-cli" ]; then
+    mkdir -p "$HOME/bin"
+    curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | \
+        BINDIR="$HOME/bin" sh
+fi
+"$HOME/bin/arduino-cli" core update-index
+if ! "$HOME/bin/arduino-cli" core list | grep -q '^arduino:avr '; then
+    "$HOME/bin/arduino-cli" core install arduino:avr
+fi
+# Serial port access for uploads + the Python bridge (takes effect on next login).
+if ! id -nG "$USER" | grep -qw dialout; then
+    sudo usermod -aG dialout "$USER"
+fi
 
 echo "==> Building and installing kuksaclient (KUKSA C++ client library)"
 KUKSA_CPP_DIR="$HOME/ClusterWorx/kuksa-incubation-main/kuksa-cpp-client"
@@ -227,7 +259,11 @@ if [ -d "$KUKSA_CPP_DIR" ] && [ ! -f /usr/local/lib/libkuksaclient.so ]; then
         # kuksa-cpp-client also does find_package(gRPC REQUIRED) but ships no
         # FindgRPC.cmake of its own; point it at ClusterDashboard's copy
         # (same Debian libgrpc-dev-has-no-CMake-config issue as the main build).
-        cmake -DCMAKE_MODULE_PATH="$HOME/ClusterWorx/cmake" ..
+        # src/generate.cmake passes ${_gRPC_CPP_PLUGIN_EXECUTABLE} to protoc,
+        # a variable only upstream gRPC's CMake package defines — without it
+        # protoc gets "--plugin=protoc-gen-grpc=" and fails. Set it explicitly.
+        cmake -DCMAKE_MODULE_PATH="$HOME/ClusterWorx/cmake" \
+              -D_gRPC_CPP_PLUGIN_EXECUTABLE="$(command -v grpc_cpp_plugin)" ..
         make -j"$(nproc)"
         sudo make install
     )

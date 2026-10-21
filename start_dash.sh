@@ -55,7 +55,27 @@ cd "$BUILD_DIR"
 [ -f VSS_paths.txt ] || cp "$PROJECT_DIR/VSS_paths.txt" .
 
 # =============================================================================
-# 3. Start hardware interface
+# 3. KUKSA databroker — normally already up at boot (docker.service is enabled
+#    and the container has restart: unless-stopped). Start whichever is down.
+# =============================================================================
+echo "==> Checking KUKSA databroker..."
+if ! systemctl is-active --quiet docker; then
+    echo "==> Docker service is down — starting it"
+    sudo systemctl start docker || echo "⚠️  Could not start docker.service"
+fi
+# Plain docker needs the docker group in this session; fall back to sudo.
+DOCKER="docker"
+$DOCKER info >/dev/null 2>&1 || DOCKER="sudo docker"
+if [ "$($DOCKER inspect -f '{{.State.Running}}' kuksa-databroker 2>/dev/null)" != "true" ]; then
+    echo "==> kuksa-databroker is not running — starting it"
+    (cd "$PROJECT_DIR" && $DOCKER compose up -d databroker) || \
+        echo "⚠️  Could not start kuksa-databroker — dashboard will run without KUKSA"
+else
+    echo "==> kuksa-databroker is running"
+fi
+
+# =============================================================================
+# 4. Start hardware interface
 # =============================================================================
 echo "==> Starting Arduino hardware interface..."
 set +e
@@ -78,7 +98,7 @@ echo "==> Starting Python hardware bridge..."
 PYTHON_PID=$!
 
 # =============================================================================
-# 4. Run
+# 5. Run
 # =============================================================================
 echo "==> Launching ClusterDashboardApp..."
 ./ClusterDashboardApp

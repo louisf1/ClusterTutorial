@@ -72,11 +72,29 @@ void SystemMonitor::updateEcuVoltage(int index, float voltage) {
 void SystemMonitor::updateStats() {
     QProcess process;
 
-    // A. Check Kuksa Service — maps docker Running bool to "active"/"inactive" for QML
-    process.start("sh", QStringList() << "-c"
-        << "docker inspect -f '{{if .State.Running}}active{{else}}inactive{{end}}' kuksa-databroker 2>/dev/null || echo inactive");
-    process.waitForFinished(500);
-    m_kuksaStatus = process.readAllStandardOutput().trimmed();
+    // A. Check Kuksa Service — maps docker Running bool to "active"/"inactive" for QML.
+    //    "unknown" when docker itself fails (daemon down, no access to
+    //    docker.sock, timeout) so a broken check doesn't look like a stopped broker.
+    process.start("docker", QStringList() << "inspect" << "-f" << "{{.State.Running}}" << "kuksa-databroker");
+    QString kuksaStatus;
+    QString kuksaError;
+    if (!process.waitForFinished(500)) {
+        kuksaError = (process.error() == QProcess::FailedToStart) ? "docker not found" : "docker inspect timed out";
+        process.kill();
+        process.waitForFinished(100);
+    } else if (process.exitStatus() == QProcess::NormalExit && process.exitCode() == 0) {
+        kuksaStatus = (process.readAllStandardOutput().trimmed() == "true") ? "active" : "inactive";
+    } else {
+        kuksaError = QString::fromLocal8Bit(process.readAllStandardError()).trimmed();
+        // Container doesn't exist — docker answered, the broker is definitely not running
+        if (kuksaError.contains("No such object") || kuksaError.contains("No such container"))
+            kuksaStatus = "inactive";
+    } // end docker inspect if
+    if (kuksaStatus.isEmpty()) {
+        if (m_kuksaStatus != "unknown") qDebug() << "[KUKSA] Status check failed:" << kuksaError;
+        kuksaStatus = "unknown";
+    } // end unknown if
+    m_kuksaStatus = kuksaStatus;
     emit kuksaStatusChanged();
 
     // B. Get Top CPU Processes
