@@ -79,12 +79,20 @@ fi
 # =============================================================================
 echo "==> Starting Arduino hardware interface..."
 set +e
+# [FIX] Pick the Mega by USB ID, not by ttyACM number: the PC_Wake_Leonardo
+#       (2341:8036) is also CDC-ACM and often grabs ttyACM0. Flashing the Mega
+#       sketch onto it stalls avrdude and the dashboard never launches.
 ARDUINO_PORT=""
 for _p in /dev/ttyACM0 /dev/ttyACM1; do
-    if [ -e "$_p" ]; then ARDUINO_PORT="$_p"; break; fi
+    [ -e "$_p" ] || continue
+    _pid=$(udevadm info -q property -n "$_p" 2>/dev/null | sed -n 's/^ID_MODEL_ID=//p')
+    case "$_pid" in
+        8036|0036) echo "==> Skipping $_p (PC_Wake_Leonardo)"; continue ;;
+    esac
+    ARDUINO_PORT="$_p"; break
 done
 if [ -z "$ARDUINO_PORT" ]; then
-    echo "⚠️  No Arduino found on ttyACM0 or ttyACM1 — skipping upload"
+    echo "⚠️  No Arduino Mega found on ttyACM0 or ttyACM1 — skipping upload"
 else
     echo "==> Uploading to Arduino on $ARDUINO_PORT"
     "$HOME/bin/arduino-cli" compile --upload --fqbn arduino:avr:mega -p "$ARDUINO_PORT" \
@@ -94,7 +102,7 @@ set -e
 sleep 2  # wait for Arduino to reset and re-enumerate
 
 echo "==> Starting Python hardware bridge..."
-"$HOME/.conan-env/bin/python3" -u "$PROJECT_DIR/Python_Utils/rpm_speed_arduino_dev_ttyACM0.py" &
+ARDUINO_PORT="$ARDUINO_PORT" "$HOME/.conan-env/bin/python3" -u "$PROJECT_DIR/Python_Utils/rpm_speed_arduino_dev_ttyACM0.py" &
 PYTHON_PID=$!
 
 # =============================================================================

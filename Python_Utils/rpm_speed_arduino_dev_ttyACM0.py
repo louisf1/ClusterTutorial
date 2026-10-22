@@ -1,4 +1,5 @@
 import serial
+import serial.tools.list_ports
 import time
 import subprocess
 import os
@@ -13,6 +14,21 @@ from kuksa_client.grpc import VSSClient, Datapoint
 # --- CONFIGURATION ---
 BAUD_RATE = 9600
 SERIAL_PORTS = ['/dev/ttyACM0', '/dev/ttyACM1']
+# The PC_Wake_Leonardo (VID 2341, PID 8036 sketch / 0036 bootloader) is also a
+# CDC-ACM device and can take ttyACM0 — never open it as the telemetry link.
+LEONARDO_PIDS = {0x8036, 0x0036}
+MEGA_PIDS = {0x0042, 0x0010}
+
+
+def find_mega_ports():
+    """Candidate telemetry ports: $ARDUINO_PORT if set, else Mega first, Leonardo excluded."""
+    if os.environ.get('ARDUINO_PORT'):
+        return [os.environ['ARDUINO_PORT']]
+    ports = [p for p in serial.tools.list_ports.comports()
+             if p.device in SERIAL_PORTS or p.device.startswith('/dev/ttyUSB')]
+    ports = [p for p in ports if not (p.vid == 0x2341 and p.pid in LEONARDO_PIDS)]
+    ports.sort(key=lambda p: not (p.vid == 0x2341 and p.pid in MEGA_PIDS))
+    return [p.device for p in ports]
 KUKSA_IP = '127.0.0.1'
 KUKSA_PORT = 55555
 
@@ -165,7 +181,8 @@ def run_master_bridge():
     last_native_cal_log_time = 0   # log first entry immediately on first valid pair
 
     ser = None
-    for port in SERIAL_PORTS:
+    candidate_ports = find_mega_ports()
+    for port in candidate_ports:
         try:
             ser = serial.Serial(port, BAUD_RATE, timeout=0.1)
             time.sleep(2)  # Give Arduino a moment to reboot after connection
@@ -174,7 +191,7 @@ def run_master_bridge():
         except Exception as e:
             print(f"⚠️  Could not open {port}: {e}")
     if ser is None:
-        print(f"❌ Serial Error: no Arduino found on {SERIAL_PORTS}. Check your USB connection!")
+        print(f"❌ Serial Error: no Arduino Mega found on {candidate_ports or SERIAL_PORTS}. Check your USB connection!")
         with open(WIRE_STATE_FILE, 'w') as jf:
             json.dump({'states': [False] * 20, 'voltages': [0.0] * 20}, jf)
         return
