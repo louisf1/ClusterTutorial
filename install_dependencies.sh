@@ -210,7 +210,7 @@ if ! command -v docker >/dev/null 2>&1; then
 fi
 sudo systemctl enable --now docker
 
-echo "==> arduino-cli + AVR core (dobuild.sh uploads the Mega sketch on ttyACM0/1)"
+echo "==> arduino-cli + AVR core (dobuild.sh uploads the Mega sketch found by USB ID)"
 # dobuild.sh expects arduino-cli at ~/bin/arduino-cli. The official installer
 # picks the right binary for the arch (ARM64 on Pi / Rockchip, x86-64 on PC).
 if [ ! -x "$HOME/bin/arduino-cli" ]; then

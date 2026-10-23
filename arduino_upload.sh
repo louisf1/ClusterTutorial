@@ -17,22 +17,24 @@ FQBN="arduino:avr:mega"
 BRIDGE="arduino-bridge.service"
 
 # Pick the Mega by USB ID, not by ttyACM number: the PC_Wake_Leonardo
-# (2341:8036) is also CDC-ACM and often grabs ttyACM0. Matches the Mega's
-# product IDs (2341:0042 Mega 2560 R3, 2341:0010 Mega 2560) — same set as
-# MEGA_PIDS in rpm_speed_arduino_dev_ttyACM0.py.
+# (2341:8036) is also CDC-ACM and often grabs ttyACM0. Matches genuine Megas
+# (2341:0042 Mega 2560 R3, 2341:0010 Mega 2560) on ttyACM*, and CH340-based
+# Mega clones (1a86:7523), which enumerate as ttyUSB* instead.
 PORT=""
-for candidate in /dev/ttyACM*; do
+for candidate in /dev/ttyACM* /dev/ttyUSB*; do
     [ -e "$candidate" ] || continue
     props=$(udevadm info -q property -n "$candidate" 2>/dev/null)
     vid=$(sed -n 's/^ID_VENDOR_ID=//p' <<< "$props")
     pid=$(sed -n 's/^ID_MODEL_ID=//p' <<< "$props")
-    if [ "$vid" = "2341" ] && { [ "$pid" = "0042" ] || [ "$pid" = "0010" ]; }; then
-        PORT="$candidate"
-        break
-    fi
+    case "$vid:$pid" in
+        2341:0042|2341:0010|1a86:7523)
+            PORT="$candidate"
+            break
+            ;;
+    esac
 done
 if [ -z "$PORT" ]; then
-    echo "==> No Arduino Mega (USB 2341:0042/0010) found — is the board plugged in?" >&2
+    echo "==> No Arduino Mega (USB 2341:0042/0010 or CH340 1a86:7523) found — is the board plugged in?" >&2
     exit 1
 fi
 echo "==> Found Arduino Mega on $PORT"

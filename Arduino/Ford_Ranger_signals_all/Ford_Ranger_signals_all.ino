@@ -26,14 +26,14 @@
 // Hazard is derived in Python bridge (left AND right both active).
 // State is latched across the 1s report window so fast blinks are never missed.
 // =============================================================================
-const int leftIndicatorPin  = 25;
-const int rightIndicatorPin = 26;
-const int LightsDimPin      = 27;
-const int LightsBrightPin   = 28;
-const int DaytimeLightsPin  = 29;
-const int ParkingLightsPin  = 30; //was 22
-const int ParkingBrakePin   = 31; //was 10
-const int SeatbeltPin       = 6;  //was 8
+const int leftIndicatorPin  = 7;
+const int rightIndicatorPin = 5;
+const int LightsDimPin      = 9;
+const int LightsBrightPin   = 8;
+const int DaytimeLightsPin  = 10;
+const int ParkingLightsPin  = 14;
+const int ParkingBrakePin   = 16;
+const int SeatbeltPin       = 19;
 
 // Left/right indicators use a "last pulse seen" timestamp instead of a 1s
 // latch — the flasher relay pulses the pin at ~1.5Hz, so "active" is true
@@ -58,56 +58,71 @@ bool SeatbeltSeen       = false;
 // "reserved" INPUT_PULLUP wire pins that float high with nothing connected —
 // moved here so they sit at a known 0V instead.
 // D10 removed from this set — now the dedicated parking brake switch input.
-// D8 removed from this set — now the dedicated seatbelt switch input.
+// D8 removed from this set — now LightsBrightPin. Leaving it here drove the
+// pin OUTPUT LOW every loop, so the bright-lights read was always 0.
 // D9 removed from this set — now the dedicated dashboard page-switch button.
 // D34 promoted to OilLevelPin (oil level sensor INPUT_PULLUP).
 // D35 promoted to DoorPin (door open sensor — active HIGH, 5V = any door open).
-const int SparePins[7] = {2, 8, 11, 12, 13, 32, 38};
-bool SparePinSeen[7]   = {false, false, false, false,
-                          false, false, false};
+const int NUM_SPARE_PINS = 6;
+const int SparePins[NUM_SPARE_PINS] = {2, 11, 12, 13, 32, 38};
+bool SparePinSeen[NUM_SPARE_PINS]   = {false, false, false,
+                                       false, false, false};
 
 // =============================================================================
-// DOOR OPEN SIGNAL — D3
+// DOOR OPEN SIGNAL — D17
 // Active HIGH: 5V = any door open, 0V = all doors closed.
 // Plain INPUT — signal driven externally; no pull-up needed.
 // =============================================================================
-const int DoorPin = 35; //was 3
+const int DoorPin = 17;
 
 // =============================================================================
-// OIL LEVEL SIGNAL — D34
+// OIL LEVEL SIGNAL — D18
 // Oil level sensor: float switch, closes to GND when oil is LOW.
 // INPUT_PULLUP: HIGH = oil normal, LOW = oil low.
 // =============================================================================
-const int OilLevelPin = 34; //was 4
+const int OilLevelPin = 18;
 
 // =============================================================================
-// DASHBOARD PAGE-SWITCH BUTTON — D19
+// DASHBOARD PAGE-SWITCH BUTTON — D30
 // Momentary pushbutton to GND, INPUT_PULLUP (active LOW when pressed).
 // Replaces the old spacebar shortcut for cycling dashboard screens.
 // PageButtonSeen is latched over the 1s window (main report);
 // PageButtonFastSeen is latched over the 100ms FAST report window.
 // =============================================================================
-const int PageButtonPin = 19; //was 9
+const int PageButtonPin = 30;
 bool PageButtonSeen     = false;
 bool PageButtonFastSeen = false;
 
 // =============================================================================
-// TRIP RESET BUTTON — D20
+// TRIP RESET BUTTON — D31
 // Momentary pushbutton to GND, INPUT_PULLUP (active LOW when pressed).
 // Moved off the SPARE7/D7 spare-pin slot (now reused for the glow plug
 // dual-mode read) onto its own dedicated pin. Latched over the 1s window;
 // SystemMonitor.cpp edge-detects the rising TRIPRESET flag on the dashboard
 // side to fire the actual reset once per press.
 // =============================================================================
-const int TripResetPin = 20;
+const int TripResetPin = 31;
 bool TripResetSeen      = false;
 
-// D5 (aircon) and D7 (glow plug) — keep their existing INPUT_PULLUP signal
+// =============================================================================
+// GLOW PLUG & AIRCON DASH INDICATORS — D20 / D21
+// Active HIGH, plain INPUT, read once per 1s report (DVGLOWPLUG/DVAIRCONSIGNAL).
+// NOTE: D20/D21 are the Mega's I2C SDA/SCL pins, which have 10kΩ pull-ups to
+// 5V on the board — an unconnected pin reads HIGH (= active), and a signal must
+// pull the pin below ~1.5V against that pull-up to read LOW.
+// =============================================================================
+const int GlowPlugPin = 20;
+const int AirconPin   = 21;
+
+// DISABLED: D0/D1 are the Mega's Serial RX/TX to the Pi (USB link), so they
+// can't be used as signal inputs. Dual-mode read commented out until the
+// aircon/glow plug signals are moved to free pins.
+// D1 (aircon) and D0 (glow plug) — keep their existing INPUT_PULLUP signal
 // reads (DVAIRCONSIGNAL/DVGLOWPLUG) AND, each loop, briefly drive the pin LOW
 // then switch back to INPUT_PULLUP to see if an external signal pulls it back
 // HIGH on its own. Latched as SPARE5/SPARE11 for comparison/refinement.
-const int DualModePins[2] = {5, 7};
-bool DualModePinSeen[2]   = {false, false};
+//const int DualModePins[2] = {0, 1};
+//bool DualModePinSeen[2]   = {false, false};
 
 // =============================================================================
 // SPEED & RPM
@@ -356,6 +371,20 @@ void updateAlternatorExcitation() {
 void setup() {
   Serial.begin(9600);
 
+  // Start-up pull-down: drive every digital pin D2-D53 LOW for a moment so
+  // floating lines and stray charge start at a known 0V, then the per-pin
+  // setup below reconfigures each one. D0/D1 are skipped (Serial RX/TX to the
+  // Pi). The ATmega2560 has no internal pull-downs, so pins left as plain
+  // INPUT can float again afterwards; only external resistors keep them at 0V.
+  for (int pin = 2; pin <= 53; pin++) {
+    pinMode(pin, OUTPUT);
+    digitalWrite(pin, LOW);
+  }
+  delay(10);
+  for (int pin = 2; pin <= 53; pin++) {
+    pinMode(pin, INPUT);
+  }
+
   // Alternator excitation output — start at 0V, ramps up via control loop
   pinMode(AltExcitePin, OUTPUT);
   analogWrite(AltExcitePin, 0);
@@ -382,8 +411,12 @@ void setup() {
   // Door open sensor — active HIGH from external signal, plain INPUT
   pinMode(DoorPin, INPUT);
 
+  // Glow plug / aircon dash indicators — active HIGH, plain INPUT
+  pinMode(GlowPlugPin, INPUT);
+  pinMode(AirconPin,   INPUT);
+
   // Spare pins — held LOW (pulled down) by default
-  for (int i = 0; i < 7; i++) {
+  for (int i = 0; i < NUM_SPARE_PINS; i++) {
     pinMode(SparePins[i], OUTPUT);
     digitalWrite(SparePins[i], LOW);
   }
@@ -444,7 +477,7 @@ void loop() {
 
   // Spare pins: briefly switch to INPUT to sample for a HIGH pulse,
   // then drive back LOW (kept pulled down by default)
-  for (int i = 0; i < 7; i++) {
+  for (int i = 0; i < NUM_SPARE_PINS; i++) {
     pinMode(SparePins[i], INPUT);
     if (digitalRead(SparePins[i]) == HIGH) SparePinSeen[i] = true;
     pinMode(SparePins[i], OUTPUT);
@@ -462,15 +495,15 @@ void loop() {
     TripResetSeen = true;
   }
 
-  // D5/D11: briefly drive LOW, then switch back to INPUT_PULLUP — if the
-  // signal pulls the pin back HIGH on its own, latch SPARE5/SPARE11.
-  // DVAIRCONSIGNAL/DVGLOWPLUG reads later this loop see INPUT_PULLUP as before.
-  for (int i = 0; i < 2; i++) {
-    pinMode(DualModePins[i], OUTPUT);
-    digitalWrite(DualModePins[i], LOW);
-    pinMode(DualModePins[i], INPUT_PULLUP);
-    if (digitalRead(DualModePins[i]) == HIGH) DualModePinSeen[i] = true;
-  }
+  // DISABLED (D0/D1 = Serial RX/TX): briefly drive LOW, then switch back to
+  // INPUT_PULLUP — if the signal pulls the pin back HIGH on its own, latch
+  // SPARE5/SPARE11.
+  //for (int i = 0; i < 2; i++) {
+  //  pinMode(DualModePins[i], OUTPUT);
+  //  digitalWrite(DualModePins[i], LOW);
+  //  pinMode(DualModePins[i], INPUT_PULLUP);
+  //  if (digitalRead(DualModePins[i]) == HIGH) DualModePinSeen[i] = true;
+  //}
 
   // Poll speed / RPM — detect RISING edge from active-HIGH hall sensors
   bool curSpeed = digitalRead(speedPin) == HIGH;
@@ -582,8 +615,8 @@ void loop() {
   //Serial.print("|DV33:"); Serial.print(digitalRead(33) == HIGH ? 1 : 0);
   // DVIGNITIONPWR (was digitalRead(14)=TX3, wrong pin) — now covered by AV14 analog
   // DVSTANDBYPOWER (was digitalRead(35), wrong pin)    — now covered by AV15 analog
-  Serial.print("|DVGLOWPLUG:"); Serial.print(digitalRead(11) == HIGH ? 1 : 0);//glowplug indicator on dash (HIGH=active)
-  Serial.print("|DVAIRCONSIGNAL:"); Serial.print(digitalRead(5) == HIGH ? 1 : 0);//aircon indicator on/off
+  Serial.print("|DVGLOWPLUG:"); Serial.print(digitalRead(GlowPlugPin) == HIGH ? 1 : 0);//glowplug indicator on dash (HIGH=active)
+  Serial.print("|DVAIRCONSIGNAL:"); Serial.print(digitalRead(AirconPin) == HIGH ? 1 : 0);//aircon indicator on/off
 
   // ── Alternator excitation debug ──────────────────────────────────────────
   Serial.print("|RAWRED:");  Serial.print(altDebugRawRed, 3);
@@ -606,14 +639,13 @@ void loop() {
   Serial.print("|SPARE2:");  Serial.print(SparePinSeen[0]  ? 1 : 0);
   Serial.print("|DVDOORSIGNAL:"); Serial.print(digitalRead(DoorPin) == HIGH ? 1 : 0);//door open (HIGH=open, LOW=closed)
   Serial.print("|DVOILSIGNAL:"); Serial.print(digitalRead(OilLevelPin) == HIGH ? 1 : 0);//oil level (HIGH=normal, LOW=low)
-//  Serial.print("|SPARE6:");  Serial.print(SparePinSeen[1]  ? 1 : 0);
-//  Serial.print("|SPARE7:");  Serial.print(SparePinSeen[2]  ? 1 : 0);
-  Serial.print("|SPARE12:"); Serial.print(SparePinSeen[3]  ? 1 : 0);
-  Serial.print("|SPARE13:"); Serial.print(SparePinSeen[4]  ? 1 : 0);
-  Serial.print("|SPARE32:"); Serial.print(SparePinSeen[5]  ? 1 : 0);
-  Serial.print("|SPARE38:"); Serial.print(SparePinSeen[6]  ? 1 : 0);
-  Serial.print("|SPARE5:");  Serial.print(DualModePinSeen[0] ? 1 : 0);
-  Serial.print("|SPARE11:"); Serial.print(DualModePinSeen[1] ? 1 : 0);
+//  Serial.print("|SPARE11:"); Serial.print(SparePinSeen[1]  ? 1 : 0);
+  Serial.print("|SPARE12:"); Serial.print(SparePinSeen[2]  ? 1 : 0);
+  Serial.print("|SPARE13:"); Serial.print(SparePinSeen[3]  ? 1 : 0);
+  Serial.print("|SPARE32:"); Serial.print(SparePinSeen[4]  ? 1 : 0);
+  Serial.print("|SPARE38:"); Serial.print(SparePinSeen[5]  ? 1 : 0);
+  //Serial.print("|SPARE5:");  Serial.print(DualModePinSeen[0] ? 1 : 0);  // DISABLED: D0/D1
+  //Serial.print("|SPARE11:"); Serial.print(DualModePinSeen[1] ? 1 : 0);
 
   // ── Dashboard page-switch button (latched over the 1s window) ────────────
   Serial.print("|PAGEBTN:"); Serial.print(PageButtonSeen ? 1 : 0);
@@ -627,9 +659,9 @@ void loop() {
   ParkingLightsSeen  = false;
   ParkingBrakeSeen   = false;
   SeatbeltSeen       = false;
-  for (int i = 0; i < 7; i++) SparePinSeen[i] = false;
-  DualModePinSeen[0] = false;
-  DualModePinSeen[1] = false;
+  for (int i = 0; i < NUM_SPARE_PINS; i++) SparePinSeen[i] = false;
+  //DualModePinSeen[0] = false;  // DISABLED: D0/D1
+  //DualModePinSeen[1] = false;
   PageButtonSeen     = false;
   TripResetSeen      = false;
 

@@ -9,7 +9,7 @@
 #   - Build parallelism capped at 2: 2 GiB RAM board, 6 jobs trip the OOM killer
 #   - QT_QUICK_BACKEND=software: Debian Qt is desktop-GL, Mali blob is ES-only
 #   - VSS_paths.txt staged copy-if-missing (the app persists trip data into it)
-#   - Arduino port auto-detected on ttyACM0/ttyACM1, upload skipped if absent
+#   - Arduino Mega auto-detected by USB ID (ttyACM*/ttyUSB*), upload skipped if absent
 #   - PATH prepends ~/.local/bin for the pip-installed CMake >= 3.22
 
 set -e
@@ -99,12 +99,22 @@ fi
 # =============================================================================
 echo "==> Starting Arduino hardware interface..."
 set +e
+# Pick the Mega by USB ID, not by ttyACM number: the PC_Wake_Leonardo
+# (2341:8036) is also CDC-ACM and often grabs ttyACM0. Matches genuine Megas
+# (2341:0042/0010) on ttyACM*, and CH340-based Mega clones (1a86:7523), which
+# enumerate as ttyUSB* instead — same set as arduino_upload.sh.
 ARDUINO_PORT=""
-for _p in /dev/ttyACM0 /dev/ttyACM1; do
-    if [ -e "$_p" ]; then ARDUINO_PORT="$_p"; break; fi
+for _p in /dev/ttyACM* /dev/ttyUSB*; do
+    [ -e "$_p" ] || continue
+    _props=$(udevadm info -q property -n "$_p" 2>/dev/null)
+    _id="$(sed -n 's/^ID_VENDOR_ID=//p' <<< "$_props"):$(sed -n 's/^ID_MODEL_ID=//p' <<< "$_props")"
+    case "$_id" in
+        2341:0042|2341:0010|1a86:7523) ARDUINO_PORT="$_p"; break ;;
+        2341:8036|2341:0036) echo "==> Skipping $_p (PC_Wake_Leonardo)" ;;
+    esac
 done
 if [ -z "$ARDUINO_PORT" ]; then
-    echo "⚠️  No Arduino found on ttyACM0 or ttyACM1 — skipping upload"
+    echo "⚠️  No Arduino Mega (USB 2341:0042/0010 or CH340 1a86:7523) found — skipping upload"
 else
     echo "==> Uploading to Arduino on $ARDUINO_PORT"
     "$HOME/bin/arduino-cli" compile --upload --fqbn arduino:avr:mega -p "$ARDUINO_PORT" \
@@ -114,7 +124,7 @@ set -e
 sleep 2  # wait for Arduino to reset and re-enumerate
 
 echo "==> Starting Python hardware bridge..."
-"$HOME/.conan-env/bin/python3" -u "$PROJECT_DIR/Python_Utils/rpm_speed_arduino_dev_ttyACM0.py" &
+ARDUINO_PORT="$ARDUINO_PORT" "$HOME/.conan-env/bin/python3" -u "$PROJECT_DIR/Python_Utils/rpm_speed_arduino_dev_ttyACM0.py" &
 PYTHON_PID=$!
 
 # =============================================================================

@@ -146,7 +146,7 @@ Window {
 		        height: 660
 		        color: "transparent"
 		        border.color: "#333"
-		        radius: 5
+		        radius: 10
 
 		        Column {
 		            anchors.fill: parent
@@ -208,7 +208,7 @@ Window {
 		    height: 660
 		    color: "transparent"
 		    border.color: "#333"
-		    radius: 5
+		    radius: 10
 
 		    // The Bridge: Catches the 'newLogEntry' signal from SystemMonitor.cpp
 		    // Moved here to the top level of the block for clean scoping
@@ -236,7 +236,7 @@ Window {
 
 			Text {
 			    id: terminalTitle
-			    text: "ECU K-LINE STATUS: "
+			    text: "PCB STATUS: "
 			    color: "#00FF00"
 			    font.bold: true
 			    font.pixelSize: 24
@@ -247,7 +247,7 @@ Window {
 			    width: parent.width
 			    height: parent.height - terminalTitle.height - parent.spacing - 30 
 			    color:  "transparent"
-			    radius: 3
+			    radius: 10
 			    clip: true // ESSENTIAL: Keeps scrolling text inside the box
 
 			    ListView {
@@ -382,7 +382,7 @@ Window {
 				height: 660
 				color: "transparent"
 				border.color: "#333"
-				radius: 5
+				radius: 10
 
 				Column {
 				    anchors.fill: parent
@@ -413,7 +413,7 @@ Window {
 				height: 660
 				color: "transparent"
 				border.color: "#333"
-				radius: 5
+				radius: 10
 
 				Column {
 				    anchors.fill: parent
@@ -435,7 +435,7 @@ Window {
 				            model: 20
 				            delegate: Item {
 				                width: parent.width
-				                height: 25
+				                height: 34
 				                visible: healthPage.getWireColor(index) !== ""
 
 				                // Left: color dot + function description
@@ -446,9 +446,9 @@ Window {
 
 				                    Rectangle {
 				                        id: wireDot
-				                        width: 20
-				                        height: 20
-				                        radius: 10
+				                        width: 27
+				                        height: 27
+				                        radius: 37
 				                        border.color: "white"
 				                        border.width: 1
 				                        anchors.verticalCenter: parent.verticalCenter
@@ -485,7 +485,7 @@ Window {
 				                    spacing: 10
 
 				                    Rectangle {
-				                        width: 12; height: 12; radius: 6
+				                        width: 12; height: 12; radius: 10
 				                        color: healthPage.getWireHealth(index) ? "#00FF00" : "#FF0000"
 				                        anchors.verticalCenter: parent.verticalCenter
 				                    } // end health dot

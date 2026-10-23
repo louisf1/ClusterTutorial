@@ -171,13 +171,19 @@ void SystemMonitor::updateStats() {
     m_bluetoothStatus = process.readAllStandardOutput().trimmed();
     emit bluetoothStatusChanged();
 
-    // I. Arduino status — check ttyACM0 first, fall back to ttyACM1
-    process.start("sh", QStringList() << "-c" << "test -e /dev/ttyACM0 && echo ttyACM0 || (test -e /dev/ttyACM1 && echo ttyACM1 || echo inactive)");
+    // I. Arduino status — find the Mega by USB ID, not by ttyACM number: the
+    //    PC_Wake_Leonardo (2341:8036) also enumerates as ttyACM*. Same ID set as
+    //    start_dash.sh: genuine Megas (2341:0042/0010) and CH340 clones (1a86:7523).
+    process.start("sh", QStringList() << "-c" <<
+        "for p in /dev/ttyACM* /dev/ttyUSB*; do [ -e \"$p\" ] || continue; "
+        "props=$(udevadm info -q property -n \"$p\" 2>/dev/null); "
+        "id=$(echo \"$props\" | sed -n 's/^ID_VENDOR_ID=//p'):$(echo \"$props\" | sed -n 's/^ID_MODEL_ID=//p'); "
+        "case \"$id\" in 2341:0042|2341:0010|1a86:7523) basename \"$p\"; exit 0;; esac; done; echo inactive");
     process.waitForFinished(500);
     {
         QString arduinoPort = process.readAllStandardOutput().trimmed();
         if (arduinoPort == "inactive") {
-            if (m_arduinoStatus != "inactive") qDebug() << "[Arduino] No device on ttyACM0 or ttyACM1";
+            if (m_arduinoStatus != "inactive") qDebug() << "[Arduino] No Mega found (USB 2341:0042/0010 or 1a86:7523)";
             m_arduinoStatus = "inactive";
         } else {
             if (m_arduinoStatus != "active") qDebug() << "[Arduino] Connected on" << arduinoPort;

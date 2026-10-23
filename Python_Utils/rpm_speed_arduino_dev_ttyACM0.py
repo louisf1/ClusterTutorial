@@ -18,6 +18,7 @@ SERIAL_PORTS = ['/dev/ttyACM0', '/dev/ttyACM1']
 # CDC-ACM device and can take ttyACM0 — never open it as the telemetry link.
 LEONARDO_PIDS = {0x8036, 0x0036}
 MEGA_PIDS = {0x0042, 0x0010}
+CH340_ID = (0x1a86, 0x7523)  # CH340-based Mega clones, enumerate as ttyUSB*
 
 
 def find_mega_ports():
@@ -27,7 +28,8 @@ def find_mega_ports():
     ports = [p for p in serial.tools.list_ports.comports()
              if p.device in SERIAL_PORTS or p.device.startswith('/dev/ttyUSB')]
     ports = [p for p in ports if not (p.vid == 0x2341 and p.pid in LEONARDO_PIDS)]
-    ports.sort(key=lambda p: not (p.vid == 0x2341 and p.pid in MEGA_PIDS))
+    ports.sort(key=lambda p: not ((p.vid == 0x2341 and p.pid in MEGA_PIDS)
+                                  or (p.vid, p.pid) == CH340_ID))
     return [p.device for p in ports]
 KUKSA_IP = '127.0.0.1'
 KUKSA_PORT = 55555
@@ -54,7 +56,7 @@ ANALOG_TO_WIRE = {
     15: 14,  # A15 Red           - index 14 "Red"           (StandBy Power)
 }
 DIGITAL_TO_WIRE = {
-    'DVGLOWPLUG':     15,  # D11 Brown → index 15 "brown" (Glow Plugs)
+    'DVGLOWPLUG':     15,  # D20 Brown → index 15 "brown" (Glow Plugs)
     # DVIGNITIONPWR/DVSTANDBYPOWER removed — now read as AV14/AV15 analog (ANALOG_TO_WIRE 14→13, 15→14)
 }
 VOLTAGE_SCALE     = 1.0   # Arduino applies 10kΩ/5.1kΩ divider scale; value sent is already in automotive volts (0–14.5V)

@@ -7,7 +7,7 @@
 #   - Hardcoded /home/louis/... paths replaced with $HOME/$PROJECT_DIR
 #   - QT_QUICK_BACKEND=software: Debian Qt is desktop-GL, Mali blob is ES-only
 #   - VSS_paths.txt staged copy-if-missing (the app persists trip data into it)
-#   - Arduino port auto-detected on ttyACM0/ttyACM1, upload skipped if absent
+#   - Arduino Mega auto-detected by USB ID (ttyACM*/ttyUSB*), upload skipped if absent
 
 set -e
 trap 'kill $(jobs -p) 2>/dev/null; pkill -f avrdude 2>/dev/null; pkill -f arduino-cli 2>/dev/null' EXIT
@@ -79,20 +79,22 @@ fi
 # =============================================================================
 echo "==> Starting Arduino hardware interface..."
 set +e
-# [FIX] Pick the Mega by USB ID, not by ttyACM number: the PC_Wake_Leonardo
-#       (2341:8036) is also CDC-ACM and often grabs ttyACM0. Flashing the Mega
-#       sketch onto it stalls avrdude and the dashboard never launches.
+# Pick the Mega by USB ID, not by ttyACM number: the PC_Wake_Leonardo
+# (2341:8036) is also CDC-ACM and often grabs ttyACM0. Matches genuine Megas
+# (2341:0042/0010) on ttyACM*, and CH340-based Mega clones (1a86:7523), which
+# enumerate as ttyUSB* instead — same set as arduino_upload.sh.
 ARDUINO_PORT=""
-for _p in /dev/ttyACM0 /dev/ttyACM1; do
+for _p in /dev/ttyACM* /dev/ttyUSB*; do
     [ -e "$_p" ] || continue
-    _pid=$(udevadm info -q property -n "$_p" 2>/dev/null | sed -n 's/^ID_MODEL_ID=//p')
-    case "$_pid" in
-        8036|0036) echo "==> Skipping $_p (PC_Wake_Leonardo)"; continue ;;
+    _props=$(udevadm info -q property -n "$_p" 2>/dev/null)
+    _id="$(sed -n 's/^ID_VENDOR_ID=//p' <<< "$_props"):$(sed -n 's/^ID_MODEL_ID=//p' <<< "$_props")"
+    case "$_id" in
+        2341:0042|2341:0010|1a86:7523) ARDUINO_PORT="$_p"; break ;;
+        2341:8036|2341:0036) echo "==> Skipping $_p (PC_Wake_Leonardo)" ;;
     esac
-    ARDUINO_PORT="$_p"; break
 done
 if [ -z "$ARDUINO_PORT" ]; then
-    echo "⚠️  No Arduino Mega found on ttyACM0 or ttyACM1 — skipping upload"
+    echo "⚠️  No Arduino Mega (USB 2341:0042/0010 or CH340 1a86:7523) found — skipping upload"
 else
     echo "==> Uploading to Arduino on $ARDUINO_PORT"
     "$HOME/bin/arduino-cli" compile --upload --fqbn arduino:avr:mega -p "$ARDUINO_PORT" \
