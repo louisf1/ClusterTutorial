@@ -4,7 +4,7 @@
 ****************************************************************************/
 import QtQuick 2.8
 import QtQuick.Layouts 1.0
-import Data 1.0 as Data
+import ClusterTutorial as Data
 
 Item {
     id: total_kms_completed
@@ -43,7 +43,7 @@ Item {
             height: 28
             color: "#9ff516" // Standard 6-digit hex for green
             // Bind to a new property in Values.qml (see step 4)
-            text: Data.Values.totalKms 
+            text: Values.totalKms 
             font.pixelSize: 20
             font.family: "Cherry"
             horizontalAlignment: Text.AlignHCenter
@@ -70,7 +70,7 @@ Item {
             width: 170
             height: 28 // Offset so they don't overlap
             color: "#9ff516"
-            text: Data.Values.tripKms
+            text: Values.tripKms
             font.pixelSize: 20
             font.family: "Cherry"
             horizontalAlignment: Text.AlignHCenter

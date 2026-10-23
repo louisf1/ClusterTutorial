@@ -53,13 +53,59 @@ import QtQuick 2.10
 
 QtObject {
     id: values
+    
+    // Existing properties (speed, rpm, temp, batteryVoltage...)
+    property real batteryVoltage: 0.0
 
+    // Inside Values.qml
+    property string cpuLoad: "0%"
+    property string memUsage: "0/0 GB"
+    property string kuksaStatus: "unknown"
+    property string bluetoothStatus: "unknown"
+    property string arduinoStatus: "unknown"
+    property string pythonSupportStatus: "unknown"        
+    property string topApps: ""
+    property real cpuTemp: 0.0    
+
+    property string dateVehicleFirstRegistered: "Loading..."
+    property string knownVehicleDamages: "Loading..." 
+    property string purchaseDate: "Loading..."
+    property string vehicleExteriorColor: "Loading..."
+    property string vehicleInteriorColor: "Loading..."
+
+    property string year: "Loading..."        
+    property string vin: "Loading..."
+    property string productionDate: "---"
+    property string brand: "---"
+    property string modelName: "---"
+    property string licensePlate: "---"
+    property string bodyType: "---"
+
+    property bool ecu: false
+    property bool glowPlugs: false
+
+    property bool doorsSignal: false
+       
+    //property string string_oilSignal: "CRITICALLY_LOW"
+    //property string string_oilSignal: "LOW"
+    //property string string_oilSignal: "NORMAL"
+    //property string string_oilSignal: "HIGH"
+    //property string string_oilSignal: "CRITICALLY_HIGH"
+
+    property string string_oilSignal: "NORMAL"
+    // Binding auto-recomputes whenever string_oilSignal changes.
+    // Warning light on for any level other than NORMAL.
+    property bool bool_oilSignal: string_oilSignal === "CRITICALLY_LOW" ||
+                                   string_oilSignal === "LOW"            ||
+                                   string_oilSignal === "HIGH"           ||
+                                   string_oilSignal === "CRITICALLY_HIGH"
+    
     /* tachometer dial values */
     property int temp: 40 
     property string displayTemp: "40"
 
     /* Iso Icons Boolean Values */
-    // Inside Values.qml [cite: 8]
+    // Inside Values.qml
     property bool daytimeLights: false  
     property bool nightTimeDimLights: false
     property bool nightTimeBrightLights: false 
@@ -75,7 +121,7 @@ QtObject {
     property string displayRpm: "0"
 
     /* speedometer dial values */
-    property real kph: 0
+    property real kph: 120
     property string displayKph: "0"
     property string displayKpl: "0"
 

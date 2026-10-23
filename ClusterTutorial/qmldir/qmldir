@@ -1,20 +1,24 @@
-##module ClusterTutorial
-#linktarget ClusterTutorial
-#optional plugin ClusterTutorial
-classname ClusterTutorialIcon
-typeinfo ClusterTutorial.qmltypes
-#List every file from your CMakeLists.txt here
+# Module declaration MUST be first
+module ClusterTutorial
 
-absIcon.ui 1.0 absIcon.ui.qml
-App 1.0 App.qml
-ArcArrow 1.0 ArcArrow.qml
-ArcItem 1.0 ArcItem.qml
+# Plugin (only if Qt did not auto-generate it; remove if using qt6_add_qml_module)
+# optional plugin ClusterTutorial
+typeinfo ClusterTutorial.qmltypes
+
+# Singletons — pragma Singleton QML files
+singleton Constants 1.0 Constants.qml
+singleton Values    1.0 Values.qml
+
+# Regular QML types
+ClusterTutorial 1.0 ClusterTutorial.qml
+absIcon.ui           1.0 absIcon.ui.qml
+App                  1.0 App.qml
+ArcArrow             1.0 ArcArrow.qml
+ArcItem              1.0 ArcItem.qml
 Backgrounds_195_610.ui 1.0 Backgrounds_195_610.ui.qml
-BorderItem 1.0 BorderItem.qml
+BorderItem           1.0 BorderItem.qml
 Cherry 1.0 Cherry.qml
 Cluster_Art.ui 1.0 Cluster_Art.ui.qml
-##ClusterTutorial 1.0 ClusterTutorial.qml
-Constants 1.0 Constants.qml
 CustomDot 1.0 CustomDot.qml
 DirectoryFontLoader 1.0 DirectoryFontLoader.qml
 EllipseItem 1.0 EllipseItem.qml
@@ -47,4 +51,3 @@ SvgPathItem 1.0 SvgPathItem.qml
 Temp_dial_195_83.ui 1.0 Temp_dial_195_83.ui.qml
 TextItem 1.0 TextItem.qml
 TriangleItem 1.0 TriangleItem.qml
-Values 1.0 Values.qml

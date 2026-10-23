@@ -57,18 +57,18 @@ QtObject {
 
     property string relativeFontDirectory: "fonts"
 
-    readonly property font font: Qt.font({
-                                             family: "Arial",
-                                             pointSize: Qt.application.font.pixelSize
-                                         })
-    readonly property font largeFont: Qt.font({
-                                                  family: "Arial",
-                                                  pointSize: 12 ///Qt.application.font.pixelSize * 1.6
-                                              })
+// Instead of relative system sizes, use absolute design sizes
+   readonly property font font: Qt.font({
+    family: "Arial",
+    pixelSize: 24  // Looks standard on a 1080p design
+   })
+
+   readonly property font largeFont: Qt.font({
+    family: "Arial",
+    pixelSize: 42, // Large and clear for Speed/RPM readouts
+    weight: Font.Bold
+   })
     readonly property color backgroundColor: "#c2c2c2"
-
-    //property StudioApplication application: StudioApplication {
-    //       fontPath: Qt.resolvedUrl("../ClusterTutorialContent/" + relativeFontDirectory)
-    // }
-
+    // You can also define a scale factor here if needed
+    property real relativeRestScale: 1.0
 }

@@ -51,7 +51,7 @@
 ****************************************************************************/
 import QtQuick 2.8
 import QtQuick.Timeline 1.0
-import Data 1.0 as Data
+import ClusterTutorial 1.0
 import QtQuick.Studio.Components 1.0
 import QtQuick.Studio.Effects 1.0
 
@@ -126,7 +126,7 @@ Item {
         id: gearbox_195_196
         x: 928
         y: 571
-        currentGear: Data.Values.currentGear
+        currentGear: Values.currentGear
     }
 
 
@@ -145,13 +145,14 @@ Item {
         
         // Normalize the value: (Current - Min) / (Max - Min) * TotalFrames
         // Assuming 40-120 range and a 1000 frame timeline:
-        //tempFrame: Math.max(0, Math.min(1000, (Data.Values.temp - 40) * 12.5))
+        //tempFrame: Math.max(0, Math.min(1000, (Values.temp - 40) * 12.5))
         
-        displayTemp: Data.Values.displayTemp
-        //tempFrame: Data.Values.temp
-        tempFrame: Math.max(0, Math.min(1000, (Data.Values.temp - 40) * 12.5))
+        displayTemp: Values.displayTemp
+        //tempFrame: Values.temp
+        tempFrame: Math.max(0, Math.min(1000, (Values.temp - 40) * 12.5))
     }
-        
+
+       
 /* --- Left Indicator --- */
     Left_Indicator {
         id: leftIndicatorInstance
@@ -159,7 +160,7 @@ Item {
         y: 500
         width: 100 
         height: 100
-        active: Data.Values.leftindicator // Must match Values.qml
+        active: Values.leftindicator // Must match Values.qml
    }
 
 /* --- Right Indicator --- */
@@ -169,7 +170,7 @@ Item {
         y: 500
         width: 100
         height: 100
-        active: Data.Values.rightindicator // Must match Values.qml
+        active: Values.rightindicator // Must match Values.qml
    }
         
     KMS_Totals_Trip {
@@ -182,8 +183,8 @@ Item {
         anchors.bottom: cluster_Art.bottom
         anchors.bottomMargin: 500 
     // Your rounded data logic [cite: 15, 16]
-        readout_total_kms: Math.round(Data.Values.totalKms || 0)
-        readout_total_trip: Number(Data.Values.tripKms || 0).toFixed(1)
+        readout_total_kms: Math.round(Values.totalKms || 0)
+        readout_total_trip: Number(Values.tripKms || 0).toFixed(1)
     }
     
     Fuel_dial_195_43 {
@@ -194,9 +195,9 @@ Item {
         anchors.bottomMargin: 570 // Mirror of the bottom margin
         width: 50
         height: 50        
-        rangeDisplay: Data.Values.displayRange
-        litersDisplay: Data.Values.displayLiters
-        fuelFrame: Data.Values.liters
+        rangeDisplay: Values.displayRange
+        litersDisplay: Values.displayLiters 
+        fuelFrame: Values.liters
     }
 
     Rpm_dial_195_83 {
@@ -207,8 +208,10 @@ Item {
         anchors.bottom: parent.bottom
         anchors.leftMargin: 60   // Balanced spacing from left
         anchors.bottomMargin: 570 // Balanced spacing from bottom
-        displayRpm: Data.Values.displayRpm
-        rpmFrame: Data.Values.rpm
+        displayRpm: Values.displayRpm
+        // Timeline frame 100 = 1000 RPM (dial face reads 1-11 x1000),
+        // but Values.rpm is raw engine RPM — scale down by 10 and clamp.
+        rpmFrame: Math.max(0, Math.min(1100, Values.rpm / 10))
     }
 
     FlipableItem {
@@ -223,9 +226,14 @@ Item {
         Speed_dial_195_151 {
             x: 95
             y: 91
-            kplDisplay: Data.Values.displayKpl
-            kphDisplay: Data.Values.displayKph
-            kphFrame: Data.Values.kph
+            kplDisplay: {
+                var n = parseFloat(Values.displayKpl);
+                if (isNaN(n) || n < 0) n = 0.0;
+                var s = n.toFixed(2);
+                return s.length < 5 ? ("0" + s) : s;
+            }
+            kphDisplay: Values.displayKph
+            kphFrame: Values.kph
         }
 
         Image {
@@ -395,9 +403,9 @@ Item {
             }
         }
 
-// --- ADDED: Temperature Gauge Opacity Fade-In ---
+// --- FIXED: Temperature Gauge Opacity Fade-In ---
         KeyframeGroup {
-            target: Temp_dial_195_83
+            target: tempDialInstance // FIX: Corrected from Temp_dial_195_83
             property: "opacity"
 
             Keyframe {
@@ -407,19 +415,19 @@ Item {
 
             Keyframe {
                 value: 0
-                frame: 2386 // Wait in the dark alongside the RPM dial
+                frame: 2386 
             }
 
             Keyframe {
                 easing.bezierCurve: [0.95, 0.05, 0.80, 0.04, 1, 1]
                 value: 1
-                frame: 3299 // Fade to full visibility
+                frame: 3299 
             }
         }
 
-        // --- ADDED: Temperature Gauge "Swing/Zoom" Effect ---
+        // --- FIXED: Temperature Gauge "Swing/Zoom" Effect ---
         KeyframeGroup {
-            target: Temp_dial_195_83
+            target: tempDialInstance // FIX: Corrected from Temp_dial_195_83
             property: "scale"
             
             Keyframe {
@@ -429,16 +437,15 @@ Item {
 
             Keyframe {
                 value: 0.01
-                frame: 2391 // Stay tiny alongside the RPM dial
+                frame: 2391 
             }
 
             Keyframe {
                 easing.bezierCurve: [0.95, 0.05, 0.80, 0.04, 1, 1]
-                value: 0.5 // CRITICAL: Stop at 0.5 so it stays a small corner gauge!
+                value: 0.5 // Correctly maintains the 50% corner size
                 frame: 3294
             }
         }
-
 
         KeyframeGroup {
             target: rpmDial
@@ -567,7 +574,7 @@ Item {
     states: [
         State {
             name: "bootState"
-            when: Data.Values.booting
+            when: Values.booting
 
             PropertyChanges {
                 target: bootTImeline
@@ -581,7 +588,7 @@ Item {
         },
         State {
             name: "running"
-            when: !Data.Values.booting
+            when: !Values.booting
 
             PropertyChanges {
                 target: gearbox_195_196

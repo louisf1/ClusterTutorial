@@ -1,10 +1,41 @@
+# Build output
 build/
-
-# CMake build output (should never be committed)
-CMakeFiles/
-CMakeCache.txt
-cmake_install.cmake
-CTestTestfile.cmake
-CMakeUserPresets.json
+ClusterWorx/build/
 *.o
-a.out
+*.a
+*.so
+*.so.*
+
+# Qt installer
+*.run
+
+# Large 3rd-party source trees
+kuksa-incubation-main/
+ClusterWorx/kuksa-incubation-main/
+
+# Old/backup source files
+*.cpp_2026*
+*.cpp_20260*
+main_*.cpp
+main.cpp_*
+*_BACKUP_*.cpp
+
+# Runtime / temp
+*.log
+*.history
+.vssclient_history
+ClusterWorx/.vssclient_history
+Python_Utils/.vssclient_history
+ClusterWorx/Python_Utils/.vssclient_history
+
+# Scratch files
+claudequestion
+ClusterWorx/claudequestion
+sampleqt6compiledebugmethod
+
+# Python
+__pycache__/
+*.pyc
+
+# Claude Code runtime
+.claude/scheduled_tasks.lock

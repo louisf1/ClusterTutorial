@@ -38,10 +38,10 @@ def simulate_dashboard():
             else:
                 Gear = Gear + 1
 
-            if (fuel_liters > 1000): 
-                fuel_liters = 10
+            if (fuel_liters <= 10): 
+                fuel_liters = 0.1
             else:
-                fuel_liters = fuel_liters + 100
+                fuel_liters = fuel_liters + 0.1
                                 
             # 2. Simulate Distance (Total & Trip)
             # Incrementing slightly each loop

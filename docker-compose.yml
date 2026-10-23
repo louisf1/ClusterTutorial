@@ -1,0 +1,21 @@
+services:
+  databroker:
+    image: ghcr.io/eclipse-kuksa/kuksa-databroker:latest
+    container_name: kuksa-databroker
+    restart: unless-stopped
+    ports:
+      - "55555:55555"
+    volumes:
+      - ./vss_broker_catalog.json:/vss_broker_catalog.json:ro
+    command: ["--port", "55555", "--insecure", "--vss", "/vss_broker_catalog.json"]
+
+  # Uncomment when you have CAN hardware connected:
+  # can-provider:
+  #   image: ghcr.io/eclipse-kuksa/kuksa-can-provider:latest
+  #   container_name: kuksa-can-provider
+  #   network_mode: host
+  #   environment:
+  #     BROKER_ADDR: "127.0.0.1:55555"
+  #     VSS: "4"
+  #   depends_on:
+  #     - databroker

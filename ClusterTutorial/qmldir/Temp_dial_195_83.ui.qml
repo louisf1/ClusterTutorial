@@ -164,7 +164,7 @@ Item {
                 color: "#FFFFFF"
                 text: "10"
                 font.weight: Font.Thin
-                font.pixelSize: 29
+                font.pixelSize: 55
                 font.family: "Exo 2"
             }
 
@@ -175,7 +175,7 @@ Item {
                 color: "#FFFFFF"
                 text: "X"
                 font.weight: Font.ExtraLight
-                font.pixelSize: 29
+                font.pixelSize: 55
                 font.family: "IBM Plex Mono"
             }
 
@@ -186,7 +186,7 @@ Item {
                 color: "#FFFFFF"
                 text: "°C"
                 font.weight: Font.ExtraLight
-                font.pixelSize: 29
+                font.pixelSize: 55
                 font.family: "IBM Plex Mono"
             }
 
@@ -215,7 +215,7 @@ Item {
                 color: "#FFFFFF"
                 text: "40"
                 font.weight: Font.Thin
-                font.pixelSize: 29
+                font.pixelSize: 58
                 font.family: "Exo 2"
             }
 
@@ -226,7 +226,7 @@ Item {
                 color: "#FFFFFF"
                 text: "5"
                 font.weight: Font.Thin
-                font.pixelSize: 29
+                font.pixelSize: 58
                 font.family: "Exo 2"
             }
 
@@ -237,7 +237,7 @@ Item {
                 color: "#FFFFFF"
                 text: "6"
                 font.weight: Font.Thin
-                font.pixelSize: 29
+                font.pixelSize: 58
                 font.family: "Exo 2"
             }
 
@@ -248,7 +248,7 @@ Item {
                 color: "#FFFFFF"
                 text: "7"
                 font.weight: Font.Thin
-                font.pixelSize: 29
+                font.pixelSize: 58
                 font.family: "Exo 2"
             }
 
@@ -259,84 +259,84 @@ Item {
                 color: "#FFFFFF"
                 text: "8"
                 font.weight: Font.Thin
-                font.pixelSize: 29
+                font.pixelSize: 58
                 font.family: "Exo 2"
             }
 
             Text {
                 id: _temp_195_75
-                x: 22
-                y: 351
+                x: -14
+                y: 370
                 color: "#FFFFFF"
                 text: "9"
                 font.weight: Font.Thin
-                font.pixelSize: 29
+                font.pixelSize: 58
                 font.family: "Exo 2"
             }
 
             Text {
                 id: _temp_195_76
-                x: -7
-                y: 284
+                x: -56
+                y: 294
                 color: "#FFFFFF"
                 text: "10"
                 font.weight: Font.Thin
-                font.pixelSize: 29
+                font.pixelSize: 58
                 font.family: "Exo 2"
             }
 
             Text {
                 id: _temp_195_77
-                x: -14
-                y: 218
+                x: -64
+                y: 216
                 color: "#FFFFFF"
                 text: "11"
                 font.weight: Font.Thin
-                font.pixelSize: 29
+                font.pixelSize: 58
                 font.family: "Exo 2"
             }
 
             Text {
                 id: _temp_195_78
-                x: -10
-                y: 153
+                x: -58
+                y: 139
                 color: "#FFFFFF"
                 text: "12"
                 font.weight: Font.Thin
-                font.pixelSize: 29
+                font.pixelSize: 58
                 font.family: "Exo 2"
             }
 
             Text {
                 id: _temp_195_79
-                x: 23
-                y: 82
+                x: -20
+                y: 56
                 color: "#FFFFFF"
                 text: "13"
                 font.weight: Font.Thin
-                font.pixelSize: 29
+                font.pixelSize: 58
                 font.family: "Exo 2"
             }
 
             Text {
                 id: _temp_195_80
-                x: 58
-                y: 22
+                x: 23
+                y: -14
                 color: "#FFFFFF"
                 text: "14"
                 font.weight: Font.Thin
-                font.pixelSize: 29
+                font.pixelSize: 58
                 font.family: "Exo 2"
             }
 
             Text {
                 id: _temp_195_81
-                x: 120
-                y: -19
+                x: 96
+                y: -63
                 color: "#FFFFFF"
                 text: "15"
                 font.weight: Font.Thin
-                font.pixelSize: 29
+                font.pixelSize: 58
                 font.family: "Exo 2"
             }
         }
@@ -356,7 +356,7 @@ Item {
             height: 412
             rotation: -90
             fillColor: "#00ffffff"
-            strokeColor: "#FF9999"
+            strokeColor: "#3eee6b"
             end: 60.4
             begin: -108
             strokeWidth: 40
@@ -490,27 +490,29 @@ Item {
             }
         }
 
+        // Frame = (coolant C - 40) * 12.5. Green below 95 C,
+        // amber 95-104 C, red at 105 C+ (was pink/80 C/104 C).
         KeyframeGroup {
             target: arc
             property: "strokeColor"
             Keyframe {
-                value: "#FF9999"
-                frame: 499
+                value: "#3eee6b"
+                frame: 687
             }
 
             Keyframe {
                 value: "#df8c49"
-                frame: 500
+                frame: 688
             }
 
             Keyframe {
                 value: "#df8c49"
-                frame: 799
+                frame: 812
             }
 
             Keyframe {
                 value: "#e24141"
-                frame: 800
+                frame: 813
             }
 
             Keyframe {
@@ -524,28 +526,28 @@ Item {
             property: "strokeColor"
 
             Keyframe {
-                value: "#FF9999"
+                value: "#3eee6b"
                 frame: 0
             }
 
             Keyframe {
-                value: "#FF9999"
-                frame: 499
+                value: "#3eee6b"
+                frame: 687
             }
 
             Keyframe {
                 value: "#df8c49"
-                frame: 500
+                frame: 688
             }
 
             Keyframe {
                 value: "#df8c49"
-                frame: 799
+                frame: 812
             }
 
             Keyframe {
                 value: "#e24141"
-                frame: 800
+                frame: 813
             }
 
             Keyframe {

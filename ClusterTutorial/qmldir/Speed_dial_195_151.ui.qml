@@ -512,7 +512,7 @@ Item {
         height: 442
         fillColor: "#00ffffff"
         rotation: -90
-        strokeColor: "#5ca8ba"
+        strokeColor: "#3eee6b"
         end: 239.7
         begin: -61.3
         strokeWidth: 45
@@ -612,6 +612,43 @@ Item {
             Keyframe {
                 frame: 190
                 value: 225.12
+            }
+        }
+
+        // Speed arc overlay colour: green below 100 km/h,
+        // amber 100-159, red at 160+ (frame = km/h).
+        KeyframeGroup {
+            target: arc
+            property: "strokeColor"
+
+            Keyframe {
+                frame: 0
+                value: "#3eee6b"
+            }
+
+            Keyframe {
+                frame: 99
+                value: "#3eee6b"
+            }
+
+            Keyframe {
+                frame: 100
+                value: "#df8c49"
+            }
+
+            Keyframe {
+                frame: 159
+                value: "#df8c49"
+            }
+
+            Keyframe {
+                frame: 160
+                value: "#e24141"
+            }
+
+            Keyframe {
+                frame: 200
+                value: "#e24141"
             }
         }
 

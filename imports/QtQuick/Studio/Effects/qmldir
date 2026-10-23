@@ -1,10 +1,4 @@
 module QtQuick.Studio.Effects
-linktarget Qt6::QuickStudioEffectsplugin
-optional plugin quickstudioeffectsplugin
-classname QtQuick_Studio_EffectsPlugin
-designersupported
-typeinfo QuickStudioEffects.qmltypes
-prefer :/qt-project.org/imports/QtQuick/Studio/Effects/
 FastBlurItem 6.0 FastBlurItem.qml
 FastBlurItem 1.0 FastBlurItem.qml
 GlowItem 6.0 GlowItem.qml

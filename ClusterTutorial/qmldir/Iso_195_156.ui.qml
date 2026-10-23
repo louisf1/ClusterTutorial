@@ -52,7 +52,7 @@
 import QtQuick 2.8
 import QtQuick.Layouts 1.0
 import QtQuick.Studio.Components 1.0
-import Data 1.0 as Data
+import ClusterTutorial 1.0
 
 Item {
     id: iso_195_156
@@ -78,7 +78,7 @@ Item {
             id: engineIcon
             x: 0
             y: 0
-            active: Data.Values.engineTemp
+            active: Values.engineTemp
             engineIconOffSource: "icons/engineIconOff.png"
             engineIconOnSource: "icons/engineIconOn.png"
         }
@@ -136,7 +136,7 @@ Item {
             id: fuelIcon
             x: 0
             y: 0
-            active: Data.Values.fuelLevel
+            active: Values.fuelLevel
             engineIconOnSource: "icons/fuelIconOn.png"
             engineIconOffSource: "icons/fuelIconOff.png"
         }

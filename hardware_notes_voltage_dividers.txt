@@ -1,0 +1,156 @@
+==============================================================================
+ClusterWorx — Voltage Divider / Zener / Optocoupler Notes
+==============================================================================
+Context: All Arduino input pins (analog AV2-AV13 and digital DV*) currently
+use only a bare 10kOhm series resistor, no voltage divider, relying on the
+Arduino's internal ESD/clamp diodes to survive 12-14V automotive signals.
+Vehicle is a 12V system, alternator charging up to ~14.4V, load-dump
+transients can briefly exceed that significantly.
+
+------------------------------------------------------------------------------
+1. WHY THE CURRENT 10kOhm-ONLY SETUP IS RISKY
+------------------------------------------------------------------------------
+- At 12V: clamp current = (12 - 5.3) / 10k =~ 0.7mA
+- At 14.4V: clamp current =~ 0.9mA
+  (right at the ~1mA recommended max continuous clamp current per pin)
+- Across ~20 pins simultaneously during a load-dump spike, this is a real
+  risk to the MCU.
+- Analog pins: anything above ~5V just clamps flat -> no usable resolution
+  above 5V, only good for crude ON/OFF detection, not real voltage readings.
+
+------------------------------------------------------------------------------
+2. CHEAPEST RETROFIT — ADD ONE RESISTOR TO GND AT THE ARDUINO END
+------------------------------------------------------------------------------
+No harness rewiring needed — just add a second resistor from each Arduino
+pin to GND, turning the existing 10kOhm series resistor into a real divider.
+
+  ANALOG (voltage-sense) pins, e.g. AV2-AV13:
+    Add 5.1kOhm to GND  -> ratio =~ 0.337 (close to /3)
+      12V   -> ~4.0V at ADC
+      14.4V -> ~4.85V at ADC (still under 5V)
+    Update VOLTAGE_SCALE to ~2.96 (1/0.337) to recover real volts in code.
+
+  DIGITAL (ON/OFF) pins, e.g. ignition, standby, glow plug, indicators,
+  seatbelt, parking brake:
+    Add 4.7kOhm to GND -> ratio =~ 0.32
+      12V   -> ~3.8V  (clean HIGH on 5V logic)
+      14.4V -> ~4.6V  (still under 5V)
+    Removes reliance on internal clamp diodes for continuous operation.
+
+------------------------------------------------------------------------------
+3. ZENER PROTECTION FOR ANALOG (AV) PINS
+------------------------------------------------------------------------------
+Use a 5.1V Zener (e.g. BZX55C5V1 / 1N5231B), wired:
+    cathode -> ADC pin
+    anode   -> GND
+Placed AFTER the divider (i.e. on the Arduino-side node, not before).
+
+Why 5.1V:
+  - Stays OFF during normal operation (divider output maxes ~4.8-4.85V)
+  - Clamps just above the 5V rail but below ATmega absolute max
+    (Vcc + 0.5V =~ 5.5V)
+  - Protects ADC input during load-dump transients without nuisance
+    clamping in normal driving.
+
+Power rating: irrelevant here, current is sub-mA. A small SOT-23/SOD-80
+SMD part (BZX84C5V1) is fine.
+
+Alternative: small Schottky diode (1N5819 / BAT54) from pin to the 5V rail
+instead of GND — clamps overvoltage into the 5V supply, slightly faster.
+
+Same 5.1V Zener works equally well on the digital pins too (one part number
+for the whole retrofit).
+
+------------------------------------------------------------------------------
+4. DIGITAL PINS — SEATBELT & PARKING BRAKE SWITCHES
+------------------------------------------------------------------------------
+These are simple switch-to-ground type signals riding on a ~12V line
+(typically the warning-lamp feed): ~12V when switch open, ~0V when switch
+closes to ground (or vice versa depending on wiring).
+
+Same retrofit as other digital pins:
+  - 4.7kOhm to GND (forms divider with existing 10kOhm series resistor)
+      12V -> ~3.85V (clean HIGH), 0V -> 0V (clean LOW)
+  - 5.1V Zener (BZX55C5V1) pin -> GND for transient protection
+
+Note: mechanical switch contacts (especially seatbelt buckle switches) can
+bounce / transition slowly compared to electronic signals. If the dashboard
+icon flickers briefly on buckle/unbuckle, that's a SOFTWARE fix (debounce —
+require new state to persist ~50ms before latching SeatbeltSeen /
+ParkingBrakeSeen), not a wiring issue. No special hardware needed beyond the
+standard divider + Zener.
+
+------------------------------------------------------------------------------
+5. INDICATOR PINS — RESISTOR VALUE
+------------------------------------------------------------------------------
+Depends on what the V508VC regulator is actually outputting — CHECK WITH A
+METER first (indicator stalk ON):
+
+  CASE A — V508VC output swings full 12V (just buffered, not regulated down):
+    Read close to 12V at the Arduino pin.
+    -> Same as other digital pins: add 4.7kOhm to GND + 5.1V Zener to GND.
+       12V pulse becomes ~3.85V at the pin.
+
+  CASE B — V508VC is a true 5V regulator (output already ~5V when active):
+    Read close to 5V at the Arduino pin.
+    -> Do NOT add the 4.7kOhm divider (would needlessly drop signal to
+       ~3.85V and reduce margin above HIGH threshold).
+    -> Keep existing 10kOhm series resistor as-is.
+    -> Add only the 5.1V Zener to GND for transient protection.
+
+Either way, the 5.1V Zener is cheap insurance against switching-edge
+overshoot from the flasher relay — add it regardless of which case applies.
+
+------------------------------------------------------------------------------
+6. OPTOCOUPLER NOTES (separate from the above — opto inputs, not direct
+   Arduino pins)
+------------------------------------------------------------------------------
+A resistive divider placed BEFORE an optocoupler's input LED does NOT help
+and can make things worse:
+  - The opto LED clamps its own node voltage at its forward voltage
+    (~1.2-1.4V) when conducting, same way a Zener does.
+  - A divider resistor to ground bleeds off current that should be driving
+    the LED -> LESS LED current for a given series resistor -> weaker,
+    less reliable switching (slow/incomplete turn-on, marginal CTR,
+    especially as the opto ages or in cold weather). This can look exactly
+    like "the opto can't handle it" when really it's underdriven.
+
+Likely real causes of optocoupler "strain" with a bare 10kOhm series
+resistor:
+  1. LED current too low for reliable switching:
+       At 12V: I =~ (12 - 1.2) / 10k =~ 1.1mA
+       Many PC817-class optos want 5-10mA for healthy CTR margin.
+  2. Load-dump/transient spikes hitting the LED's REVERSE voltage rating
+     (typically only ~5-6V for opto LEDs). Negative excursions (alternator
+     ripple, relay back-EMF, switching noise) beyond that degrade or punch
+     through the LED over time.
+  3. Sustained over-current during transients (e.g. 30-40V spike through
+     10kOhm still pushes several extra mA into the LED) -> slow opto
+     degradation / eventual failure to trigger.
+
+RECOMMENDED FIX (priority order):
+  a) Resize the series resistor for ~8-10mA at nominal 12V:
+       R =~ (12 - 1.2) / 0.009 =~ 1.2kOhm
+     Gives a strong, reliable switching signal with good margin.
+  b) Add a TVS or Zener clamp (15-18V) across the opto's input, AHEAD of
+     the LED — stays off during normal 12-14V operation, clamps load-dump
+     transients before they reach the LED.
+  c) Add an anti-parallel diode across the LED (cathode-to-anode) to shunt
+     reverse-polarity transients away from the LED's low reverse-voltage
+     junction.
+
+Bottom line: reserve resistive dividers for signals going DIRECTLY into
+Arduino pins (no opto). For opto-coupled inputs, fix with (a) correct series
+resistor for LED current, (b) TVS/Zener clamp ahead of the opto, and
+(c) anti-parallel reverse-protection diode.
+
+==============================================================================
+SUMMARY SHOPPING LIST
+==============================================================================
+- Resistors: 4.7kOhm and 5.1kOhm (1/4W, for the divider retrofits)
+- Resistors: 1.2kOhm (for re-biasing optocoupler LED inputs)
+- Zener diodes: 5.1V (BZX55C5V1 / 1N5231B) — one per protected pin
+- Zener/TVS: 15-18V — one per optocoupler input, for transient clamping
+- Diodes: small signal (1N4148 or similar) — anti-parallel across each
+  opto LED for reverse-voltage protection
+==============================================================================

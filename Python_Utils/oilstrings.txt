@@ -1,0 +1,18 @@
+Test Client> getMetaData Vehicle.Powertrain.CombustionEngine.EngineOil.Level
+{
+    "path": "Vehicle.Powertrain.CombustionEngine.EngineOil.Level",
+    "metadata": {
+        "data_type": "STRING",
+        "entry_type": "SENSOR",
+        "description": "Engine oil level.",
+        "value_restriction": {
+            "allowed_values": [
+                "CRITICALLY_LOW",
+                "LOW",
+                "NORMAL",
+                "HIGH",
+                "CRITICALLY_HIGH"
+            ]
+        }
+    }
+}

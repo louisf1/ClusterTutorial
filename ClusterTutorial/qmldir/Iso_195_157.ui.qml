@@ -1,6 +1,6 @@
 import QtQuick 2.8
 import QtQuick.Layouts 1.0
-import Data 1.0 as Data
+import ClusterTutorial 1.0 
 
 Item {
     id: iso_195_157
@@ -24,23 +24,53 @@ Item {
 
         IsoIcon {
             id: daytimeLightsIcon
-            active: Data.Values.daytimeLights
+            active: Values.daytimeLights
             engineIconOffSource: "icons/dayTimeDrivingLights.png"
             engineIconOnSource: "icons/dayTimeDrivingLightsOn.png"
         }
 
         IsoIcon {
             id: nightTimeDimLightsIcon
-            active: Data.Values.nightTimeDimLights
+            active: Values.nightTimeDimLights
             engineIconOffSource: "icons/nightTimeDimLights.png"
             engineIconOnSource: "icons/nightTimeDimLightsOn.png"
         }
 
         IsoIcon {
            id: nightTimeBrightLightsIcon
-           active: Data.Values.nightTimeBrightLights
+           active: Values.nightTimeBrightLights
            engineIconOffSource: "icons/nightTimeBrightLights.png"
            engineIconOnSource: "icons/nightTimeBrightLightsOn.png"
+        }
+
+        IsoIcon {
+            id: ecuIcon
+            active: Values.ecu
+            engineIconOffSource: "icons/glowEcuOff.png"
+            engineIconOnSource: "icons/glowEcuOn.png"
+        }
+
+        IsoIcon {
+           id: glowPlugsIcon
+           active: Values.glowPlugs
+           engineIconOffSource: "icons/glowPlugsOff.png"
+           engineIconOnSource: "icons/glowPlugsOn.png"
+        }
+
+        IsoIcon {
+           id: oilSignalIcon
+           active: Values.bool_oilSignal
+           // Signal on for NORMAL
+           engineIconOffSource: "icons/signalOil.png"
+           // Signal on for any off CRITICALLY_LOW, LOW, HIGH, CRITICALLY_HIGH
+           engineIconOnSource: "icons/signalOilOn.png"
+        }
+        
+        IsoIcon {
+           id: carDoorsSignalIcon
+           active: Values.doorsSignal
+           engineIconOffSource: "icons/carDoorsClosed.png"
+           engineIconOnSource: "icons/carDoorsOpen.png"
         }
     }
 }
