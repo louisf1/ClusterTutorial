@@ -1,3 +1,4 @@
+import glob
 import serial
 import serial.tools.list_ports
 import time
@@ -64,18 +65,53 @@ ACTIVE_THRESHOLD  = 2.0   # volts (real, after scale) — wire considered "live"
 WIRE_STATE_FILE   = '/tmp/ecu_wire_states.json'
 FAST_STATE_FILE   = '/tmp/ecu_fast_state.json'
 
-# Ignition-off PC suspend — AV14 (Black/White wire, wire index 13) is switched
+# Ignition-off screen sleep — AV14 (Black/White wire, wire index 13) is switched
 # ignition power. Below this for SLEEP_DEBOUNCE_COUNT consecutive 1s readings
-# (ignition off) triggers a suspend; `systemctl suspend` also blanks the screen.
+# (ignition off) the HDMI screen is switched off; WAKE_DEBOUNCE_COUNT readings
+# above it switch the screen back on. The Pi 5 kernel has no suspend support
+# (`systemctl suspend` fails), so the Pi stays running and idles instead.
 IGNITION_SLEEP_THRESHOLD_V = 1.5
 SLEEP_DEBOUNCE_COUNT       = 5
+WAKE_DEBOUNCE_COUNT        = 2
+
+
+def _connected_outputs():
+    """Connected display outputs as wlr-randr names, e.g. ['HDMI-A-2']."""
+    outputs = []
+    for status_file in sorted(glob.glob('/sys/class/drm/card*-*/status')):
+        try:
+            with open(status_file) as f:
+                if f.read().strip() != 'connected':
+                    continue
+        except OSError:
+            continue
+        name = os.path.basename(os.path.dirname(status_file)).split('-', 1)[1]
+        if not name.startswith('Writeback'):
+            outputs.append(name)
+    return outputs
+
+
+def set_screen_power(on):
+    """Switch every connected screen on/off via the labwc Wayland session."""
+    env = dict(os.environ)
+    env.setdefault('XDG_RUNTIME_DIR', f'/run/user/{os.getuid()}')
+    env.setdefault('WAYLAND_DISPLAY', 'wayland-0')
+    for output in _connected_outputs():
+        result = subprocess.run(['wlr-randr', '--output', output, '--on' if on else '--off'],
+                                env=env, capture_output=True, text=True)
+        if result.returncode != 0:
+            print(f"⚠️  wlr-randr {output} {'on' if on else 'off'} failed: {result.stderr.strip()}")
+
 
 def _zero_wire_states_and_exit(signum, frame):
     with open(WIRE_STATE_FILE, 'w') as jf:
         json.dump({'states': [False] * 20, 'voltages': [0.0] * 20}, jf)
+    if screen_asleep:
+        set_screen_power(True)  # never leave the dashboard dark after the bridge stops
     print("🔌 Wire states zeroed — SIGTERM received.")
     os._exit(0)  # bypass context managers that may swallow SystemExit
 
+screen_asleep = False
 signal.signal(signal.SIGTERM, _zero_wire_states_and_exit)
 
 # --- KPL (km per litre) rolling log ---
@@ -243,7 +279,9 @@ def run_master_bridge():
             wire_below_count    = [0] * 20   # consecutive readings below threshold
             wire_confirmed      = [False] * 20  # debounced state written to JSON
 
+            global screen_asleep
             ignition_below_count = 0   # consecutive 1s readings with AV14 below IGNITION_SLEEP_THRESHOLD_V
+            ignition_above_count = 0   # consecutive 1s readings with AV14 at/above it
 
             while True:
                 line = ser.readline().decode('utf-8', errors='ignore').strip()
@@ -383,17 +421,23 @@ def run_master_bridge():
                     with open(WIRE_STATE_FILE, 'w') as jf:
                         json.dump({'states': wire_confirmed, 'voltages': wire_voltages}, jf)
 
-                    # Ignition-off PC suspend — AV14 (wire index 13) below threshold
+                    # Ignition-off screen sleep — AV14 (wire index 13) below threshold
                     # for SLEEP_DEBOUNCE_COUNT consecutive seconds means ignition is off.
                     if wire_voltages[13] < IGNITION_SLEEP_THRESHOLD_V:
                         ignition_below_count += 1
+                        ignition_above_count = 0
                     else:
+                        ignition_above_count += 1
                         ignition_below_count = 0
 
-                    if ignition_below_count >= SLEEP_DEBOUNCE_COUNT:
-                        print(f"🌙 Ignition below {IGNITION_SLEEP_THRESHOLD_V}V for {SLEEP_DEBOUNCE_COUNT}s — suspending PC.")
-                        subprocess.run(['systemctl', 'suspend'])
-                        ignition_below_count = 0  # avoid re-triggering immediately on resume
+                    if not screen_asleep and ignition_below_count >= SLEEP_DEBOUNCE_COUNT:
+                        print(f"🌙 Ignition below {IGNITION_SLEEP_THRESHOLD_V}V for {SLEEP_DEBOUNCE_COUNT}s — screen off.")
+                        set_screen_power(False)
+                        screen_asleep = True
+                    elif screen_asleep and ignition_above_count >= WAKE_DEBOUNCE_COUNT:
+                        print(f"☀️  Ignition back on ({wire_voltages[13]:.1f}V) — screen on.")
+                        set_screen_power(True)
+                        screen_asleep = False
 
                     # ECU STATUS screen shows wire indices 0-14 (AV1-AV13 + ignition/standby power).
                     # If any of those reads 0V, light the ECU warning icon.
