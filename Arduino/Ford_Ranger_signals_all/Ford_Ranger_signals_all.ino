@@ -89,7 +89,7 @@ const int OilLevelPin = 18;
 // PageButtonSeen is latched over the 1s window (main report);
 // PageButtonFastSeen is latched over the 100ms FAST report window.
 // =============================================================================
-const int PageButtonPin = 30;
+const int PageButtonPin = 31;
 bool PageButtonSeen     = false;
 bool PageButtonFastSeen = false;
 
@@ -101,7 +101,7 @@ bool PageButtonFastSeen = false;
 // SystemMonitor.cpp edge-detects the rising TRIPRESET flag on the dashboard
 // side to fire the actual reset once per press.
 // =============================================================================
-const int TripResetPin = 31;
+const int TripResetPin = 32;
 bool TripResetSeen      = false;
 
 // =============================================================================
@@ -217,7 +217,7 @@ int  readIndex = 0;
 long total     = 0;
 int  average   = 0;
 
-const float V_EMPTY       = 1.248;
+const float V_EMPTY       = 1.9248;
 const float V_FULL        = 0.109;
 const float TANK_CAPACITY = 76.03012;
 float avgKmPerLiter       = 10.0;     // update to your real-world average
@@ -568,6 +568,7 @@ void loop() {
   Serial.print("|TMP:");   Serial.print(currentTemp, 1);
   Serial.print("|LITERS:"); Serial.print(litersLeft, 1);
   Serial.print("|RANGE:"); Serial.print(rangeKm, 0);
+  Serial.print("|FUELV:"); Serial.print(fuelVoltage, 3); // raw A0 sender volts, for calibrating V_EMPTY/V_FULL
 
   // ── ECU wire voltages (A1–A15) ────────────────────────────────────────────
   // Voltage divider: 10kΩ series + 5.1kΩ to GND maps 0–14.5V automotive to 0–5V ADC.
