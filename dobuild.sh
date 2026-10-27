@@ -107,7 +107,8 @@ cmake --build . --parallel 2
 #        odometer, VIN) back into the build-dir copy, which must survive
 #        rebuilds. (--clean wipes it, so a clean build re-seeds from the repo.)
 echo "==> Staging assets..."
-[ -f VSS_paths.txt ] || cp "$PROJECT_DIR/VSS_paths.txt" .
+# -s: also re-seed a 0-byte copy left by a power cut mid-write
+[ -s VSS_paths.txt ] || cp "$PROJECT_DIR/VSS_paths.txt" .
 
 # =============================================================================
 # 6. KUKSA databroker — normally already up at boot (docker.service is enabled

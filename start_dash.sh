@@ -52,7 +52,8 @@ cd "$BUILD_DIR"
 # [FIX] Copy only if missing: the app persists runtime state (trip meter,
 #        odometer, VIN) back into the build-dir copy, which must survive
 #        rebuilds.
-[ -f VSS_paths.txt ] || cp "$PROJECT_DIR/VSS_paths.txt" .
+# -s: also re-seed a 0-byte copy left by a power cut mid-write
+[ -s VSS_paths.txt ] || cp "$PROJECT_DIR/VSS_paths.txt" .
 
 # =============================================================================
 # 3. KUKSA databroker — normally already up at boot (docker.service is enabled
