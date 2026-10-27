@@ -1,0 +1,3 @@
+# ClusterWorx kiosk autostart — run by labwc at session start.
+# Only the dashboard; run_dashboard.sh restarts it if it exits.
+"$HOME/ClusterWorx/kiosk/run_dashboard.sh" &
