@@ -112,4 +112,6 @@ PYTHON_PID=$!
 # =============================================================================
 echo "==> Launching ClusterDashboardApp..."
 ./ClusterDashboardApp
-kill $PYTHON_PID 2>/dev/null
+# By name, not $PYTHON_PID: arduino_upload.sh may have restarted the bridge
+# under a new PID while the dashboard was running.
+pkill -f "Python_Utils/rpm_speed_arduino_dev_ttyACM0.py" 2>/dev/null || true
