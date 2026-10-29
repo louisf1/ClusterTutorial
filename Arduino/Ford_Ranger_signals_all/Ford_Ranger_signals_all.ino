@@ -221,7 +221,7 @@ int  readIndex = 0;
 long total     = 0;
 int  average   = 0;
 
-const float V_EMPTY       = 2.534; //2.224 = 10 liters
+const float V_EMPTY       = 1.9248;
 const float V_FULL        = 0.109;
 const float TANK_CAPACITY = 76.03012;
 float avgKmPerLiter       = 10.0;     // update to your real-world average
