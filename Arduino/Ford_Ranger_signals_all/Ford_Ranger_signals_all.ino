@@ -5,7 +5,7 @@
 //   SPD:xx.x|RPM:xxxx|TMP:xx.x|LITERS:xx.x|RANGE:xxx
 //   |AV2:x.xx|AV3:x.xx|AV4:x.xx|AV5:x.xx|AV6:x.xx
 //   |AV8:x.xx|AV9:x.xx|AV10:x.xx|AV11:x.xx|AV12:x.xx|AV13:x.xx
-//   |NATIVETEMPV:x.xx (volts, PCM-driven) |NATIVETEMP:xx.x (°C, A7 coolant sender — see below)
+//   |NATIVETEMPV:x.xx (volts) |NATIVETEMPR:xxx (sender ohms) — A7 coolant sender behind TMP, see below
 //   |LINDIC:x|RINDIC:x  (1=active, 0=off — true within INDICATOR_TIMEOUT_MS of last pulse)
 //   |PAGEBTN:x  (1=pressed, 0=not — latched over the 1s window; D19 button to GND)
 //   |TRIPRESET:x  (1=pressed, 0=not — latched over the 1s window; D20 button to GND)
@@ -136,18 +136,22 @@ const unsigned long debounceTime = 15;    // ms — ignores bounce/noise
 volatile unsigned long speedPulses   = 0;
 volatile unsigned long rpmPulses     = 0;
 volatile unsigned long lastSpeedTime = 0;
-volatile unsigned long lastRpmTime   = 0;
 bool lastSpeedState = false;
 bool lastRpmState   = false;
 
-// =============================================================================
-// TEMPERATURE — MAX6675 bit-bang SPI
-// NOTE: tempSCK (D47) and tempSO (D46) have been moved away from D12/D13
-//       to free D12 and D13 for the ECU wire digital functions below.
-// =============================================================================
-const int tempCS  = 50;   // Chip select   — any free digital pin
-const int tempSO  = 46;   // SPI MISO      — moved from D12
-const int tempSCK = 47;   // SPI clock     — moved from D13
+// RPM is timed from the gaps between pulses, not counted per second: D23 is
+// polled (no interrupt), and loop() stalls while Serial's TX buffer drains,
+// so pulses get missed. A gap that spans a missed pulse is ≥2× the normal
+// one, so only gaps within RPM_GAP_TOLERANCE of the shortest are averaged.
+// Measured at idle: 1 pulse/rev, ~65ms apart at ~900 RPM, with ~1ms bounce.
+const int           RPM_PULSES_PER_REV = 1;
+const unsigned long rpmDebounceUs      = 5000;   // > bounce, < gap at 12000 RPM
+const float         RPM_GAP_TOLERANCE  = 1.5;
+const int           RPM_GAP_BUF        = 100;    // > pulses/s at redline
+unsigned long rpmGaps[RPM_GAP_BUF];
+int           rpmGapCount     = 0;
+unsigned long lastRpmPulseUs  = 0;
+bool          haveLastRpmPulse = false;
 
 // =============================================================================
 // ALTERNATOR EXCITATION CONTROL — Arduino-only, no dashboard comms
@@ -217,7 +221,7 @@ int  readIndex = 0;
 long total     = 0;
 int  average   = 0;
 
-const float V_EMPTY       = 1.9248;
+const float V_EMPTY       = 2.534; //2.224 = 10 liters
 const float V_FULL        = 0.109;
 const float TANK_CAPACITY = 76.03012;
 float avgKmPerLiter       = 10.0;     // update to your real-world average
@@ -246,8 +250,8 @@ float avgKmPerLiter       = 10.0;     // update to your real-world average
 
 // Analog pins — voltage reads only (A14=ignition power, A15=standby power)
 // A7 ("brown-red", never identified) is repurposed as the native coolant
-// sender input — see NATIVE COOLANT TEMPERATURE SENDER. It's PCM-powered
-// (no external pull-up needed) and carries the same 10k/5.1k + TVS + cap
+// sender input — see NATIVE COOLANT TEMPERATURE SENDER. It's excited by a
+// 270R pull-up from 5V and carries the same 10k/5.1k + TVS + cap
 // protection as every other pin here, so it's read through this same loop
 // like all the rest (reported as AV7).
 const int WIRE_A_PINS[15] = {A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14, A15};
@@ -257,54 +261,77 @@ const int WIRE_A_PINS[15] = {A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, 
 // block; repurposed from the "brown-red" ECU slot, which was never identified
 // as a live signal).
 //
-// This wire is PCM-powered, not an unpowered single-wire dash-gauge sender —
-// the PCM supplies its own internal reference voltage and pull-up to the
-// sensor and reads the divided voltage back on this same wire (a standard
-// 2-wire ECT sensor circuit). We're just passively tapping that PCM-driven
-// voltage the same way every other AV1-13 ECU wire is read, through A7's
-// existing 10k/5.1k + TVS + cap protection — no external pull-up needed,
-// wire connects straight through.
+// This is the single-wire dash-gauge sender (NTC thermistor body-grounded to
+// the block). The original cluster is unplugged, so nothing else powers it —
+// the Arduino excites it through a 270R pull-up from the 5V supply:
 //
-// Because the PCM's internal reference voltage and pull-up resistor aren't
-// known, the sender's resistance can't be back-calculated the way a
-// self-excited sender could — the calibration table below maps the
-// *recovered wire voltage* (AV7, already scaled by the standard 10k/5.1k
-// divider formula above) directly to temperature instead.
+//   5V ──[ 270R ]──┬── sender wire ──► sender ──► block (GND)
+//                  └── A7 wire (existing 10k/5.1k + TVS + cap protection)
 //
-// CALIBRATION REQUIRED: the table below is a placeholder, not a verified
-// factory curve. Read NATIVETEMPV (volts) off the serial/bridge log at two
-// known temperatures — engine cold at ambient, and warmed up to normal
-// operating temp (OEM gauge needle at its usual running position) — and
-// replace the two points below. Add a third point if the curve is noticeably
-// non-linear between them.
+// AV7 is the junction voltage recovered through the standard 10k/5.1k
+// divider formula. The sender's resistance is back-calculated from it
+// ratiometrically against NATIVE_SUPPLY_V (the 5V rail as *read through the
+// same A7 scaling*, so divider and ADC-reference errors cancel), then
+// corrected for the 15.1k divider sitting in parallel with the sender.
 //
-// Assumed direction: voltage falls as temperature rises (typical for an NTC
-// sender behind a PCM pull-up). If your calibration readings go the other
-// way, flip the sort order of the table and the comparisons below.
+// CALIBRATION: the table maps sender ohms to °C. Two points are measured:
+// 657R with the engine cold (block at 20°C), and 78R once the reading levelled
+// off at operating temperature after a 30-min idle — taken as the thermostat's
+// ~85°C. The other rows come from the NTC Beta model fitted through those two
+// (B ≈ 3442K, R = 78·exp(B·(1/T − 1/358.15))), extended to 120°C so overheating
+// still reads above 85°C. Calculated rows are estimates, good to a few °C.
+// Interpolation is linear in ln(ohms), which tracks an NTC's curve closely.
 // =============================================================================
-struct TempCalPoint { float voltage; float tempC; };
-// Placeholder points — replace with real measurements (see comment above).
-// Must stay sorted by descending voltage.
+const float NATIVE_PULLUP_OHMS  = 270.0;
+const float NATIVE_DIVIDER_OHMS = 15100.0;  // A7's 10k + 5.1k to GND, parallel to the sender
+const float NATIVE_SUPPLY_V     = 5.33;     // AV7 with the wire tied straight to 5V (measured)
+
+struct TempCalPoint { float ohms; float tempC; };
+// Must stay sorted by descending ohms.
 const TempCalPoint NativeTempCalTable[] = {
-  { 4.0,  20.0 },   // placeholder: cold/ambient
-  { 0.5,  90.0 },   // placeholder: warmed up
+  { 657.0,  20.0 },   // measured: engine cold, block at 20°C (garage air 29°C)
+  { 310.4,  40.0 },   // calculated
+  { 160.4,  60.0 },   // calculated
+  {  78.0,  85.0 },   // measured: levelled off at operating temp (thermostat ~85°C)
+  {  68.3,  90.0 },   // calculated
+  {  60.1,  95.0 },   // calculated
+  {  53.0, 100.0 },   // calculated
+  {  46.9, 105.0 },   // calculated
+  {  41.7, 110.0 },   // calculated — overheating
+  {  37.1, 115.0 },   // calculated
+  {  33.2, 120.0 },   // calculated
 };
+
+// Smoothing for the °C reading: the sender swings ±10R at ~80R with the engine
+// running (electrical noise), ≈±5°C. An exponential moving average over the 1s
+// reports (~4s time constant) steadies the gauge; coolant moves far slower.
+const float NATIVE_OHMS_SMOOTHING = 0.25;
+float nativeOhmsSmoothed = -1.0;   // -1 = no valid reading yet
 const int NATIVE_TEMP_CAL_POINTS = sizeof(NativeTempCalTable) / sizeof(NativeTempCalTable[0]);
 
-// Converts the AV7 wire voltage to °C via linear interpolation across
-// NativeTempCalTable. Returns -100.0 (matches the MAX6675 sentinel) if the
-// reading is outside a sane 0-5V range.
-float nativeVoltageToTempC(float v) {
-  if (v <= 0.0 || v > 5.5) return -100.0;
+// Sender resistance from the AV7 junction voltage. Returns -1.0 for an open
+// circuit (junction at the supply rail) and 0.0 for a short to ground.
+float nativeWireToOhms(float v) {
+  if (v >= NATIVE_SUPPLY_V * 0.98) return -1.0;
+  if (v <= 0.02) return 0.0;
+  float rTotal = NATIVE_PULLUP_OHMS * v / (NATIVE_SUPPLY_V - v);
+  if (rTotal >= NATIVE_DIVIDER_OHMS) return -1.0;
+  return 1.0 / (1.0 / rTotal - 1.0 / NATIVE_DIVIDER_OHMS);
+}
 
-  if (v >= NativeTempCalTable[0].voltage) return NativeTempCalTable[0].tempC;
+// Converts sender ohms to °C via NativeTempCalTable. Returns -100.0 (the
+// bridge's "no temperature" sentinel) for an open or shorted sender.
+float nativeOhmsToTempC(float r) {
+  if (r <= 0.0) return -100.0;
+
+  if (r >= NativeTempCalTable[0].ohms) return NativeTempCalTable[0].tempC;
   for (int i = 0; i < NATIVE_TEMP_CAL_POINTS - 1; i++) {
-    float vHi = NativeTempCalTable[i].voltage;
-    float vLo = NativeTempCalTable[i + 1].voltage;
-    if (v <= vHi && v >= vLo) {
+    float rHi = NativeTempCalTable[i].ohms;
+    float rLo = NativeTempCalTable[i + 1].ohms;
+    if (r <= rHi && r >= rLo) {
       float tHi  = NativeTempCalTable[i].tempC;
       float tLo  = NativeTempCalTable[i + 1].tempC;
-      float frac = (vHi - v) / (vHi - vLo);
+      float frac = (log(rHi) - log(r)) / (log(rHi) - log(rLo));
       return tHi + frac * (tLo - tHi);
     }
   }
@@ -313,24 +340,6 @@ float nativeVoltageToTempC(float v) {
 
 // NOT USED  Digital pins actively used for ECU wire signals (input_pullup configured in setup)
 //const int WIRE_D_PINS[4] = { 6, 12, 14, 35 };
-
-// =============================================================================
-// TEMPERATURE READ
-// =============================================================================
-float readTemperature() {
-  uint16_t v;
-
-  digitalWrite(tempCS, LOW);
-  delay(1);
-  v  = shiftIn(tempSO, tempSCK, MSBFIRST) << 8;
-  v |= shiftIn(tempSO, tempSCK, MSBFIRST);
-  digitalWrite(tempCS, HIGH);
-
-  if (v & 0x4) {
-    return -100.0;   // thermocouple open / disconnected
-  }
-  return (v >> 3) * 0.25;
-}
 
 // =============================================================================
 // ALTERNATOR EXCITATION CONTROL — high-rate, runs every loop() iteration
@@ -369,7 +378,7 @@ void updateAlternatorExcitation() {
 // SETUP
 // =============================================================================
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
 
   // Start-up pull-down: drive every digital pin D2-D53 LOW for a moment so
   // floating lines and stray charge start at a known 0V, then the per-pin
@@ -397,11 +406,6 @@ void setup() {
   // Hall sensors output active-HIGH (5V when magnet passes) so plain INPUT, no pullup.
   pinMode(speedPin, INPUT);
   pinMode(rpmPin,   INPUT);
-
-  // MAX6675 temperature sensor SPI pins
-  pinMode(tempCS,  OUTPUT); digitalWrite(tempCS, HIGH);
-  pinMode(tempSO,  INPUT);
-  pinMode(tempSCK, OUTPUT);
 
   // NOT USED: ECU wire digital pins — INPUT_PULLUP, actively assigned signals
   //for (int i = 0; i < 4; i++) {
@@ -513,7 +517,13 @@ void loop() {
     if (now - lastSpeedTime > debounceTime) { speedPulses++; lastSpeedTime = now; }
   }
   if (curRpm && !lastRpmState) {
-    if (now - lastRpmTime > debounceTime) { rpmPulses++; lastRpmTime = now; }
+    unsigned long nowUs = micros();
+    if (!haveLastRpmPulse || nowUs - lastRpmPulseUs > rpmDebounceUs) {
+      if (haveLastRpmPulse && rpmGapCount < RPM_GAP_BUF) rpmGaps[rpmGapCount++] = nowUs - lastRpmPulseUs;
+      lastRpmPulseUs   = nowUs;
+      haveLastRpmPulse = true;
+      rpmPulses++;
+    }
   }
   lastSpeedState = curSpeed;
   lastRpmState   = curRpm;
@@ -542,13 +552,30 @@ void loop() {
   speedPulses = 0;
 
   // ── RPM ──────────────────────────────────────────────────────────────────
-  unsigned long currentRPM = rpmPulses * 60;
+  // Average the pulse gaps that didn't span a missed pulse (see RPM_GAP_TOLERANCE).
+  unsigned long currentRPM = 0;
+  if (rpmPulses >= 2 && rpmGapCount > 0) {
+    unsigned long minGap = 0xFFFFFFFF;
+    for (int i = 0; i < rpmGapCount; i++) if (rpmGaps[i] < minGap) minGap = rpmGaps[i];
+    float sum = 0; int n = 0;
+    for (int i = 0; i < rpmGapCount; i++) {
+      if (rpmGaps[i] <= minGap * RPM_GAP_TOLERANCE) { sum += rpmGaps[i]; n++; }
+    }
+    currentRPM = (unsigned long)(60.0e6 / ((sum / n) * RPM_PULSES_PER_REV) + 0.5);
+  }
   if (currentRPM > 10000) currentRPM = 0;   // sanity — reject noise
-  currentRPM /= 10;
-  rpmPulses = 0;
+  rpmPulses   = 0;
+  rpmGapCount = 0;
 
-  // ── Temperature ──────────────────────────────────────────────────────────
-  float currentTemp = readTemperature();
+  // ── Coolant temperature — native sender on A7 (see NATIVE COOLANT
+  // TEMPERATURE SENDER). Read here so TMP carries it; A7 is also reported
+  // as AV7 in the ECU wire loop below.
+  float nativeWireVoltage = analogRead(A7) * (5.0 / 1023.0) * (0.25 / 0.0845);
+  float nativeOhms        = nativeWireToOhms(nativeWireVoltage);
+  if (nativeOhms <= 0.0)            nativeOhmsSmoothed = nativeOhms;   // open/short passes straight through
+  else if (nativeOhmsSmoothed <= 0) nativeOhmsSmoothed = nativeOhms;
+  else nativeOhmsSmoothed += NATIVE_OHMS_SMOOTHING * (nativeOhms - nativeOhmsSmoothed);
+  float currentTemp       = nativeOhmsToTempC(nativeOhmsSmoothed);
 
   // ── Fuel gauge (rolling average) ─────────────────────────────────────────
   total -= readings[readIndex];
@@ -569,25 +596,21 @@ void loop() {
   Serial.print("|LITERS:"); Serial.print(litersLeft, 1);
   Serial.print("|RANGE:"); Serial.print(rangeKm, 0);
   Serial.print("|FUELV:"); Serial.print(fuelVoltage, 3); // raw A0 sender volts, for calibrating V_EMPTY/V_FULL
+  // NATIVETEMPV/NATIVETEMPR are what you read off the log to build/verify
+  // the calibration table; TMP above is the result of that table.
+  Serial.print("|NATIVETEMPV:"); Serial.print(nativeWireVoltage, 2);
+  Serial.print("|NATIVETEMPR:"); Serial.print(nativeOhms, 0);
 
   // ── ECU wire voltages (A1–A15) ────────────────────────────────────────────
   // Voltage divider: 10kΩ series + 5.1kΩ to GND maps 0–14.5V automotive to 0–5V ADC.
   // Scale factor: 0.25V automotive = 0.0845V ADC → multiply by (0.25/0.0845) = 2.9586
   float ignitionVoltage   = 0.0;
-  float nativeWireVoltage = 0.0;
   for (int i = 0; i < 15; i++) {
     float v = analogRead(WIRE_A_PINS[i]) * (5.0 / 1023.0) * (0.25 / 0.0845);
     Serial.print("|AV"); Serial.print(i + 1);
     Serial.print(":"); Serial.print(v, 2);
     if (i == 13) ignitionVoltage   = v;   // AV14 = A14 = Black/White ignition wire
-    if (i == 6)  nativeWireVoltage = v;   // AV7  = A7  = yellow-black coolant sender
   }
-
-  // ── Native coolant temp sender (A7) — raw volts + calibrated °C ──────────
-  // NATIVETEMPV is what you read off the log to build/verify the
-  // calibration table above; NATIVETEMP is the result of that table.
-  Serial.print("|NATIVETEMPV:"); Serial.print(nativeWireVoltage, 2);
-  Serial.print("|NATIVETEMP:");  Serial.print(nativeVoltageToTempC(nativeWireVoltage), 1);
 
   // ── PC power-switch pulse — ignition-off (sleep) / ignition-on (wake) ────
   // Mirrors the Python bridge's 1.5V / 5s debounce so both paths agree on

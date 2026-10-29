@@ -13,7 +13,7 @@ from datetime import datetime
 from kuksa_client.grpc import VSSClient, Datapoint
 
 # --- CONFIGURATION ---
-BAUD_RATE = 9600
+BAUD_RATE = 115200
 SERIAL_PORTS = ['/dev/ttyACM0', '/dev/ttyACM1']
 # The PC_Wake_Leonardo (VID 2341, PID 8036 sketch / 0036 bootloader) is also a
 # CDC-ACM device and can take ttyACM0 — never open it as the telemetry link.
@@ -46,7 +46,7 @@ ANALOG_TO_WIRE = {
     6:   5,  # A6  Red/Blue      → index  5 "red-blue"      (Control Lever Position)
     # 7: A7/brown-red repurposed for the native coolant temp sender (yellow-black
     # wire). Arduino still sends AV7 (raw wire voltage, no dict entry so it's
-    # ignored here) — the computed reading comes via NATIVETEMP/NATIVETEMPV.
+    # ignored here) — the computed °C comes via TMP, ohms via NATIVETEMPR.
     8:   7,  # A8  Brown/Yellow  → index  7 "brown-yellow"  (unknown)
     9:   8,  # A9  Brown/White   → index  8 "brown-white"   (Control Lever Position)
     10:  9,  # A10 Yellow        → index  9 "yellow"        (EGR solenoid Valve)
@@ -73,6 +73,12 @@ FAST_STATE_FILE   = '/tmp/ecu_fast_state.json'
 IGNITION_SLEEP_THRESHOLD_V = 1.5
 SLEEP_DEBOUNCE_COUNT       = 5
 WAKE_DEBOUNCE_COUNT        = 2
+
+# Dashboard test: TEST_FUEL_LITERS=25 overrides the Arduino's LITERS (and
+# derives RANGE at the sketch's avgKmPerLiter) so the fuel gauge can be
+# checked without a working sender. Unset = normal operation.
+TEST_FUEL_LITERS  = float(os.environ['TEST_FUEL_LITERS']) if os.environ.get('TEST_FUEL_LITERS') else None
+TEST_KM_PER_LITER = 10.0
 
 
 def _connected_outputs():
@@ -119,16 +125,6 @@ KPL_LOG_FILE    = '/tmp/kpl_log.csv'   # timestamp, liters, odo_km
 KPL_MAX_RECORDS = 6                    # 6 × 10 min = 1 hour sliding window
 KPL_INTERVAL    = 600                  # seconds between log entries
 VSS_BUILD_FILE  = '/home/louis/ClusterWorx/build/VSS_paths.txt'
-
-# --- Native coolant sender calibration log (A7 volts -> MAX6675 benchmark °C) ---
-# Append-only (no trimming, unlike the KPL log) — collects every point from a
-# cold-start warm-up so NativeTempCalTable in the .ino can be built from real
-# matched pairs instead of the current placeholder values. A dead/miswired
-# MAX6675 can silently read a plausible 0.0°C instead of tripping the -100.0
-# sentinel, so verify the replacement chip with the raw SPI diagnostic before
-# trusting this log as calibration data.
-NATIVE_TEMP_CAL_LOG_FILE     = '/tmp/native_temp_cal_log.csv'   # timestamp, native_temp_v, max6675_temp_c
-NATIVE_TEMP_CAL_LOG_INTERVAL = 5   # seconds between log entries — coolant temp moves slowly
 
 def _read_persisted_odo():
     """Read totalKms persisted in the 4th pipe field of VSS_paths.txt."""
@@ -196,18 +192,6 @@ def update_kpl_log(fuel_liters):
     _save_kpl_records(records)
     return _calc_kpl(records)
 
-def log_native_temp_cal_point(native_v, benchmark_c):
-    """Append one (A7 sender voltage, MAX6675 benchmark °C) pair to the
-    calibration log. Caller is responsible for only passing plausible
-    readings from both sensors."""
-    write_header = not os.path.exists(NATIVE_TEMP_CAL_LOG_FILE)
-    with open(NATIVE_TEMP_CAL_LOG_FILE, 'a', newline='') as f:
-        w = csv.writer(f)
-        if write_header:
-            w.writerow(['timestamp', 'native_temp_v', 'max6675_temp_c'])
-        w.writerow([datetime.now().strftime('%Y-%m-%d %H:%M:%S'), native_v, benchmark_c])
-
-
 def run_master_bridge():
     # Zero wire states immediately — if bridge restarts or is searching for Arduino,
     # the dashboard should show all red rather than stale values
@@ -216,7 +200,6 @@ def run_master_bridge():
 
     _init_kpl_log_if_missing()
     last_kpl_time = 0   # log first entry immediately on first valid telemetry
-    last_native_cal_log_time = 0   # log first entry immediately on first valid pair
 
     ser = None
     candidate_ports = find_mega_ports()
@@ -325,6 +308,10 @@ def run_master_bridge():
                     temp_val        = float(parts[2].split(':')[1])
                     fuel_liters_val = float(parts[3].split(':')[1])
                     fuel_range_val  = float(parts[4].split(':')[1])
+                    if TEST_FUEL_LITERS is not None:
+                        # Test override: fixed fuel level regardless of the A0 sender
+                        fuel_liters_val = TEST_FUEL_LITERS
+                        fuel_range_val  = round(TEST_FUEL_LITERS * TEST_KM_PER_LITER)
 
                     IsFuelLevelLow = fuel_liters_val < 30
 
@@ -344,7 +331,8 @@ def run_master_bridge():
                     door_open       = False
                     trip_reset      = False
                     native_temp_v   = -1.0
-                    native_temp_val = -100.0
+                    native_temp_r   = -1.0   # A7 sender ohms; -1 = open / not sent
+                    fuel_v          = -1.0   # raw A0 sender volts; -1 = not sent
                     for part in parts[5:]:
                         if part.startswith("LINDIC:"):
                             left_indicator  = part.split(':')[1] == '1'
@@ -374,8 +362,10 @@ def run_master_bridge():
                             trip_reset = part.split(':')[1] == '1'
                         elif part.startswith("NATIVETEMPV:"):
                             native_temp_v = float(part.split(':')[1])
-                        elif part.startswith("NATIVETEMP:"):
-                            native_temp_val = float(part.split(':')[1])
+                        elif part.startswith("NATIVETEMPR:"):
+                            native_temp_r = float(part.split(':')[1])
+                        elif part.startswith("FUELV:"):
+                            fuel_v = float(part.split(':')[1])
 
                     last_trip_reset = trip_reset
                     with open(FAST_STATE_FILE, 'w') as jf:
@@ -476,7 +466,7 @@ def run_master_bridge():
                        'Vehicle.Cabin.Door.Row2.DriverSide.IsOpen':                   Datapoint(door_open),
                        'Vehicle.Cabin.Door.Row2.PassengerSide.IsOpen':                Datapoint(door_open),
                     }
-                    # -100 means thermocouple disconnected — skip temp publish
+                    # -100 means the A7 sender is open or shorted — skip temp publish
                     if temp_val != -100.0:
                         telemetry['Vehicle.OBD.CoolantTemperature'] = Datapoint(temp_val)
                     client.set_current_values(telemetry)
@@ -513,17 +503,7 @@ def run_master_bridge():
                             })
                         print(f"KPL log entry written → {kpl} km/L  (file: {KPL_LOG_FILE})")
 
-                    # Native coolant sender calibration log — matched (A7 volts,
-                    # MAX6675 benchmark °C) pairs, only while both readings look
-                    # real (TMP not the -100.0 disconnected sentinel, A7 in a
-                    # sane 0-5V range rather than floating near the ignition rail).
-                    if now - last_native_cal_log_time >= NATIVE_TEMP_CAL_LOG_INTERVAL:
-                        if temp_val != -100.0 and 0.0 < native_temp_v <= 5.5:
-                            log_native_temp_cal_point(native_temp_v, temp_val)
-                            last_native_cal_log_time = now
-                            print(f"Native temp cal point logged → {native_temp_v}V = {temp_val}°C  (file: {NATIVE_TEMP_CAL_LOG_FILE})")
-
-                    print(f"TELEMETRY -> Speed: {speed_val} km/h | RPM: {rpm_val} | TEMP: {temp_val} | LITERS: {fuel_liters_val} | RANGE: {fuel_range_val} | L:{int(left_indicator)} R:{int(right_indicator)} H:{int(hazard)} DIM:{int(lights_dim)} BRIGHT:{int(lights_bright)} DT:{int(daytime_lights)} PARK:{int(parking_lights)} PBRAKE:{int(parking_brake)} SEATBELT:{int(seatbelt)} GLOWPLUGS:{int(glow_plug_relay)} AC:{int(ac_active)} ECUERR:{int(ecu_error)} TRIPRESET:{int(trip_reset)} OIL:{'normal' if oil_signal else 'low'} DOOR:{'open' if door_open else 'closed'} | NATIVETEMP_RAW_V:{native_temp_v} NATIVETEMP_C:{native_temp_val}")
+                    print(f"TELEMETRY -> Speed: {speed_val} km/h | RPM: {rpm_val} | TEMP: {temp_val} | LITERS: {fuel_liters_val} | FUELV: {fuel_v}V | RANGE: {fuel_range_val} | L:{int(left_indicator)} R:{int(right_indicator)} H:{int(hazard)} DIM:{int(lights_dim)} BRIGHT:{int(lights_bright)} DT:{int(daytime_lights)} PARK:{int(parking_lights)} PBRAKE:{int(parking_brake)} SEATBELT:{int(seatbelt)} GLOWPLUGS:{int(glow_plug_relay)} AC:{int(ac_active)} ECUERR:{int(ecu_error)} TRIPRESET:{int(trip_reset)} OIL:{'normal' if oil_signal else 'low'} DOOR:{'open' if door_open else 'closed'} | NATIVETEMP_RAW_V:{native_temp_v} NATIVETEMP_R:{native_temp_r}")
 
                 except (ValueError, IndexError) as e:
                     print(f"⚠️ Malformed data received: {line} ({e})")
