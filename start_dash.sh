@@ -10,7 +10,10 @@
 #   - Arduino Mega auto-detected by USB ID (ttyACM*/ttyUSB*), upload skipped if absent
 
 set -e
-trap 'kill $(jobs -p) 2>/dev/null; pkill -f avrdude 2>/dev/null; pkill -f arduino-cli 2>/dev/null' EXIT
+# The bridge is stopped by name, not just via jobs: arduino_upload.sh may have
+# restarted it under a new PID while the dashboard was running. Doing this here
+# also covers Ctrl-C and dashboard crashes, which never reach the end of the script.
+trap 'kill $(jobs -p) 2>/dev/null; pkill -f "Python_Utils/rpm_speed_arduino_dev_ttyACM0.py" 2>/dev/null; pkill -f avrdude 2>/dev/null; pkill -f arduino-cli 2>/dev/null' EXIT
 
 # =============================================================================
 # Configuration — edit these if paths change
@@ -113,6 +116,3 @@ PYTHON_PID=$!
 # =============================================================================
 echo "==> Launching ClusterDashboardApp..."
 ./ClusterDashboardApp
-# By name, not $PYTHON_PID: arduino_upload.sh may have restarted the bridge
-# under a new PID while the dashboard was running.
-pkill -f "Python_Utils/rpm_speed_arduino_dev_ttyACM0.py" 2>/dev/null || true

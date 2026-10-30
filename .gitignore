@@ -22,6 +22,7 @@ main.cpp_*
 
 # Runtime / temp
 *.log
+logs/
 *.history
 .vssclient_history
 ClusterWorx/.vssclient_history
