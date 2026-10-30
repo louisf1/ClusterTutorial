@@ -63,10 +63,12 @@ bool SeatbeltSeen       = false;
 // D9 removed from this set — now the dedicated dashboard page-switch button.
 // D34 promoted to OilLevelPin (oil level sensor INPUT_PULLUP).
 // D35 promoted to DoorPin (door open sensor — active HIGH, 5V = any door open).
-const int NUM_SPARE_PINS = 6;
-const int SparePins[NUM_SPARE_PINS] = {2, 11, 12, 13, 32, 38};
+// D32 removed from this set — now TripResetPin. Leaving it here drove the pin
+// OUTPUT LOW every loop, so the trip-reset button always read as pressed.
+const int NUM_SPARE_PINS = 5;
+const int SparePins[NUM_SPARE_PINS] = {2, 11, 12, 13, 38};
 bool SparePinSeen[NUM_SPARE_PINS]   = {false, false, false,
-                                       false, false, false};
+                                       false, false};
 
 // =============================================================================
 // DOOR OPEN SIGNAL — D17
@@ -153,24 +155,6 @@ int           rpmGapCount     = 0;
 unsigned long lastRpmPulseUs  = 0;
 bool          haveLastRpmPulse = false;
 
-// =============================================================================
-// ALTERNATOR EXCITATION CONTROL — Arduino-only, no dashboard comms
-// Inputs (alternator output voltage, monitored via 7805VC-protected dividers,
-// 2 wires for redundancy):
-//   A15 = Red wire        (Standby power, P35)
-//   A14 = Black/White wire (Ignition power, P39)
-// Output:
-//   D44 = Excite signal (PWM -> RC filter -> field driver), 0-1.0V max
-//
-// Closed loop: every ALT_STEP_INTERVAL_MS, if the monitored alternator
-// voltage exceeds ALT_TARGET_MAX_V, the excite voltage is reduced by
-// ALT_STEP_V; otherwise it is increased by ALT_STEP_V. Output is clamped
-// to [0, ALT_OUT_MAX_V] as a hard safety cap.
-// =============================================================================
-const int AltMonitorRedPin = A15;
-const int AltMonitorBWPin  = A14;
-const int AltExcitePin     = 44;
-
 // D40 — PC power-switch-header relay output (BC547 low-side switch), pulsed
 // briefly on confirmed ignition-off (sleep) and ignition-on (wake) transitions.
 // Debounced against AV14 (Black/White wire, same real-volts scale as the AV14
@@ -191,38 +175,19 @@ int  ignitionBelowCount  = 0;
 bool pcPulseActive        = false;
 unsigned long pcPulseStartTime = 0;
 
-// Calibrated 2026-06-10: 12V applied to red wire -> RAWRED read 0.36V,
-// giving scale 12 / 0.36 = 33.33. Assumed same for black-white (separate
-// 7805VC unit, same circuit) until verified independently.
-const float ALT_MONITOR_SCALE = 33.33;
-
-const float ALT_TARGET_MAX_V = 14.5;
-const float ALT_STEP_V       = 0.01;
-const float ALT_OUT_MIN_V    = 0.0;
-const float ALT_OUT_MAX_V    = 1.0;   // safety cap
-const float ALT_OUT_SUPPLY_V = 5.0;   // PWM/RC-filter reference voltage
-const unsigned long ALT_STEP_INTERVAL_MS = 10;
-
-float altExciteVoltage   = 0.0;
-unsigned long altLastStepTime = 0;
-
-// Latest readings, for debug telemetry only
-float altDebugVRed   = 0.0;
-float altDebugVBW    = 0.0;
-float altDebugRawRed = 0.0;  // raw pin voltage, 0-5V, before ALT_MONITOR_SCALE
-float altDebugRawBW  = 0.0;  // raw pin voltage, 0-5V, before ALT_MONITOR_SCALE
 // =============================================================================
-// FUEL GAUGE — A0
+// FUEL GAUGE — A3
+// A0 is unusable on this board: the pin is open between the chip and the header.
 // =============================================================================
-const int fuelPin    = A0;
+const int fuelPin    = A3;
 const int numReadings = 20;
 int  readings[numReadings];
 int  readIndex = 0;
 long total     = 0;
 int  average   = 0;
 
-const float V_EMPTY       = 1.9248;
-const float V_FULL        = 0.109;
+const float V_EMPTY       = 2.359;  // extrapolated: 2.08V measured at ~9 liters, straight line to 0V at full
+const float V_FULL        = 0.000;
 const float TANK_CAPACITY = 76.03012;
 float avgKmPerLiter       = 10.0;     // update to your real-world average
 
@@ -342,39 +307,6 @@ float nativeOhmsToTempC(float r) {
 //const int WIRE_D_PINS[4] = { 6, 12, 14, 35 };
 
 // =============================================================================
-// ALTERNATOR EXCITATION CONTROL — high-rate, runs every loop() iteration
-// =============================================================================
-void updateAlternatorExcitation() {
-  float rawRed = analogRead(AltMonitorRedPin) * (ALT_OUT_SUPPLY_V / 1023.0);
-  float rawBW  = analogRead(AltMonitorBWPin)  * (ALT_OUT_SUPPLY_V / 1023.0);
-
-  float vRed = rawRed * ALT_MONITOR_SCALE;
-  float vBW  = rawBW  * ALT_MONITOR_SCALE;
-
-  // Redundant readings — use the higher of the two (clamp early, err safe)
-  float vAlternator = max(vRed, vBW);
-
-  altDebugVRed    = vRed;
-  altDebugVBW     = vBW;
-  altDebugRawRed  = rawRed;
-  altDebugRawBW   = rawBW;
-
-  unsigned long now = millis();
-  if (now - altLastStepTime < ALT_STEP_INTERVAL_MS) return;
-  altLastStepTime = now;
-
-  if (vAlternator > ALT_TARGET_MAX_V) {
-    altExciteVoltage -= ALT_STEP_V;
-  } else {
-    altExciteVoltage += ALT_STEP_V;
-  }
-  altExciteVoltage = constrain(altExciteVoltage, ALT_OUT_MIN_V, ALT_OUT_MAX_V);
-
-  int pwmValue = (int)((altExciteVoltage / ALT_OUT_SUPPLY_V) * 255.0 + 0.5);
-  analogWrite(AltExcitePin, pwmValue);
-}
-
-// =============================================================================
 // SETUP
 // =============================================================================
 void setup() {
@@ -393,10 +325,6 @@ void setup() {
   for (int pin = 2; pin <= 53; pin++) {
     pinMode(pin, INPUT);
   }
-
-  // Alternator excitation output — start at 0V, ramps up via control loop
-  pinMode(AltExcitePin, OUTPUT);
-  analogWrite(AltExcitePin, 0);
 
   // PC power-switch relay pin — reserved, held LOW (idle) until wiring + logic added
   pinMode(PcPowerPulsePin, OUTPUT);
@@ -457,10 +385,6 @@ void setup() {
 // MAIN LOOP
 // =============================================================================
 void loop() {
-  // Alternator excitation control — runs every iteration, independent of
-  // the 1s telemetry report below.
-  updateAlternatorExcitation();
-
   // Release the PC power-switch pulse after PULSE_DURATION_MS — non-blocking
   // so it doesn't stall speed/RPM pulse counting elsewhere in loop().
   if (pcPulseActive && millis() - pcPulseStartTime >= PULSE_DURATION_MS) {
@@ -595,7 +519,7 @@ void loop() {
   Serial.print("|TMP:");   Serial.print(currentTemp, 1);
   Serial.print("|LITERS:"); Serial.print(litersLeft, 1);
   Serial.print("|RANGE:"); Serial.print(rangeKm, 0);
-  Serial.print("|FUELV:"); Serial.print(fuelVoltage, 3); // raw A0 sender volts, for calibrating V_EMPTY/V_FULL
+  Serial.print("|FUELV:"); Serial.print(fuelVoltage, 3); // raw A3 sender volts, for calibrating V_EMPTY/V_FULL
   // NATIVETEMPV/NATIVETEMPR are what you read off the log to build/verify
   // the calibration table; TMP above is the result of that table.
   Serial.print("|NATIVETEMPV:"); Serial.print(nativeWireVoltage, 2);
@@ -642,13 +566,6 @@ void loop() {
   Serial.print("|DVGLOWPLUG:"); Serial.print(digitalRead(GlowPlugPin) == HIGH ? 1 : 0);//glowplug indicator on dash (HIGH=active)
   Serial.print("|DVAIRCONSIGNAL:"); Serial.print(digitalRead(AirconPin) == HIGH ? 1 : 0);//aircon indicator on/off
 
-  // ── Alternator excitation debug ──────────────────────────────────────────
-  Serial.print("|RAWRED:");  Serial.print(altDebugRawRed, 3);
-  Serial.print("|RAWBW:");   Serial.print(altDebugRawBW, 3);
-  Serial.print("|ALTRED:");  Serial.print(altDebugVRed, 2);
-  Serial.print("|ALTBW:");   Serial.print(altDebugVBW, 2);
-  Serial.print("|ALTOUT:");  Serial.print(altExciteVoltage, 2);
-
   // ── Indicators (same "last pulse" timestamps used by the FAST report) ────
   Serial.print("|LINDIC:");      Serial.print((millis() - lastLeftPulseTime)  < INDICATOR_TIMEOUT_MS ? 1 : 0);
   Serial.print("|RINDIC:");      Serial.print((millis() - lastRightPulseTime) < INDICATOR_TIMEOUT_MS ? 1 : 0);
@@ -666,8 +583,7 @@ void loop() {
 //  Serial.print("|SPARE11:"); Serial.print(SparePinSeen[1]  ? 1 : 0);
   Serial.print("|SPARE12:"); Serial.print(SparePinSeen[2]  ? 1 : 0);
   Serial.print("|SPARE13:"); Serial.print(SparePinSeen[3]  ? 1 : 0);
-  Serial.print("|SPARE32:"); Serial.print(SparePinSeen[4]  ? 1 : 0);
-  Serial.print("|SPARE38:"); Serial.print(SparePinSeen[5]  ? 1 : 0);
+  Serial.print("|SPARE38:"); Serial.print(SparePinSeen[4]  ? 1 : 0);
   //Serial.print("|SPARE5:");  Serial.print(DualModePinSeen[0] ? 1 : 0);  // DISABLED: D0/D1
   //Serial.print("|SPARE11:"); Serial.print(DualModePinSeen[1] ? 1 : 0);
 
