@@ -1,30 +1,34 @@
 // =============================================================================
 // Ford Ranger ECU Harness — Arduino Mega 2560 Telemetry
 // =============================================================================
-// Serial output format (one line per second):
-//   SPD:xx.x|RPM:xxxx|TMP:xx.x|LITERS:xx.x|RANGE:xxx
-//   |AV2:x.xx|AV3:x.xx|AV4:x.xx|AV5:x.xx|AV6:x.xx
-//   |AV8:x.xx|AV9:x.xx|AV10:x.xx|AV11:x.xx|AV12:x.xx|AV13:x.xx
+// Serial output format (one line per second, 115200 baud):
+//   SPD:xx.x|RPM:xxxx|TMP:xx.x|LITERS:xx.x|RANGE:xxx|FUELV:x.xxx
 //   |NATIVETEMPV:x.xx (volts) |NATIVETEMPR:xxx (sender ohms) — A7 coolant sender behind TMP, see below
+//   |AV1:x.xx ... |AV15:x.xx  (ECU wire voltages, see ECU WIRE HARNESS)
+//   |DVGLOWPLUG:x|DVAIRCONSIGNAL:x
 //   |LINDIC:x|RINDIC:x  (1=active, 0=off — true within INDICATOR_TIMEOUT_MS of last pulse)
-//   |PAGEBTN:x  (1=pressed, 0=not — latched over the 1s window; D19 button to GND)
-//   |TRIPRESET:x  (1=pressed, 0=not — latched over the 1s window; D20 button to GND)
+//   |LIGHTSDIM:x|LIGHTSBRIGHT:x|DAYTIMEDRIVING:x|PARKINGLIGHTS:x|PARKINGBRAKE:x|SEATBELT:x
+//   |SPARE2:x|DVDOORSIGNAL:x|DVOILSIGNAL:x|SPARE12:x|SPARE13:x|SPARE38:x
+//   |PAGEBTN:x  (1=pressed, 0=not — latched over the 1s window; D31 button to GND)
+//   |TRIPRESET:x  (1=pressed, 0=not — latched over the 1s window; D32 button to GND)
 //
 // A separate FAST line is sent every 100ms, independent of the 1s report:
 //   FAST|PAGEBTN:x|LINDIC:x|RINDIC:x
 // (PAGEBTN latched over the 100ms window; LINDIC/RINDIC as above)
 //
-// AV values are 0–5V. Each wire uses a 10kΩ/5.1k volts devider
-// Signals above 5V clamp at the protection diode.
-// Python bridge uses VOLTAGE_SCALE=1.0 (no scaling needed).
+// AV values are already scaled to real wire volts (0–14.5V) through each wire's
+// 10kΩ/5.1kΩ divider, so the Python bridge uses VOLTAGE_SCALE=1.0.
 // =============================================================================
 
 // =============================================================================
-// INDICATORS — D25 (left) / D26 (right) via 10k ohm/ 5.1 ohm divider
-// LIGHTS     — D27 (dim/parking) via 10k ohm/ 5.1 ohm divider
-// All active HIGH; external 10kΩ pull-down holds LOW when off.
-// Hazard is derived in Python bridge (left AND right both active).
-// State is latched across the 1s report window so fast blinks are never missed.
+// INDICATORS — D7 (left) / D5 (right)
+// LIGHTS     — D9 (dim) / D8 (bright) / D10 (daytime) / D14 (parking)
+// PARKING BRAKE — D16, SEATBELT — D19
+// All active HIGH, level-converted externally (V508VC); external pull-downs
+// hold them LOW when off. Hazard is derived in the Python bridge (left AND
+// right both active).
+// Lights, parking brake and seatbelt are latched across the 1s report window
+// so short pulses are never missed.
 // =============================================================================
 const int leftIndicatorPin  = 7;
 const int rightIndicatorPin = 5;
@@ -51,20 +55,10 @@ bool ParkingBrakeSeen   = false;
 bool SeatbeltSeen       = false;
 
 // Spare pins — held LOW (pulled down) by default, briefly switched to
-// INPUT each loop to sample for a HIGH pulse, thuen driven LOW again.
-// D1 excluded (Serial0 TX, controlled by USART hardware).
-// D33 excluded (confirmed dead — stuck at 4.7V even when driven OUTPUT LOW).
-// D2-D3 were glow the original spare set; D6,7,8,9,12,13,32,38 were previously
-// "reserved" INPUT_PULLUP wire pins that float high with nothing connected —
-// moved here so they sit at a known 0V instead.
-// D10 removed from this set — now the dedicated parking brake switch input.
-// D8 removed from this set — now LightsBrightPin. Leaving it here drove the
-// pin OUTPUT LOW every loop, so the bright-lights read was always 0.
-// D9 removed from this set — now the dedicated dashboard page-switch button.
-// D34 promoted to OilLevelPin (oil level sensor INPUT_PULLUP).
-// D35 promoted to DoorPin (door open sensor — active HIGH, 5V = any door open).
-// D32 removed from this set — now TripResetPin. Leaving it here drove the pin
-// OUTPUT LOW every loop, so the trip-reset button always read as pressed.
+// INPUT each loop to sample for a HIGH pulse, then driven LOW again.
+// A pin given a real function must come out of this list: being driven LOW
+// every loop overrides whatever it reads.
+// D33 is not usable (confirmed dead — stuck at 4.7V even when driven OUTPUT LOW).
 const int NUM_SPARE_PINS = 5;
 const int SparePins[NUM_SPARE_PINS] = {2, 11, 12, 13, 38};
 bool SparePinSeen[NUM_SPARE_PINS]   = {false, false, false,
@@ -85,9 +79,8 @@ const int DoorPin = 17;
 const int OilLevelPin = 18;
 
 // =============================================================================
-// DASHBOARD PAGE-SWITCH BUTTON — D30
+// DASHBOARD PAGE-SWITCH BUTTON — D31
 // Momentary pushbutton to GND, INPUT_PULLUP (active LOW when pressed).
-// Replaces the old spacebar shortcut for cycling dashboard screens.
 // PageButtonSeen is latched over the 1s window (main report);
 // PageButtonFastSeen is latched over the 100ms FAST report window.
 // =============================================================================
@@ -96,10 +89,9 @@ bool PageButtonSeen     = false;
 bool PageButtonFastSeen = false;
 
 // =============================================================================
-// TRIP RESET BUTTON — D31
+// TRIP RESET BUTTON — D32
 // Momentary pushbutton to GND, INPUT_PULLUP (active LOW when pressed).
-// Moved off the SPARE7/D7 spare-pin slot (now reused for the glow plug
-// dual-mode read) onto its own dedicated pin. Latched over the 1s window;
+// No 5V connection. Latched over the 1s window;
 // SystemMonitor.cpp edge-detects the rising TRIPRESET flag on the dashboard
 // side to fire the actual reset once per press.
 // =============================================================================
@@ -116,18 +108,9 @@ bool TripResetSeen      = false;
 const int GlowPlugPin = 20;
 const int AirconPin   = 21;
 
-// DISABLED: D0/D1 are the Mega's Serial RX/TX to the Pi (USB link), so they
-// can't be used as signal inputs. Dual-mode read commented out until the
-// aircon/glow plug signals are moved to free pins.
-// D1 (aircon) and D0 (glow plug) — keep their existing INPUT_PULLUP signal
-// reads (DVAIRCONSIGNAL/DVGLOWPLUG) AND, each loop, briefly drive the pin LOW
-// then switch back to INPUT_PULLUP to see if an external signal pulls it back
-// HIGH on its own. Latched as SPARE5/SPARE11 for comparison/refinement.
-//const int DualModePins[2] = {0, 1};
-//bool DualModePinSeen[2]   = {false, false};
-
 // =============================================================================
-// SPEED & RPM
+// SPEED & RPM — D24 / D23
+// Hall sensors, active HIGH. Speed gives 3 pulses per wheel revolution.
 // =============================================================================
 const int speedPin = 24;
 const int rpmPin   = 23;
@@ -162,8 +145,7 @@ bool          haveLastRpmPulse = false;
 // software suspend also drives this independent hardware path — this one
 // still works even if the bridge/KUKSA/systemd chain is down, and it's the
 // only path that can wake the PC once suspended (nothing runs during suspend
-// to catch a serial command). See hardware_notes_voltage_dividers.txt and
-// [[project_pc_sleep_wake]] memory for the full design.
+// to catch a serial command).
 const int PcPowerPulsePin  = 40;
 const float IGNITION_SLEEP_THRESHOLD_V = 1.5;
 const int   IGNITION_DEBOUNCE_COUNT    = 5;      // consecutive 1s samples before confirming a transition
@@ -192,39 +174,30 @@ const float TANK_CAPACITY = 76.03012;
 float avgKmPerLiter       = 10.0;     // update to your real-world average
 
 // =============================================================================
-// ECU WIRE HARNESS — Analog voltage reads (A1–A13)
-// Each wire uses a 10kΩ series resistor (current limiting only, no voltage divider).
-// Signals above 5V clamp at the Arduino protection diode — sufficient for
-// active/inactive detection. Python bridge uses VOLTAGE_SCALE=1.0.
-//	"black-white",    //: ignition power on-off and Timer Control Valve :Arduin
-//	"black-yellow",    //: Connected to ignition key start barrel :Arduino AnaLog Pin  13
-//	"blue-black",    //: Timer Control Valve :Arduino AnaLog Pin  2
-//	"blue-pink",    //: Crankshaft Position Sensor :Arduino AnaLog Pin 1
-//	"brown",    //: Glow plug relay :Arduino Analog Pin 3 
-//	"brown-red",    //: unknown :Arduino AnaLog Pin  7
-//	"brown-white",    //: Control Lever Position :Arduino AnaLog Pin  9
-//	"brown-yellow",    //: unknown :Arduino AnaLog Pin  8
-//	"green",    //: FICD solenoid Valve no1 :Arduino AnaLog Pin  11
-//	"green-white",    //: Idle control switch :Arduino AnaLog Pin  4
-//	"pink",    //: FICD solenoid Valve no2 :Arduino AnaLog Pin  12
-//	"red",    //: standby power :Arduino Analog pin 15 
-//	"red-blue",    //: Control Lever Position :Arduino AnaLog Pin  6
-//	"white-blue",    //: PCM internal control :Arduino AnaLog Pin  3
-//	"yellow"    //: EGR solonoid Valve :Arduino AnaLog Pin 10
+// ECU WIRE HARNESS — Analog voltage reads (A1–A15), reported as AV1–AV15
+// Read-only: each wire has a 10kΩ series + 5.1kΩ to GND divider, TVS and cap.
+// Functions marked (?) are not confirmed by tracing the wire.
+//	A1  blue-pink     Crankshaft Position Sensor (?)
+//	A2  blue-black    Timer Control Valve (?)
+//	A3  fuel sender   see FUEL GAUGE
+//	A4  green-white   Idle control switch (?)
+//	A5  red-black     unknown (?) — regulated ~5.25V, 0V while cranking
+//	A6  red-blue      Control Lever Position (?)
+//	A7  yellow-black  coolant sender — see NATIVE COOLANT TEMPERATURE SENDER
+//	A8  brown-yellow  unknown (?)
+//	A9  brown-white   Control Lever Position (?)
+//	A10 yellow        EGR solenoid valve (?)
+//	A11 green         FICD solenoid valve no1 (?)
+//	A12 pink          FICD solenoid valve no2
+//	A13 black-yellow  Starter signal
+//	A14 black-white   Ignition power
+//	A15 red           Battery constant
 // =============================================================================
-
-// Analog pins — voltage reads only (A14=ignition power, A15=standby power)
-// A7 ("brown-red", never identified) is repurposed as the native coolant
-// sender input — see NATIVE COOLANT TEMPERATURE SENDER. It's excited by a
-// 270R pull-up from 5V and carries the same 10k/5.1k + TVS + cap
-// protection as every other pin here, so it's read through this same loop
-// like all the rest (reported as AV7).
 const int WIRE_A_PINS[15] = {A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14, A15};
 
 // =============================================================================
 // NATIVE COOLANT TEMPERATURE SENDER — A7 (yellow-black wire into the engine
-// block; repurposed from the "brown-red" ECU slot, which was never identified
-// as a live signal).
+// block).
 //
 // This is the single-wire dash-gauge sender (NTC thermistor body-grounded to
 // the block). The original cluster is unplugged, so nothing else powers it —
@@ -303,9 +276,6 @@ float nativeOhmsToTempC(float r) {
   return NativeTempCalTable[NATIVE_TEMP_CAL_POINTS - 1].tempC;  // below lowest cal point
 }
 
-// NOT USED  Digital pins actively used for ECU wire signals (input_pullup configured in setup)
-//const int WIRE_D_PINS[4] = { 6, 12, 14, 35 };
-
 // =============================================================================
 // SETUP
 // =============================================================================
@@ -326,7 +296,7 @@ void setup() {
     pinMode(pin, INPUT);
   }
 
-  // PC power-switch relay pin — reserved, held LOW (idle) until wiring + logic added
+  // PC power-switch relay pin — held LOW (idle) until pulsed
   pinMode(PcPowerPulsePin, OUTPUT);
   digitalWrite(PcPowerPulsePin, LOW);
 
@@ -334,11 +304,6 @@ void setup() {
   // Hall sensors output active-HIGH (5V when magnet passes) so plain INPUT, no pullup.
   pinMode(speedPin, INPUT);
   pinMode(rpmPin,   INPUT);
-
-  // NOT USED: ECU wire digital pins — INPUT_PULLUP, actively assigned signals
-  //for (int i = 0; i < 4; i++) {
-  //  pinMode(WIRE_D_PINS[i], INPUT_PULLUP);
-  //}
 
   // Door open sensor — active HIGH from external signal, plain INPUT
   pinMode(DoorPin, INPUT);
@@ -422,16 +387,6 @@ void loop() {
   if (digitalRead(TripResetPin) == LOW) {
     TripResetSeen = true;
   }
-
-  // DISABLED (D0/D1 = Serial RX/TX): briefly drive LOW, then switch back to
-  // INPUT_PULLUP — if the signal pulls the pin back HIGH on its own, latch
-  // SPARE5/SPARE11.
-  //for (int i = 0; i < 2; i++) {
-  //  pinMode(DualModePins[i], OUTPUT);
-  //  digitalWrite(DualModePins[i], LOW);
-  //  pinMode(DualModePins[i], INPUT_PULLUP);
-  //  if (digitalRead(DualModePins[i]) == HIGH) DualModePinSeen[i] = true;
-  //}
 
   // Poll speed / RPM — detect RISING edge from active-HIGH hall sensors
   bool curSpeed = digitalRead(speedPin) == HIGH;
@@ -559,10 +514,7 @@ void loop() {
     pcPulseStartTime  = millis();
   }
 
-  // ── Digital-only ECU wire pins (no ADC — HIGH/LOW reported as 1/0) ─────────
-  //Serial.print("|DV33:"); Serial.print(digitalRead(33) == HIGH ? 1 : 0);
-  // DVIGNITIONPWR (was digitalRead(14)=TX3, wrong pin) — now covered by AV14 analog
-  // DVSTANDBYPOWER (was digitalRead(35), wrong pin)    — now covered by AV15 analog
+  // ── Digital signals (no ADC — HIGH/LOW reported as 1/0) ────────────────────
   Serial.print("|DVGLOWPLUG:"); Serial.print(digitalRead(GlowPlugPin) == HIGH ? 1 : 0);//glowplug indicator on dash (HIGH=active)
   Serial.print("|DVAIRCONSIGNAL:"); Serial.print(digitalRead(AirconPin) == HIGH ? 1 : 0);//aircon indicator on/off
 
@@ -576,16 +528,14 @@ void loop() {
   Serial.print("|PARKINGBRAKE:");   Serial.print(ParkingBrakeSeen  ? 1 : 0);
   Serial.print("|SEATBELT:");       Serial.print(SeatbeltSeen      ? 1 : 0);
 
-  // ── Spare pins (latched HIGH-pulse detection) ─────────────────────────────
+  // ── Spare pins (latched HIGH-pulse detection), door and oil ───────────────
+  // SparePinSeen[1] (D11) is sampled but not reported.
   Serial.print("|SPARE2:");  Serial.print(SparePinSeen[0]  ? 1 : 0);
   Serial.print("|DVDOORSIGNAL:"); Serial.print(digitalRead(DoorPin) == HIGH ? 1 : 0);//door open (HIGH=open, LOW=closed)
   Serial.print("|DVOILSIGNAL:"); Serial.print(digitalRead(OilLevelPin) == HIGH ? 1 : 0);//oil level (HIGH=normal, LOW=low)
-//  Serial.print("|SPARE11:"); Serial.print(SparePinSeen[1]  ? 1 : 0);
   Serial.print("|SPARE12:"); Serial.print(SparePinSeen[2]  ? 1 : 0);
   Serial.print("|SPARE13:"); Serial.print(SparePinSeen[3]  ? 1 : 0);
   Serial.print("|SPARE38:"); Serial.print(SparePinSeen[4]  ? 1 : 0);
-  //Serial.print("|SPARE5:");  Serial.print(DualModePinSeen[0] ? 1 : 0);  // DISABLED: D0/D1
-  //Serial.print("|SPARE11:"); Serial.print(DualModePinSeen[1] ? 1 : 0);
 
   // ── Dashboard page-switch button (latched over the 1s window) ────────────
   Serial.print("|PAGEBTN:"); Serial.print(PageButtonSeen ? 1 : 0);
@@ -600,8 +550,6 @@ void loop() {
   ParkingBrakeSeen   = false;
   SeatbeltSeen       = false;
   for (int i = 0; i < NUM_SPARE_PINS; i++) SparePinSeen[i] = false;
-  //DualModePinSeen[0] = false;  // DISABLED: D0/D1
-  //DualModePinSeen[1] = false;
   PageButtonSeen     = false;
   TripResetSeen      = false;
 
