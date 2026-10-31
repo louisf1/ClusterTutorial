@@ -1,3 +1,7 @@
+import fcntl
+import glob
+import logging
+import logging.handlers
 import serial
 import serial.tools.list_ports
 import time
@@ -12,13 +16,51 @@ from datetime import datetime
 from kuksa_client.grpc import VSSClient, Datapoint
 
 # --- CONFIGURATION ---
-BAUD_RATE = 9600
+BAUD_RATE = 115200
+# On disk, not /tmp: the log has to survive the reboot that usually follows a
+# problem. The per-second TELEMETRY lines stay on stdout only.
+BRIDGE_LOG_FILE      = '/home/louis/ClusterWorx/logs/bridge.log'
+BRIDGE_LOG_MAX_BYTES = 5 * 1024 * 1024
+BRIDGE_LOG_BACKUPS   = 3
+BRIDGE_LOCK_FILE     = '/tmp/ecu_bridge.lock'
 SERIAL_PORTS = ['/dev/ttyACM0', '/dev/ttyACM1']
 # The PC_Wake_Leonardo (VID 2341, PID 8036 sketch / 0036 bootloader) is also a
 # CDC-ACM device and can take ttyACM0 — never open it as the telemetry link.
 LEONARDO_PIDS = {0x8036, 0x0036}
 MEGA_PIDS = {0x0042, 0x0010}
 CH340_ID = (0x1a86, 0x7523)  # CH340-based Mega clones, enumerate as ttyUSB*
+
+log = logging.getLogger('bridge')
+
+
+def _setup_logging():
+    """Timestamped events to stdout and to a rotating log file on disk."""
+    log.setLevel(logging.INFO)
+    fmt = logging.Formatter('%(asctime)s [%(process)d] %(levelname)s %(message)s')
+    stdout = logging.StreamHandler(sys.stdout)
+    stdout.setFormatter(fmt)
+    log.addHandler(stdout)
+    try:
+        os.makedirs(os.path.dirname(BRIDGE_LOG_FILE), exist_ok=True)
+        disk = logging.handlers.RotatingFileHandler(
+            BRIDGE_LOG_FILE, maxBytes=BRIDGE_LOG_MAX_BYTES,
+            backupCount=BRIDGE_LOG_BACKUPS, encoding='utf-8')
+        disk.setFormatter(fmt)
+        log.addHandler(disk)
+    except OSError as e:
+        log.warning(f"⚠️  Could not open {BRIDGE_LOG_FILE}: {e}")
+
+
+def _acquire_instance_lock():
+    """Exit if another bridge is running: two would fight over the serial port
+    and each restart would disturb the other. Held until this process exits."""
+    lock = open(BRIDGE_LOCK_FILE, 'w')
+    try:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        log.error("❌ Another bridge is already running — exiting.")
+        sys.exit(1)
+    return lock
 
 
 def find_mega_ports():
@@ -39,13 +81,15 @@ KUKSA_PORT = 55555
 ANALOG_TO_WIRE = {
     1:   0,  # A1  Blue/Pink     → index  0 "blue-pink"     (Crankshaft Position Sensor)
     2:   1,  # A2  Blue/Black    → index  1 "blue-black"    (Timer Control Valve)
-    3:   2,  # A3  Brown         → index  2 "brown"         (Glow Plug Relay Swicth)
+    # 3: A3/brown repurposed for the fuel sender (A0 is dead on this board).
+    # Arduino still sends AV3 (no dict entry so it's ignored here) — litres come
+    # via LITERS, volts via FUELV.
     4:   3,  # A4  Green/White   → index  3 "green-white"   (Idle control switch)
     5:   4,  # A5  Red/Black     → index  4 "red-black"     (unknown - to be identified)
     6:   5,  # A6  Red/Blue      → index  5 "red-blue"      (Control Lever Position)
     # 7: A7/brown-red repurposed for the native coolant temp sender (yellow-black
     # wire). Arduino still sends AV7 (raw wire voltage, no dict entry so it's
-    # ignored here) — the computed reading comes via NATIVETEMP/NATIVETEMPV.
+    # ignored here) — the computed °C comes via TMP, ohms via NATIVETEMPR.
     8:   7,  # A8  Brown/Yellow  → index  7 "brown-yellow"  (unknown)
     9:   8,  # A9  Brown/White   → index  8 "brown-white"   (Control Lever Position)
     10:  9,  # A10 Yellow        → index  9 "yellow"        (EGR solenoid Valve)
@@ -64,18 +108,60 @@ ACTIVE_THRESHOLD  = 2.0   # volts (real, after scale) — wire considered "live"
 WIRE_STATE_FILE   = '/tmp/ecu_wire_states.json'
 FAST_STATE_FILE   = '/tmp/ecu_fast_state.json'
 
-# Ignition-off PC suspend — AV14 (Black/White wire, wire index 13) is switched
+# Ignition-off screen sleep — AV14 (Black/White wire, wire index 13) is switched
 # ignition power. Below this for SLEEP_DEBOUNCE_COUNT consecutive 1s readings
-# (ignition off) triggers a suspend; `systemctl suspend` also blanks the screen.
+# (ignition off) the HDMI screen is switched off; WAKE_DEBOUNCE_COUNT readings
+# above it switch the screen back on. The Pi 5 kernel has no suspend support
+# (`systemctl suspend` fails), so the Pi stays running and idles instead.
 IGNITION_SLEEP_THRESHOLD_V = 1.5
 SLEEP_DEBOUNCE_COUNT       = 5
+WAKE_DEBOUNCE_COUNT        = 2
+
+# Dashboard test: TEST_FUEL_LITERS=25 overrides the Arduino's LITERS (and
+# derives RANGE at the sketch's avgKmPerLiter) so the fuel gauge can be
+# checked without a working sender. Unset = normal operation.
+TEST_FUEL_LITERS  = float(os.environ['TEST_FUEL_LITERS']) if os.environ.get('TEST_FUEL_LITERS') else None
+TEST_KM_PER_LITER = 10.0
+
+
+def _connected_outputs():
+    """Connected display outputs as wlr-randr names, e.g. ['HDMI-A-2']."""
+    outputs = []
+    for status_file in sorted(glob.glob('/sys/class/drm/card*-*/status')):
+        try:
+            with open(status_file) as f:
+                if f.read().strip() != 'connected':
+                    continue
+        except OSError:
+            continue
+        name = os.path.basename(os.path.dirname(status_file)).split('-', 1)[1]
+        if not name.startswith('Writeback'):
+            outputs.append(name)
+    return outputs
+
+
+def set_screen_power(on):
+    """Switch every connected screen on/off via the labwc Wayland session."""
+    env = dict(os.environ)
+    env.setdefault('XDG_RUNTIME_DIR', f'/run/user/{os.getuid()}')
+    env.setdefault('WAYLAND_DISPLAY', 'wayland-0')
+    for output in _connected_outputs():
+        result = subprocess.run(['wlr-randr', '--output', output, '--on' if on else '--off'],
+                                env=env, capture_output=True, text=True)
+        if result.returncode != 0:
+            log.warning(f"⚠️  wlr-randr {output} {'on' if on else 'off'} failed: {result.stderr.strip()}")
+
 
 def _zero_wire_states_and_exit(signum, frame):
     with open(WIRE_STATE_FILE, 'w') as jf:
         json.dump({'states': [False] * 20, 'voltages': [0.0] * 20}, jf)
-    print("🔌 Wire states zeroed — SIGTERM received.")
+    if screen_asleep:
+        set_screen_power(True)  # never leave the dashboard dark after the bridge stops
+    log.info("🔌 Wire states zeroed — SIGTERM received.")
     os._exit(0)  # bypass context managers that may swallow SystemExit
 
+screen_asleep = False
+broker_cleared = False   # stale values cleared once per process, not per reconnect
 signal.signal(signal.SIGTERM, _zero_wire_states_and_exit)
 
 # --- KPL (km per litre) rolling log ---
@@ -83,16 +169,6 @@ KPL_LOG_FILE    = '/tmp/kpl_log.csv'   # timestamp, liters, odo_km
 KPL_MAX_RECORDS = 6                    # 6 × 10 min = 1 hour sliding window
 KPL_INTERVAL    = 600                  # seconds between log entries
 VSS_BUILD_FILE  = '/home/louis/ClusterWorx/build/VSS_paths.txt'
-
-# --- Native coolant sender calibration log (A7 volts -> MAX6675 benchmark °C) ---
-# Append-only (no trimming, unlike the KPL log) — collects every point from a
-# cold-start warm-up so NativeTempCalTable in the .ino can be built from real
-# matched pairs instead of the current placeholder values. A dead/miswired
-# MAX6675 can silently read a plausible 0.0°C instead of tripping the -100.0
-# sentinel, so verify the replacement chip with the raw SPI diagnostic before
-# trusting this log as calibration data.
-NATIVE_TEMP_CAL_LOG_FILE     = '/tmp/native_temp_cal_log.csv'   # timestamp, native_temp_v, max6675_temp_c
-NATIVE_TEMP_CAL_LOG_INTERVAL = 5   # seconds between log entries — coolant temp moves slowly
 
 def _read_persisted_odo():
     """Read totalKms persisted in the 4th pipe field of VSS_paths.txt."""
@@ -147,7 +223,7 @@ def _init_kpl_log_if_missing():
         odo = round(160000.0 + i * 10.0, 1)   # 160000→160050 km (10 km / 10 min)
         records.append((ts, lit, odo))
     _save_kpl_records(records)
-    print(f"KPL log seeded with {KPL_MAX_RECORDS} dummy records → {KPL_LOG_FILE}")
+    log.info(f"KPL log seeded with {KPL_MAX_RECORDS} dummy records → {KPL_LOG_FILE}")
 
 def update_kpl_log(fuel_liters):
     """Append entry, trim to KPL_MAX_RECORDS, return current KPL average."""
@@ -160,19 +236,9 @@ def update_kpl_log(fuel_liters):
     _save_kpl_records(records)
     return _calc_kpl(records)
 
-def log_native_temp_cal_point(native_v, benchmark_c):
-    """Append one (A7 sender voltage, MAX6675 benchmark °C) pair to the
-    calibration log. Caller is responsible for only passing plausible
-    readings from both sensors."""
-    write_header = not os.path.exists(NATIVE_TEMP_CAL_LOG_FILE)
-    with open(NATIVE_TEMP_CAL_LOG_FILE, 'a', newline='') as f:
-        w = csv.writer(f)
-        if write_header:
-            w.writerow(['timestamp', 'native_temp_v', 'max6675_temp_c'])
-        w.writerow([datetime.now().strftime('%Y-%m-%d %H:%M:%S'), native_v, benchmark_c])
-
-
 def run_master_bridge():
+    global broker_cleared
+
     # Zero wire states immediately — if bridge restarts or is searching for Arduino,
     # the dashboard should show all red rather than stale values
     with open(WIRE_STATE_FILE, 'w') as jf:
@@ -180,57 +246,61 @@ def run_master_bridge():
 
     _init_kpl_log_if_missing()
     last_kpl_time = 0   # log first entry immediately on first valid telemetry
-    last_native_cal_log_time = 0   # log first entry immediately on first valid pair
 
     ser = None
     candidate_ports = find_mega_ports()
     for port in candidate_ports:
         try:
-            ser = serial.Serial(port, BAUD_RATE, timeout=0.1)
+            ser = serial.Serial(port, BAUD_RATE, timeout=0.1, exclusive=True)
             time.sleep(2)  # Give Arduino a moment to reboot after connection
-            print(f"✅ Arduino Serial Link Active on {port}")
+            log.info(f"✅ Arduino Serial Link Active on {port}")
             break
         except Exception as e:
-            print(f"⚠️  Could not open {port}: {e}")
+            log.warning(f"⚠️  Could not open {port}: {e}")
     if ser is None:
-        print(f"❌ Serial Error: no Arduino Mega found on {candidate_ports or SERIAL_PORTS}. Check your USB connection!")
+        log.error(f"❌ Serial Error: no Arduino Mega found on {candidate_ports or SERIAL_PORTS}. Check your USB connection!")
         with open(WIRE_STATE_FILE, 'w') as jf:
             json.dump({'states': [False] * 20, 'voltages': [0.0] * 20}, jf)
         return
 
+    last_line_time = time.monotonic()
     try:
         with VSSClient(KUKSA_IP, KUKSA_PORT) as client:
-            print("🚀 Kuksa Link Active. Dashboard is now LIVE.")
+            log.info("🚀 Kuksa Link Active. Dashboard is now LIVE.")
 
-            # Clear any stale values left in the broker from a previous run
-            client.set_current_values({
-                'Vehicle.Speed':                                               Datapoint(0.0),
-                'Vehicle.OBD.EngineSpeed':                                     Datapoint(0.0),
-                'Vehicle.OBD.FuelLevel':                                       Datapoint(0.0),
-                'Vehicle.OBD.CoolantTemperature':                              Datapoint(0.0),
-                'Vehicle.Powertrain.FuelSystem.Range':                         Datapoint(0.0),
-                'Vehicle.Powertrain.FuelSystem.IsFuelLevelLow':                Datapoint(False),
-                'Vehicle.Body.Lights.DirectionIndicator.Left.IsSignaling':     Datapoint(False),
-                'Vehicle.Body.Lights.DirectionIndicator.Right.IsSignaling':    Datapoint(False),
-                'Vehicle.Body.Lights.Hazard.IsSignaling':                      Datapoint(False),
-                'Vehicle.Body.Lights.Beam.Low.IsOn':                           Datapoint(False),
-                'Vehicle.Body.Lights.Beam.High.IsOn':                          Datapoint(False),
-                'Vehicle.Body.Lights.Running.IsOn':                            Datapoint(False),
-                'Vehicle.Powertrain.IsAutoPowerOptimize':                      Datapoint(False),
-                'Vehicle.Cabin.HVAC.IsAirConditioningActive':                  Datapoint(False),
-                'Vehicle.ADAS.DMS.IsError':                                    Datapoint(False),
-                'Vehicle.Body.Lights.Parking.IsOn':                            Datapoint(False),
-                'Vehicle.Powertrain.CombustionEngine.EngineOil.Level':        Datapoint("NORMAL"),
-                'Vehicle.Cabin.Door.Row1.DriverSide.IsOpen':                  Datapoint(False),
-                'Vehicle.Cabin.Door.Row1.PassengerSide.IsOpen':               Datapoint(False),
-                'Vehicle.Cabin.Door.Row2.DriverSide.IsOpen':                  Datapoint(False),
-                'Vehicle.Cabin.Door.Row2.PassengerSide.IsOpen':               Datapoint(False),
-            })
+            # Clear any stale values left in the broker from a previous run — once
+            # per process only. Doing this on every reconnect blanked all the gauges
+            # whenever the link dropped; they now hold their last values instead.
+            if not broker_cleared:
+                client.set_current_values({
+                    'Vehicle.Speed':                                               Datapoint(0.0),
+                    'Vehicle.OBD.EngineSpeed':                                     Datapoint(0.0),
+                    'Vehicle.OBD.FuelLevel':                                       Datapoint(0.0),
+                    'Vehicle.OBD.CoolantTemperature':                              Datapoint(0.0),
+                    'Vehicle.Powertrain.FuelSystem.Range':                         Datapoint(0.0),
+                    'Vehicle.Powertrain.FuelSystem.IsFuelLevelLow':                Datapoint(False),
+                    'Vehicle.Body.Lights.DirectionIndicator.Left.IsSignaling':     Datapoint(False),
+                    'Vehicle.Body.Lights.DirectionIndicator.Right.IsSignaling':    Datapoint(False),
+                    'Vehicle.Body.Lights.Hazard.IsSignaling':                      Datapoint(False),
+                    'Vehicle.Body.Lights.Beam.Low.IsOn':                           Datapoint(False),
+                    'Vehicle.Body.Lights.Beam.High.IsOn':                          Datapoint(False),
+                    'Vehicle.Body.Lights.Running.IsOn':                            Datapoint(False),
+                    'Vehicle.Powertrain.IsAutoPowerOptimize':                      Datapoint(False),
+                    'Vehicle.Cabin.HVAC.IsAirConditioningActive':                  Datapoint(False),
+                    'Vehicle.ADAS.DMS.IsError':                                    Datapoint(False),
+                    'Vehicle.Body.Lights.Parking.IsOn':                            Datapoint(False),
+                    'Vehicle.Powertrain.CombustionEngine.EngineOil.Level':        Datapoint("NORMAL"),
+                    'Vehicle.Cabin.Door.Row1.DriverSide.IsOpen':                  Datapoint(False),
+                    'Vehicle.Cabin.Door.Row1.PassengerSide.IsOpen':               Datapoint(False),
+                    'Vehicle.Cabin.Door.Row2.DriverSide.IsOpen':                  Datapoint(False),
+                    'Vehicle.Cabin.Door.Row2.PassengerSide.IsOpen':               Datapoint(False),
+                })
+                broker_cleared = True
+                log.info("🧹 Stale KUKSA values cleared.")
             with open(WIRE_STATE_FILE, 'w') as jf:
                 json.dump({'states': [False] * 20, 'voltages': [0.0] * 20}, jf)
             with open(FAST_STATE_FILE, 'w') as jf:
                 json.dump({'pageButton': False, 'tripReset': False}, jf)
-            print("🧹 Stale KUKSA values cleared.")
 
             last_trip_reset  = False
             last_page_button = False
@@ -243,12 +313,15 @@ def run_master_bridge():
             wire_below_count    = [0] * 20   # consecutive readings below threshold
             wire_confirmed      = [False] * 20  # debounced state written to JSON
 
+            global screen_asleep
             ignition_below_count = 0   # consecutive 1s readings with AV14 below IGNITION_SLEEP_THRESHOLD_V
+            ignition_above_count = 0   # consecutive 1s readings with AV14 at/above it
 
             while True:
                 line = ser.readline().decode('utf-8', errors='ignore').strip()
                 if not line:
                     continue
+                last_line_time = time.monotonic()
 
                 # FAST line — page button + indicators, sent every 100ms,
                 # independent of the 1s telemetry line below.
@@ -287,6 +360,10 @@ def run_master_bridge():
                     temp_val        = float(parts[2].split(':')[1])
                     fuel_liters_val = float(parts[3].split(':')[1])
                     fuel_range_val  = float(parts[4].split(':')[1])
+                    if TEST_FUEL_LITERS is not None:
+                        # Test override: fixed fuel level regardless of the A3 sender
+                        fuel_liters_val = TEST_FUEL_LITERS
+                        fuel_range_val  = round(TEST_FUEL_LITERS * TEST_KM_PER_LITER)
 
                     IsFuelLevelLow = fuel_liters_val < 30
 
@@ -306,7 +383,8 @@ def run_master_bridge():
                     door_open       = False
                     trip_reset      = False
                     native_temp_v   = -1.0
-                    native_temp_val = -100.0
+                    native_temp_r   = -1.0   # A7 sender ohms; -1 = open / not sent
+                    fuel_v          = -1.0   # raw A3 sender volts; -1 = not sent
                     for part in parts[5:]:
                         if part.startswith("LINDIC:"):
                             left_indicator  = part.split(':')[1] == '1'
@@ -336,8 +414,10 @@ def run_master_bridge():
                             trip_reset = part.split(':')[1] == '1'
                         elif part.startswith("NATIVETEMPV:"):
                             native_temp_v = float(part.split(':')[1])
-                        elif part.startswith("NATIVETEMP:"):
-                            native_temp_val = float(part.split(':')[1])
+                        elif part.startswith("NATIVETEMPR:"):
+                            native_temp_r = float(part.split(':')[1])
+                        elif part.startswith("FUELV:"):
+                            fuel_v = float(part.split(':')[1])
 
                     last_trip_reset = trip_reset
                     with open(FAST_STATE_FILE, 'w') as jf:
@@ -383,25 +463,32 @@ def run_master_bridge():
                     with open(WIRE_STATE_FILE, 'w') as jf:
                         json.dump({'states': wire_confirmed, 'voltages': wire_voltages}, jf)
 
-                    # Ignition-off PC suspend — AV14 (wire index 13) below threshold
+                    # Ignition-off screen sleep — AV14 (wire index 13) below threshold
                     # for SLEEP_DEBOUNCE_COUNT consecutive seconds means ignition is off.
                     if wire_voltages[13] < IGNITION_SLEEP_THRESHOLD_V:
                         ignition_below_count += 1
+                        ignition_above_count = 0
                     else:
+                        ignition_above_count += 1
                         ignition_below_count = 0
 
-                    if ignition_below_count >= SLEEP_DEBOUNCE_COUNT:
-                        print(f"🌙 Ignition below {IGNITION_SLEEP_THRESHOLD_V}V for {SLEEP_DEBOUNCE_COUNT}s — suspending PC.")
-                        subprocess.run(['systemctl', 'suspend'])
-                        ignition_below_count = 0  # avoid re-triggering immediately on resume
+                    if not screen_asleep and ignition_below_count >= SLEEP_DEBOUNCE_COUNT:
+                        log.info(f"🌙 Ignition below {IGNITION_SLEEP_THRESHOLD_V}V for {SLEEP_DEBOUNCE_COUNT}s — screen off.")
+                        set_screen_power(False)
+                        screen_asleep = True
+                    elif screen_asleep and ignition_above_count >= WAKE_DEBOUNCE_COUNT:
+                        log.info(f"☀️  Ignition back on ({wire_voltages[13]:.1f}V) — screen on.")
+                        set_screen_power(True)
+                        screen_asleep = False
 
                     # ECU STATUS screen shows wire indices 0-14 (AV1-AV13 + ignition/standby power).
                     # If any of those reads 0V, light the ECU warning icon.
-                    # Index 6 (A7/brown-red) is excluded — repurposed for the native
-                    # coolant temp sender, so it has no ANALOG_TO_WIRE entry and never
-                    # gets written here, leaving it stuck at its 0.0 default forever,
-                    # which would otherwise permanently trip this check.
-                    ecu_error = any(v <= 0.01 for i, v in enumerate(wire_voltages[:15]) if i != 6)
+                    # Indexes 2 (A3/brown) and 6 (A7/brown-red) are excluded — repurposed
+                    # for the fuel and native coolant temp senders, so they have no
+                    # ANALOG_TO_WIRE entry and never get written here, leaving them stuck
+                    # at their 0.0 default forever, which would otherwise permanently
+                    # trip this check.
+                    ecu_error = any(v <= 0.01 for i, v in enumerate(wire_voltages[:15]) if i not in (2, 6))
 
                     telemetry = {
                        'Vehicle.Speed':                                               Datapoint(speed_val),
@@ -432,7 +519,7 @@ def run_master_bridge():
                        'Vehicle.Cabin.Door.Row2.DriverSide.IsOpen':                   Datapoint(door_open),
                        'Vehicle.Cabin.Door.Row2.PassengerSide.IsOpen':                Datapoint(door_open),
                     }
-                    # -100 means thermocouple disconnected — skip temp publish
+                    # -100 means the A7 sender is open or shorted — skip temp publish
                     if temp_val != -100.0:
                         telemetry['Vehicle.OBD.CoolantTemperature'] = Datapoint(temp_val)
                     client.set_current_values(telemetry)
@@ -467,48 +554,41 @@ def run_master_bridge():
                                 'Vehicle.Powertrain.FuelSystem.AverageConsumption':
                                     Datapoint(float(kpl))
                             })
-                        print(f"KPL log entry written → {kpl} km/L  (file: {KPL_LOG_FILE})")
+                        log.info(f"KPL log entry written → {kpl} km/L  (file: {KPL_LOG_FILE})")
 
-                    # Native coolant sender calibration log — matched (A7 volts,
-                    # MAX6675 benchmark °C) pairs, only while both readings look
-                    # real (TMP not the -100.0 disconnected sentinel, A7 in a
-                    # sane 0-5V range rather than floating near the ignition rail).
-                    if now - last_native_cal_log_time >= NATIVE_TEMP_CAL_LOG_INTERVAL:
-                        if temp_val != -100.0 and 0.0 < native_temp_v <= 5.5:
-                            log_native_temp_cal_point(native_temp_v, temp_val)
-                            last_native_cal_log_time = now
-                            print(f"Native temp cal point logged → {native_temp_v}V = {temp_val}°C  (file: {NATIVE_TEMP_CAL_LOG_FILE})")
-
-                    print(f"TELEMETRY -> Speed: {speed_val} km/h | RPM: {rpm_val} | TEMP: {temp_val} | LITERS: {fuel_liters_val} | RANGE: {fuel_range_val} | L:{int(left_indicator)} R:{int(right_indicator)} H:{int(hazard)} DIM:{int(lights_dim)} BRIGHT:{int(lights_bright)} DT:{int(daytime_lights)} PARK:{int(parking_lights)} PBRAKE:{int(parking_brake)} SEATBELT:{int(seatbelt)} GLOWPLUGS:{int(glow_plug_relay)} AC:{int(ac_active)} ECUERR:{int(ecu_error)} TRIPRESET:{int(trip_reset)} OIL:{'normal' if oil_signal else 'low'} DOOR:{'open' if door_open else 'closed'} | NATIVETEMP_RAW_V:{native_temp_v} NATIVETEMP_C:{native_temp_val}")
+                    print(f"TELEMETRY -> Speed: {speed_val} km/h | RPM: {rpm_val} | TEMP: {temp_val} | LITERS: {fuel_liters_val} | FUELV: {fuel_v}V | RANGE: {fuel_range_val} | L:{int(left_indicator)} R:{int(right_indicator)} H:{int(hazard)} DIM:{int(lights_dim)} BRIGHT:{int(lights_bright)} DT:{int(daytime_lights)} PARK:{int(parking_lights)} PBRAKE:{int(parking_brake)} SEATBELT:{int(seatbelt)} GLOWPLUGS:{int(glow_plug_relay)} AC:{int(ac_active)} ECUERR:{int(ecu_error)} TRIPRESET:{int(trip_reset)} OIL:{'normal' if oil_signal else 'low'} DOOR:{'open' if door_open else 'closed'} | NATIVETEMP_RAW_V:{native_temp_v} NATIVETEMP_R:{native_temp_r}")
 
                 except (ValueError, IndexError) as e:
-                    print(f"⚠️ Malformed data received: {line} ({e})")
+                    log.warning(f"⚠️ Malformed data received: {line} ({e})")
 
     except KeyboardInterrupt:
-        print("\n🛑 Shutting down.")
-    except Exception as e:
-        print(f"❌ Connection lost: {e}")
+        log.info("🛑 Shutting down.")
+    except Exception:
+        log.exception(f"❌ Connection lost on {ser.port} (device present: {os.path.exists(ser.port)}, "
+                      f"{time.monotonic() - last_line_time:.1f}s since last serial line)")
     finally:
         # Zero out wire states so ECU STATUS shows all red when bridge is not running
         with open(WIRE_STATE_FILE, 'w') as jf:
             json.dump({'states': [False] * 20, 'voltages': [0.0] * 20}, jf)
         if ser and ser.is_open:
             ser.close()
-        print("🔌 Wire states zeroed — bridge exiting.")
+        log.info("🔌 Wire states zeroed — bridge exiting.")
 
 if __name__ == "__main__":
-    print("🚀 Starting normal operations...")
+    _setup_logging()
+    instance_lock = _acquire_instance_lock()
+    log.info("🚀 Starting normal operations...")
 
     while True:
         try:
             run_master_bridge()
         except KeyboardInterrupt:
-            print("\n🛑 Shutting down.")
+            log.info("🛑 Shutting down.")
             break
         except SystemExit:
             break
         except Exception as e:
-            print(f"🔄 Bridge dropped ({e}), reconnecting in 3 s...")
+            log.warning(f"🔄 Bridge dropped ({e}), reconnecting in 3 s...")
             time.sleep(3)
         else:
             # run_master_bridge returned normally (no Arduino found) — wait before retry

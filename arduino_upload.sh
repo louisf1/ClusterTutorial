@@ -45,20 +45,31 @@ if systemctl is-active --quiet "$BRIDGE"; then
 fi
 
 # start_dash.sh runs the bridge as its own background process, not via
-# systemd. Pause it (SIGSTOP) rather than kill it: a stopped process doesn't
-# read the port, so avrdude gets the bootloader bytes, and start_dash.sh's
-# `kill $PYTHON_PID` still works on dashboard exit. The Mega's USB link stays
-# up across the reset, so the bridge keeps its open port after SIGCONT.
-PAUSED_PIDS=""
+# systemd. Stop it outright: merely pausing it (SIGSTOP) leaves the port open,
+# and some Megas' bootloaders then never answer avrdude's sync. Its cwd and
+# log are recorded first so it can be relaunched the same way afterwards;
+# start_dash.sh stops it by name on dashboard exit, so the relaunched copy is
+# still cleaned up.
+BRIDGE_SCRIPT="Python_Utils/rpm_speed_arduino_dev_ttyACM0.py"
+BRIDGE_PYTHON="$HOME/.conan-env/bin/python3"
+DASH_BRIDGE_STOPPED=false
+DASH_BRIDGE_CWD="$HOME/ClusterWorx/build"
+DASH_BRIDGE_LOG="/tmp/cluster-dash.log"
 
 restore_bridge() {
     if $WAS_ACTIVE; then
         echo "==> Restarting $BRIDGE..."
         sudo systemctl start "$BRIDGE"
     fi
-    if [ -n "$PAUSED_PIDS" ]; then
-        echo "==> Resuming start_dash bridge (PID $PAUSED_PIDS)..."
-        kill -CONT $PAUSED_PIDS 2>/dev/null || true
+    if $DASH_BRIDGE_STOPPED; then
+        sleep 2  # let the Mega finish resetting before the bridge opens it
+        echo "==> Restarting start_dash bridge (log: $DASH_BRIDGE_LOG)..."
+        # Redirect the whole subshell, not just python: otherwise the forked
+        # subshell keeps this script's stdout open and a caller piping our
+        # output (e.g. `| tail`) hangs until the bridge exits.
+        (cd "$DASH_BRIDGE_CWD" && ARDUINO_PORT="$PORT" setsid nohup \
+            "$BRIDGE_PYTHON" -u "$HOME/ClusterWorx/$BRIDGE_SCRIPT" &) \
+            >> "$DASH_BRIDGE_LOG" 2>&1 < /dev/null
     fi
 }
 trap restore_bridge EXIT
@@ -69,10 +80,21 @@ if $WAS_ACTIVE; then
     sleep 1
 fi
 
-PAUSED_PIDS=$(pgrep -f "Python_Utils/rpm_speed_arduino_dev_ttyACM0.py" | tr '\n' ' ' | sed 's/ $//' || true)
-if [ -n "$PAUSED_PIDS" ]; then
-    echo "==> Pausing start_dash bridge (PID $PAUSED_PIDS) to free $PORT..."
-    kill -STOP $PAUSED_PIDS
+DASH_BRIDGE_PIDS=$(pgrep -f "$BRIDGE_SCRIPT" | tr '\n' ' ' | sed 's/ $//' || true)
+if [ -n "$DASH_BRIDGE_PIDS" ]; then
+    first_pid=${DASH_BRIDGE_PIDS%% *}
+    DASH_BRIDGE_CWD=$(readlink "/proc/$first_pid/cwd" 2>/dev/null || echo "$DASH_BRIDGE_CWD")
+    log=$(readlink "/proc/$first_pid/fd/1" 2>/dev/null || true)
+    [ -f "$log" ] && DASH_BRIDGE_LOG="$log"
+
+    echo "==> Stopping start_dash bridge (PID $DASH_BRIDGE_PIDS) to free $PORT..."
+    DASH_BRIDGE_STOPPED=true
+    kill $DASH_BRIDGE_PIDS 2>/dev/null || true
+    for _ in 1 2 3 4 5; do
+        pgrep -f "$BRIDGE_SCRIPT" > /dev/null || break
+        sleep 1
+    done
+    pkill -KILL -f "$BRIDGE_SCRIPT" 2>/dev/null || true
     sleep 1
 fi
 

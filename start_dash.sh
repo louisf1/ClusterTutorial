@@ -10,7 +10,10 @@
 #   - Arduino Mega auto-detected by USB ID (ttyACM*/ttyUSB*), upload skipped if absent
 
 set -e
-trap 'kill $(jobs -p) 2>/dev/null; pkill -f avrdude 2>/dev/null; pkill -f arduino-cli 2>/dev/null' EXIT
+# The bridge is stopped by name, not just via jobs: arduino_upload.sh may have
+# restarted it under a new PID while the dashboard was running. Doing this here
+# also covers Ctrl-C and dashboard crashes, which never reach the end of the script.
+trap 'kill $(jobs -p) 2>/dev/null; pkill -f "Python_Utils/rpm_speed_arduino_dev_ttyACM0.py" 2>/dev/null; pkill -f avrdude 2>/dev/null; pkill -f arduino-cli 2>/dev/null' EXIT
 
 # =============================================================================
 # Configuration — edit these if paths change
@@ -52,7 +55,8 @@ cd "$BUILD_DIR"
 # [FIX] Copy only if missing: the app persists runtime state (trip meter,
 #        odometer, VIN) back into the build-dir copy, which must survive
 #        rebuilds.
-[ -f VSS_paths.txt ] || cp "$PROJECT_DIR/VSS_paths.txt" .
+# -s: also re-seed a 0-byte copy left by a power cut mid-write
+[ -s VSS_paths.txt ] || cp "$PROJECT_DIR/VSS_paths.txt" .
 
 # =============================================================================
 # 3. KUKSA databroker — normally already up at boot (docker.service is enabled
@@ -112,4 +116,3 @@ PYTHON_PID=$!
 # =============================================================================
 echo "==> Launching ClusterDashboardApp..."
 ./ClusterDashboardApp
-kill $PYTHON_PID 2>/dev/null

@@ -7,6 +7,7 @@
 #include <QDebug>
 #include <QTimer>
 #include <QFile>
+#include <QSaveFile>
 #include <QTextStream>
 #include <QDir>
 #include <QScreen>
@@ -513,14 +514,21 @@ void updateConfigFile(const QString     &filePath,
     file.close();
     if (!updated) return;
 
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text |
-                   QIODevice::Truncate)) {
+    // [FIX] QSaveFile writes to a temp file and renames on commit, so a power
+    //       cut mid-write (ignition off) can no longer leave a 0-byte config
+    //       that makes the next boot subscribe to nothing.
+    QSaveFile out_file(filePath);
+    if (!out_file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         qDebug() << "updateConfigFile: cannot open for write:" << filePath;
         return;
     }
-    QTextStream out(&file);
+    QTextStream out(&out_file);
     for (const QString &l : lines) out << l << '\n';
-    file.close();
+    out.flush();
+    if (!out_file.commit()) {
+        qDebug() << "updateConfigFile: commit failed:" << filePath;
+        return;
+    }
     qDebug() << "Persisted" << QString::fromStdString(hmiProperty)
              << "=" << newValue << "to" << filePath;
 }
